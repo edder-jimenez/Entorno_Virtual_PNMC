@@ -39,6 +39,15 @@ dotnet run --project src/PNMC.Api/PNMC.Api.csproj
 Swagger: `http://localhost:8080/swagger`
 Health: `http://localhost:8080/health/live`
 
+## Endpoints clave (compatibilidad)
+
+- Noticias:
+  - `GET /api/v1/news/articles`
+  - `GET /api/v1/news` (alias de compatibilidad)
+- Editorial:
+  - `GET /api/v1/editorial/resources`
+  - `GET /api/v1/editorial` (alias de compatibilidad)
+
 ## Pruebas
 
 ```bash

@@ -10,14 +10,14 @@ public static class EditorialEndpoints
     {
         var api = group.MapGroup("/editorial").WithTags("editorial");
 
-        api.MapGet("/resources", async (
+        async Task<IResult> listResourcesAsync(
             PnmcDbContext dbContext,
             string? section,
             string? year,
             string? q,
             int? limit,
             int? offset,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken)
         {
             var items = await BuildResourcesAsync(dbContext, cancellationToken);
 
@@ -46,7 +46,10 @@ public static class EditorialEndpoints
             var page = items.Skip(safeOffset).Take(safeLimit).ToList();
 
             return Results.Ok(new PagedResponse<EditorialResourceDto>(page, safeLimit, safeOffset, items.Count));
-        });
+        }
+
+        api.MapGet(string.Empty, listResourcesAsync);
+        api.MapGet("/resources", listResourcesAsync);
 
         api.MapGet("/resources/{resourceId}", async (string resourceId, PnmcDbContext dbContext, CancellationToken cancellationToken) =>
         {

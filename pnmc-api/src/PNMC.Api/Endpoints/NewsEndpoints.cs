@@ -11,14 +11,14 @@ public static class NewsEndpoints
     {
         var api = group.MapGroup("/news").WithTags("noticias");
 
-        api.MapGet("/articles", async (
+        async Task<IResult> listNewsAsync(
             PnmcDbContext dbContext,
             string? month,
             string? category,
             string? q,
             int? limit,
             int? offset,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken)
         {
             var rows = await dbContext.NewsArticles.AsNoTracking().ToListAsync(cancellationToken);
             var categories = await dbContext.Categories.AsNoTracking()
@@ -64,7 +64,10 @@ public static class NewsEndpoints
             var page = items.Skip(safeOffset).Take(safeLimit).ToList();
 
             return Results.Ok(new PagedResponse<NewsArticleDto>(page, safeLimit, safeOffset, items.Count));
-        });
+        }
+
+        api.MapGet(string.Empty, listNewsAsync);
+        api.MapGet("/articles", listNewsAsync);
 
         api.MapGet("/articles/{articleId}", async (
             string articleId,
