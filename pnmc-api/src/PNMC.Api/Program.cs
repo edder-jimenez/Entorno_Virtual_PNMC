@@ -1,0 +1,67 @@
+using Microsoft.Extensions.Configuration;
+using PNMC.Api.Endpoints;
+using PNMC.Infrastructure;
+using PNMC.Infrastructure.Common;
+using PNMC.Infrastructure.Data;
+
+PNMC.Api.DotEnvLoader.Load();
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
+builder.Services.AddAuthorization();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PnmcWebFrontend", policy =>
+    {
+        if (builder.Environment.IsDevelopment()
+            || builder.Environment.IsEnvironment("Local")
+            || builder.Environment.IsEnvironment("Test"))
+        {
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+            return;
+        }
+
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader();
+        }
+    });
+});
+
+builder.Services.AddPnmcInfrastructure(builder.Configuration, builder.Environment);
+
+var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
+await DatabaseBootstrapper.EnsureReadyAsync(app.Services);
+
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors("PnmcWebFrontend");
+app.UseAuthorization();
+
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
+
+var api = app.MapGroup("/api/v1");
+api.MapAgendaEndpoints();
+api.MapNewsEndpoints();
+api.MapMapEndpoints();
+api.MapEditorialEndpoints();
+api.MapGalleryEndpoints();
+api.MapCatalogModuleEndpoints();
+api.MapParticipationEndpoints();
+api.MapAdminDataEndpoints();
+app.MapLegacyParticipationCompatibilityEndpoint();
+
+app.Run();
+
+public partial class Program;

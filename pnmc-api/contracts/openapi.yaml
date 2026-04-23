@@ -1,0 +1,1229 @@
+openapi: 3.1.0
+info:
+  title: PNMC Migration API
+  version: 1.0.0
+  summary: Contrato API inicial para migracion incremental PNMC
+  description: |
+    Contrato base para desacoplar integraciones sensibles del frontend actual,
+    habilitando una migracion paralela sin tocar la UI existente.
+servers:
+  - url: http://localhost:8080
+    description: Local
+  - url: https://api-dev.pnmc.local
+    description: Dev (referencia)
+tags:
+  - name: agenda
+  - name: noticias
+  - name: mapa
+  - name: editorial
+  - name: galeria
+  - name: participacion
+  - name: festivals
+  - name: music-schools
+  - name: music-markets
+  - name: organizations
+  - name: spaces-infrastructure
+  - name: divipola
+  - name: process-entity-relations
+  - name: process-relations
+  - name: admin-data
+  - name: health
+paths:
+  /health/live:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Servicio vivo
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Servicio listo
+
+  /api/v1/agenda/events:
+    get:
+      tags: [agenda]
+      summary: Listar eventos de agenda
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - in: query
+          name: month
+          schema:
+            type: string
+            pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$'
+          description: Filtro por mes (YYYY-MM)
+        - in: query
+          name: tag
+          schema:
+            type: string
+          description: Filtro por etiqueta
+      responses:
+        '200':
+          description: Eventos retornados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAgendaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/agenda/events/{eventId}:
+    get:
+      tags: [agenda]
+      summary: Obtener detalle de evento
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Evento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaEvent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/news/articles:
+    get:
+      tags: [noticias]
+      summary: Listar articulos de noticias
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - in: query
+          name: month
+          schema:
+            type: string
+            pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$'
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Noticias retornadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedNewsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/news/articles/{articleId}:
+    get:
+      tags: [noticias]
+      summary: Obtener articulo por id
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Articulo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsArticle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/map/summary:
+    get:
+      tags: [mapa]
+      summary: Resumen agregado del mapa por capa
+      parameters:
+        - in: query
+          name: layer
+          schema:
+            $ref: '#/components/schemas/MapLayer'
+          description: Capa objetivo
+      responses:
+        '200':
+          description: Resumen por departamento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/map/departments/{departmentCode}/drilldown:
+    get:
+      tags: [mapa]
+      summary: Drilldown de un departamento
+      parameters:
+        - in: path
+          name: departmentCode
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 64
+          description: Nombre normalizado de departamento
+      responses:
+        '200':
+          description: Detalle por capa del departamento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentDrilldownResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/editorial/resources:
+    get:
+      tags: [editorial]
+      summary: Listar recursos editoriales
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - in: query
+          name: section
+          schema:
+            type: string
+        - in: query
+          name: year
+          schema:
+            type: string
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recursos retornados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedEditorialResponse'
+
+  /api/v1/editorial/resources/{resourceId}:
+    get:
+      tags: [editorial]
+      summary: Obtener recurso editorial por id
+      parameters:
+        - in: path
+          name: resourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recurso encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorialResource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/gallery/albums:
+    get:
+      tags: [galeria]
+      summary: Listar albumes de galeria
+      parameters:
+        - in: query
+          name: featuredOnly
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Albumes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GalleryAlbum'
+
+  /api/v1/gallery/albums/{albumId}:
+    get:
+      tags: [galeria]
+      summary: Obtener album por id
+      parameters:
+        - in: path
+          name: albumId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Album encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryAlbum'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/participation/submissions:
+    get:
+      tags: [participacion]
+      summary: Listar envios de participacion (vista tabular)
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - in: query
+          name: actorType
+          schema:
+            type: string
+            enum: [individual, collective, organization, festival, market, space]
+        - in: query
+          name: department
+          schema:
+            type: string
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Listado paginado de envios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedParticipationSubmissionSummaryResponse'
+    post:
+      tags: [participacion]
+      summary: Registrar participacion
+      description: |
+        Endpoint server-side para reemplazar el guardado desde middleware local de Vite.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipationSubmissionRequest'
+      responses:
+        '201':
+          description: Registro creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipationSubmissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          description: Error de validacion de dominio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/v1/participation/submissions/{reference}:
+    get:
+      tags: [participacion]
+      summary: Consultar envio por referencia
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Registro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipationSubmissionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/map-participation:
+    post:
+      tags: [participacion]
+      summary: Endpoint de compatibilidad con flujo legacy
+      description: |
+        Mantiene el contrato de `POST /api/map-participation` del frontend actual
+        para conectar gradualmente sin romper la UI existente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipationSubmissionRequest'
+      responses:
+        '200':
+          description: Registro aceptado en backend de migracion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [fileName, message, reference, status, externalSyncStatus]
+                properties:
+                  fileName: { type: string }
+                  message: { type: string }
+                  reference: { type: string }
+                  status: { type: string }
+                  externalSyncStatus: { type: string }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/schema:
+    get:
+      tags: [admin-data]
+      summary: Campos esperados por modulo y tabla SQL destino
+      responses:
+        '200':
+          description: Esquema funcional para carga de datos
+
+  /api/v1/admin/data/stats:
+    get:
+      tags: [admin-data]
+      summary: Estadisticas de registros en backend
+      responses:
+        '200':
+          description: Conteos por modulo
+
+  /api/v1/admin/data/agenda/events:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar evento de agenda en base backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaEventUpsertRequest'
+      responses:
+        '200':
+          description: Evento persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/news/articles:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar articulo de noticias en base backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsArticleUpsertRequest'
+      responses:
+        '200':
+          description: Articulo persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/map/festivals:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar registro de festivales
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapFestivalUpsertRequest'
+      responses:
+        '200':
+          description: Registro persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/map/schools:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar registro de escuelas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapSchoolUpsertRequest'
+      responses:
+        '200':
+          description: Registro persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/map/markets:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar registro de mercados
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapMarketUpsertRequest'
+      responses:
+        '200':
+          description: Registro persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/festivals:
+    get:
+      tags: [festivals]
+      summary: Listar festivales desde SQL
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Festivales paginados
+
+  /api/v1/music-schools:
+    get:
+      tags: [music-schools]
+      summary: Listar escuelas de musica desde SQL
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Escuelas paginadas
+
+  /api/v1/music-markets:
+    get:
+      tags: [music-markets]
+      summary: Listar mercados musicales desde SQL
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Mercados paginados
+
+  /api/v1/organizations:
+    get:
+      tags: [organizations]
+      summary: Listar organizaciones desde SQL
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Organizaciones paginadas
+
+  /api/v1/spaces-infrastructure:
+    get:
+      tags: [spaces-infrastructure]
+      summary: Listar espacios e infraestructura desde SQL
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Espacios paginados
+
+  /api/v1/divipola/locations:
+    get:
+      tags: [divipola]
+      summary: Listar ubicaciones DIVIPOLA
+      parameters:
+        - in: query
+          name: departmentCode
+          schema: { type: string }
+        - in: query
+          name: municipalityCode
+          schema: { type: string }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Ubicaciones paginadas
+
+  /api/v1/divipola/grouped:
+    get:
+      tags: [divipola]
+      summary: Lista DIVIPOLA agrupada por departamento
+      responses:
+        '200':
+          description: Diccionario departamento -> municipios
+
+  /api/v1/process-entity-relations:
+    get:
+      tags: [process-entity-relations]
+      summary: Listar relaciones proceso-entidad
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Relaciones paginadas
+
+  /api/v1/process-relations:
+    get:
+      tags: [process-relations]
+      summary: Listar relaciones entre procesos
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Relaciones paginadas
+
+  /api/v1/admin/data/editorial/resources:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar recurso editorial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditorialResourceUpsertRequest'
+      responses:
+        '200':
+          description: Recurso persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/organizations:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar organizacion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUpsertRequest'
+      responses:
+        '200':
+          description: Organizacion persistida
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/spaces-infrastructure:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar espacio o infraestructura
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpaceInfrastructureUpsertRequest'
+      responses:
+        '200':
+          description: Espacio persistido
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/process-entity-relations:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar relacion proceso-entidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessEntityRelationUpsertRequest'
+      responses:
+        '200':
+          description: Relacion persistida
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/admin/data/process-relations:
+    post:
+      tags: [admin-data]
+      summary: Crear o actualizar relacion entre procesos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRelationUpsertRequest'
+      responses:
+        '200':
+          description: Relacion persistida
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  parameters:
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    EventId:
+      in: path
+      name: eventId
+      required: true
+      schema:
+        type: string
+    ArticleId:
+      in: path
+      name: articleId
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Solicitud invalida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    InternalError:
+      description: Error interno
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    MapLayer:
+      type: string
+      enum:
+        - General
+        - Festivales
+        - Escuelas de Música
+        - Mercados Musicales
+
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    Pagination:
+      type: object
+      required: [limit, offset, total]
+      properties:
+        limit: { type: integer }
+        offset: { type: integer }
+        total: { type: integer }
+
+    AgendaEvent:
+      type: object
+      required: [id, title, date]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        date:
+          type: string
+          format: date
+        timeLabel: { type: string }
+        location: { type: string }
+        municipality: { type: string }
+        department: { type: string }
+        organizer: { type: string }
+        imageUrl: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        source:
+          type: string
+          enum: [backend_sql]
+
+    PagedAgendaResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaEvent'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    NewsArticle:
+      type: object
+      required: [id, title, date]
+      properties:
+        id: { type: string }
+        date: { type: string }
+        category: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        contentHtml: { type: string }
+        imageUrl: { type: string }
+        source:
+          type: string
+          enum: [backend_sql]
+
+    PagedNewsResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsArticle'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    EditorialResource:
+      type: object
+      required: [id, title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        year: { type: string }
+        section: { type: string }
+        sectionPath: { type: string }
+        publicationType: { type: string }
+        practice: { type: string }
+        category: { type: string }
+        subcategory: { type: string }
+        author: { type: string }
+        corporateAuthor: { type: string }
+        credits: { type: string }
+        isbn: { type: string }
+        ismn: { type: string }
+        formatSize: { type: string }
+        pages: { type: string }
+        duration: { type: string }
+        regionalScope: { type: string }
+        location: { type: string }
+        url: { type: string }
+        keywords:
+          type: array
+          items: { type: string }
+        summary: { type: string }
+        additionalFields: { type: string }
+        coverText: { type: string }
+        thumbnail: { type: string }
+        displayAuthor: { type: string }
+
+    PagedEditorialResponse:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditorialResource'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    GalleryPhoto:
+      type: object
+      properties:
+        id: { type: string }
+        src: { type: string }
+        title: { type: string }
+        alt: { type: string }
+        description: { type: string }
+
+    GallerySection:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        type: { type: string }
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryPhoto'
+
+    GalleryAlbum:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        category: { type: string }
+        description: { type: string }
+        location: { type: string }
+        dateLabel: { type: string }
+        featured: { type: boolean }
+        cover: { type: string }
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/GallerySection'
+
+    MapDepartmentSummary:
+      type: object
+      required: [department, records]
+      properties:
+        department: { type: string }
+        records: { type: integer }
+        festivals: { type: integer }
+        schools: { type: integer }
+        markets: { type: integer }
+
+    MapSummaryResponse:
+      type: object
+      required: [layer, items]
+      properties:
+        layer:
+          $ref: '#/components/schemas/MapLayer'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapDepartmentSummary'
+
+    DepartmentDrilldownResponse:
+      type: object
+      required: [department, festivals, schools, markets]
+      properties:
+        department: { type: string }
+        festivals:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              municipality: { type: string }
+        schools:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              municipality: { type: string }
+              students: { type: integer }
+              teachers: { type: integer }
+        markets:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              municipality: { type: string }
+              averageProjects: { type: integer }
+              averageBuyers: { type: integer }
+
+    ParticipationSubmissionRequest:
+      type: object
+      required:
+        - actorType
+        - actorName
+        - email
+        - phone
+        - department
+        - municipality
+        - musicalFields
+        - description
+        - contribution
+        - consent
+      properties:
+        reference:
+          type: string
+          description: Si no se envia, el backend la genera.
+        actorType:
+          type: string
+          enum: [individual, collective, organization, festival, market, space]
+        actorTypeLabel: { type: string }
+        actorName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        individualFirstName: { type: string }
+        individualLastName: { type: string }
+        identificationType: { type: string }
+        identificationNumber: { type: string }
+        hasArtisticName: { type: boolean }
+        artisticName: { type: string }
+        responsibleEntity: { type: string }
+        contactName: { type: string }
+        contactRole: { type: string }
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 32
+        department:
+          type: string
+          minLength: 2
+        municipality:
+          type: string
+          minLength: 2
+        territoryScope: { type: string }
+        website: { type: string }
+        facebookUrl: { type: string }
+        instagramUrl: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        musicalFields: { type: string }
+        description: { type: string }
+        contribution: { type: string }
+        needs: { type: string }
+        organizationSubtype: { type: string }
+        yearFounded: { type: string }
+        legalStatus: { type: string }
+        mainPrograms: { type: string }
+        festivalDurationDays: { type: string }
+        festivalSetting: { type: string }
+        festivalVenueMode: { type: string }
+        festivalAdditionalLocations:
+          type: array
+          items:
+            type: object
+            properties:
+              department: { type: string }
+              municipality: { type: string }
+        festivalFrequency: { type: string }
+        festivalVersions: { type: string }
+        festivalHabitualMonths:
+          type: array
+          items: { type: string }
+        festivalTicketing: { type: string }
+        openCall: { type: string }
+        festivalThisYearStatus: { type: string }
+        festivalThisYearDate: { type: string, format: date }
+        festivalThisYearStartDate: { type: string, format: date }
+        festivalThisYearEndDate: { type: string, format: date }
+        festivalCurrentOpenCall: { type: string }
+        festivalOpenCallDeadline: { type: string, format: date }
+        marketFrequency: { type: string }
+        marketEditionsCount: { type: string }
+        averageBuyers: { type: string }
+        linkedFestival: { type: string }
+        linkedFestivalName: { type: string }
+        marketHabitualMonths:
+          type: array
+          items: { type: string }
+        marketThisYearStatus: { type: string }
+        marketThisYearMonth: { type: string }
+        marketThisYearDate: { type: string, format: date }
+        individualProfile: { type: string }
+        trajectoryYears: { type: string }
+        linkedProcesses: { type: string }
+        members: { type: string }
+        musicalPractice: { type: string }
+        circulationScope: { type: string }
+        collectiveTrajectory: { type: string }
+        spaceType: { type: string }
+        spaceCapacity: { type: string }
+        spaceUses: { type: string }
+        technicalEquipment: { type: string }
+        consent:
+          type: boolean
+
+    ParticipationSubmissionResponse:
+      type: object
+      required: [reference, status, submittedAt, externalSyncStatus, externalSyncMessage]
+      properties:
+        reference: { type: string }
+        status:
+          type: string
+          enum: [accepted, accepted_with_warnings, rejected]
+        submittedAt:
+          type: string
+          format: date-time
+        message: { type: string }
+        externalSyncStatus:
+          type: string
+          enum: [backend_only, not_configured, synced, pending_retry]
+        externalSyncMessage: { type: string }
+
+    ParticipationSubmissionSummary:
+      type: object
+      required: [reference, submittedAt, actorType, actorName, email, department, municipality, externalSyncStatus]
+      properties:
+        reference: { type: string }
+        submittedAt:
+          type: string
+          format: date-time
+        actorType: { type: string }
+        actorName: { type: string }
+        email: { type: string, format: email }
+        department: { type: string }
+        municipality: { type: string }
+        externalSyncStatus:
+          type: string
+          enum: [backend_only, not_configured, synced, pending_retry]
+
+    AgendaEventUpsertRequest:
+      type: object
+      required: [title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        date: { type: string }
+        timeLabel: { type: string }
+        location: { type: string }
+        municipality: { type: string }
+        department: { type: string }
+        organizer: { type: string }
+        imageUrl: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+
+    NewsArticleUpsertRequest:
+      type: object
+      required: [title]
+      properties:
+        id: { type: string }
+        date: { type: string }
+        category: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        contentHtml: { type: string }
+        imageUrl: { type: string }
+
+    MapFestivalUpsertRequest:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        department: { type: string }
+        municipality: { type: string }
+
+    MapSchoolUpsertRequest:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        department: { type: string }
+        municipality: { type: string }
+        students: { type: integer }
+        teachers: { type: integer }
+        activeGroupsCount: { type: integer }
+
+    MapMarketUpsertRequest:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        department: { type: string }
+        municipality: { type: string }
+        periodicity: { type: string }
+        editionsCount: { type: integer }
+        associatedFestivalDisplayName: { type: string }
+        averageProjects: { type: integer }
+        averageBuyers: { type: integer }
+
+    EditorialResourceUpsertRequest:
+      type: object
+      required: [title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        category: { type: string }
+        section: { type: string }
+        sectionPath: { type: string }
+        publicationType: { type: string }
+        author: { type: string }
+        corporateAuthor: { type: string }
+        year: { type: string }
+        url: { type: string }
+        keywords:
+          type: array
+          items: { type: string }
+
+    OrganizationUpsertRequest:
+      type: object
+      required: [name, department]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        department: { type: string }
+        municipality: { type: string }
+        organizationType: { type: string }
+        territorialScope: { type: string }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+        websiteUrl: { type: string }
+
+    SpaceInfrastructureUpsertRequest:
+      type: object
+      required: [name, department]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        department: { type: string }
+        municipality: { type: string }
+        actorType: { type: string }
+        primaryFunction: { type: string }
+        maxCapacityApprox: { type: integer }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+        websiteUrl: { type: string }
+
+    ProcessEntityRelationUpsertRequest:
+      type: object
+      required: [processType, processId, entityType, entityId, relationshipType]
+      properties:
+        id: { type: string }
+        processType: { type: string }
+        processId: { type: integer }
+        entityType: { type: string }
+        entityId: { type: integer }
+        relationshipType: { type: string }
+        notes: { type: string }
+
+    ProcessRelationUpsertRequest:
+      type: object
+      required: [sourceProcessType, sourceProcessId, targetProcessType, targetProcessId, relationshipType]
+      properties:
+        id: { type: string }
+        sourceProcessType: { type: string }
+        sourceProcessId: { type: integer }
+        targetProcessType: { type: string }
+        targetProcessId: { type: integer }
+        relationshipType: { type: string }
+        notes: { type: string }
+
+    PagedParticipationSubmissionSummaryResponse:
+      type: object
+      required: [items, limit, offset, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipationSubmissionSummary'
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
