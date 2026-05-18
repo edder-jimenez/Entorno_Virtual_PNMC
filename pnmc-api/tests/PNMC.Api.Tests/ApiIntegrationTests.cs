@@ -23,6 +23,10 @@ public sealed class ApiIntegrationTests : IClassFixture<TestWebApplicationFactor
 
         Assert.Equal(HttpStatusCode.OK, live.StatusCode);
         Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
+        Assert.True(live.Headers.Contains("X-Correlation-ID"));
+        Assert.True(ready.Headers.Contains("X-Correlation-ID"));
+        Assert.Equal("nosniff", live.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("DENY", ready.Headers.GetValues("X-Frame-Options").Single());
     }
 
     [Fact]
@@ -45,6 +49,32 @@ public sealed class ApiIntegrationTests : IClassFixture<TestWebApplicationFactor
         var payload = await response.Content.ReadFromJsonAsync<PagedResponse<NewsArticleDto>>();
         Assert.NotNull(payload);
         Assert.NotEmpty(payload!.Items);
+    }
+
+    [Fact]
+    public async Task News_ContentHtml_IsSanitized_OnWrite_AndRead()
+    {
+        var upsertRequest = new NewsArticleUpsertRequest
+        {
+            Title = "Noticia Sanitizada",
+            Summary = "Resumen sanitizado",
+            Category = "General",
+            ContentHtml = "<p onclick=\"alert('x')\">Hola</p><script>alert('boom')</script><a href=\"javascript:alert('x')\">link</a>"
+        };
+
+        var upsertResponse = await _client.PostAsJsonAsync("/api/v1/admin/data/news/articles", upsertRequest);
+        upsertResponse.EnsureSuccessStatusCode();
+
+        var listResponse = await _client.GetAsync("/api/v1/news/articles?limit=100&offset=0&q=Noticia%20Sanitizada");
+        listResponse.EnsureSuccessStatusCode();
+
+        var listPayload = await listResponse.Content.ReadFromJsonAsync<PagedResponse<NewsArticleDto>>();
+        Assert.NotNull(listPayload);
+        var item = Assert.Single(listPayload!.Items);
+
+        Assert.DoesNotContain("<script", item.ContentHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("onclick", item.ContentHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("javascript:", item.ContentHtml, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -191,6 +221,29 @@ public sealed class ApiIntegrationTests : IClassFixture<TestWebApplicationFactor
             Description = "",
             Contribution = "",
             Consent = false
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/participation/submissions", request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Participation_ReturnsBadRequest_WhenUrlsAreInvalid()
+    {
+        var request = new ParticipationSubmissionRequest
+        {
+            ActorType = "organization",
+            ActorName = "Colectivo Test URL",
+            Email = "colectivo.url@example.com",
+            Phone = "3000000000",
+            Department = "Antioquia",
+            Municipality = "Medellin",
+            MusicalFields = "Formacion",
+            Description = "Registro de prueba",
+            Contribution = "Aporte de prueba",
+            Website = "ftp://invalid-url",
+            FacebookUrl = "notaurl",
+            Consent = true
         };
 
         var response = await _client.PostAsJsonAsync("/api/v1/participation/submissions", request);

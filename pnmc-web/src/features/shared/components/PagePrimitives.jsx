@@ -35,9 +35,15 @@ const SectionHeader = ({ backgroundText, foregroundText, verticalContext, compac
   </div> 
 ); 
 
-const ContentWrapper = ({ children, className = '', id = '' }) => ( 
+const ContentWrapper = ({
+  children,
+  className = '',
+  id = '',
+  fullBleed = false,
+  innerClassName = '',
+}) => ( 
   <section id={id} className={`py-12 md:py-16 scroll-mt-24 ${className}`}> 
-    <div className="max-w-[100rem] mx-auto px-6 lg:px-8"> 
+    <div className={fullBleed ? innerClassName : `max-w-[100rem] mx-auto px-6 lg:px-8 ${innerClassName}`}> 
       {children} 
     </div> 
   </section> 

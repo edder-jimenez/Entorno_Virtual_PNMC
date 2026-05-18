@@ -1,6 +1,9 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using PNMC.Contracts;
 using PNMC.Infrastructure.Data;
 using PNMC.Infrastructure.Common;
@@ -12,6 +15,7 @@ public static class AdminDataEndpoints
     public static RouteGroupBuilder MapAdminDataEndpoints(this RouteGroupBuilder group)
     {
         var admin = group.MapGroup("/admin/data").WithTags("admin-data");
+        admin.AddEndpointFilter(ValidateAdminApiKeyAsync);
 
         admin.MapGet("/schema", () =>
         {
@@ -212,7 +216,7 @@ public static class AdminDataEndpoints
             row.Lead = request.Summary?.Trim();
             row.Body = string.IsNullOrWhiteSpace(request.ContentHtml)
                 ? request.Summary?.Trim() ?? string.Empty
-                : request.ContentHtml.Trim();
+                : HtmlSanitizer.SanitizeRichHtml(request.ContentHtml);
             row.CategoryId = categoryId;
             row.PublishedDate = publishedDate;
             row.UpdatedDate = DateTime.UtcNow.Date;
@@ -649,6 +653,40 @@ public static class AdminDataEndpoints
         });
 
         return group;
+    }
+
+    private static ValueTask<object?> ValidateAdminApiKeyAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var configuration = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var environment = context.HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+
+        var configuredApiKey = configuration["Security:AdminApiKey"] ?? configuration["PNMC_ADMIN_API_KEY"];
+        if (string.IsNullOrWhiteSpace(configuredApiKey))
+        {
+            if (environment.IsDevelopment() || environment.IsEnvironment("Local") || environment.IsEnvironment("Test"))
+            {
+                return next(context);
+            }
+
+            return ValueTask.FromResult<object?>(Results.Problem(
+                title: "Admin API key is not configured.",
+                statusCode: StatusCodes.Status503ServiceUnavailable));
+        }
+
+        var providedApiKey = context.HttpContext.Request.Headers["X-Admin-Api-Key"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(providedApiKey))
+        {
+            return ValueTask.FromResult<object?>(Results.Unauthorized());
+        }
+
+        var configuredBytes = Encoding.UTF8.GetBytes(configuredApiKey);
+        var providedBytes = Encoding.UTF8.GetBytes(providedApiKey);
+        if (!CryptographicOperations.FixedTimeEquals(configuredBytes, providedBytes))
+        {
+            return ValueTask.FromResult<object?>(Results.Unauthorized());
+        }
+
+        return next(context);
     }
 
     private static async Task<int> ResolveDefaultStatusIdAsync(PnmcDbContext dbContext, CancellationToken cancellationToken)

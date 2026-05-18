@@ -1,0 +1,55 @@
+/* You can add global styles to this file, and also import other style files */
+@import 'leaflet/dist/leaflet.css';
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700&family=Oswald:wght@400;600;700&display=swap');
+
+:root {
+  color-scheme: light;
+  --pnmc-purple: #291242;
+  --pnmc-green: #8bf784;
+  --pnmc-green-strong: #00da5e;
+  --pnmc-slate-ink: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--pnmc-slate-ink);
+  font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--pnmc-green-strong);
+  color: var(--pnmc-purple);
+}
+
+:focus-visible {
+  outline: 2px solid var(--pnmc-green-strong);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pnmc-green-strong);
+}

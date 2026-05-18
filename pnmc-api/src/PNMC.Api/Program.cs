@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using PNMC.Api.Endpoints;
 using PNMC.Infrastructure;
 using PNMC.Infrastructure.Common;
@@ -12,6 +14,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("participation-submit", limiter =>
+    {
+        limiter.PermitLimit = 30;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+        limiter.AutoReplenishment = true;
+    });
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PnmcWebFrontend", policy =>
@@ -36,6 +50,8 @@ builder.Services.AddPnmcInfrastructure(builder.Configuration, builder.Environmen
 
 var app = builder.Build();
 
+app.UseMiddleware<RequestContextMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 await DatabaseBootstrapper.EnsureReadyAsync(app.Services);
 
@@ -46,6 +62,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
 }
 
 app.UseCors("PnmcWebFrontend");
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health/live");

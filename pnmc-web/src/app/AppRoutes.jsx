@@ -1,0 +1,190 @@
+import React, { Suspense, lazy } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { ejesDataGlobal } from '../features/content/domain/ejesData.js';
+import { PAGE_IDS, PAGE_PATHS } from '../services/navigation/routes.js';
+
+const HOME_CONTENT_IMPORT = () => import('../features/home/pages/HomeContent.jsx');
+const GALLERY_PAGES_IMPORT = () => import('../features/gallery/pages/GaleriaPage.jsx');
+const EJES_PAGE_IMPORT = () => import('../features/content/pages/EjesPage.jsx');
+const COMPONENT_PAGES_IMPORT = () => import('../features/content/pages/ComponentPages.jsx');
+const EDITORIAL_PAGE_IMPORT = () => import('../features/editorial/pages/EditorialPage.jsx');
+const MAPA_ECOSISTEMICO_PAGE_IMPORT = () => import('../features/map/pages/MapaEcosistemicoPage.jsx');
+const MAPA_ECOSISTEMICO_V2_PAGE_IMPORT = () => import('../features/map/pages/MapaEcosistemicoPageV2.jsx');
+const MAPA_PARTICIPA_PAGE_IMPORT = () => import('../features/participation/pages/MapaParticipaPage.jsx');
+const AGENDA_PAGE_IMPORT = () => import('../features/agenda/pages/AgendaPage.jsx');
+const NOTICIAS_PAGE_IMPORT = () => import('../features/news/pages/NoticiasPage.jsx');
+const STRATEGY_SUBPAGE_IMPORT = () => import('../features/content/pages/StrategySubPage.jsx');
+
+const HomeContent = lazy(() => HOME_CONTENT_IMPORT().then((module) => ({ default: module.HomeContent })));
+const SobreElPnmcPage = lazy(() => GALLERY_PAGES_IMPORT().then((module) => ({ default: module.SobreElPnmcPage })));
+const EjesPage = lazy(() => EJES_PAGE_IMPORT().then((module) => ({ default: module.EjesPage })));
+const ComponentRoutePage = lazy(() => COMPONENT_PAGES_IMPORT().then((module) => ({ default: module.ComponentRoutePage })));
+const UnknownRoutePage = lazy(() => COMPONENT_PAGES_IMPORT().then((module) => ({ default: module.UnknownRoutePage })));
+const EditorialPage = lazy(() => EDITORIAL_PAGE_IMPORT().then((module) => ({ default: module.EditorialPage })));
+const GaleriaPage = lazy(() => GALLERY_PAGES_IMPORT().then((module) => ({ default: module.GaleriaPage })));
+const MapaEcosistemicoPage = lazy(() => MAPA_ECOSISTEMICO_PAGE_IMPORT().then((module) => ({ default: module.MapaEcosistemicoPage })));
+const MapaEcosistemicoPageV2 = lazy(() => MAPA_ECOSISTEMICO_V2_PAGE_IMPORT().then((module) => ({ default: module.MapaEcosistemicoPageV2 })));
+const MapaParticipaPage = lazy(() => MAPA_PARTICIPA_PAGE_IMPORT().then((module) => ({ default: module.MapaParticipaPage })));
+const AgendaPage = lazy(() => AGENDA_PAGE_IMPORT().then((module) => ({ default: module.AgendaPage })));
+const NoticiasPage = lazy(() => NOTICIAS_PAGE_IMPORT().then((module) => ({ default: module.NoticiasPage })));
+const StrategySubPage = lazy(() => STRATEGY_SUBPAGE_IMPORT().then((module) => ({ default: module.StrategySubPage })));
+
+const ROUTE_FALLBACK = (
+  <div
+    className="min-h-[40vh]"
+    aria-live="polite"
+    aria-busy="true"
+  />
+);
+
+const withSuspense = (element) => (
+  <Suspense fallback={ROUTE_FALLBACK}>
+    {element}
+  </Suspense>
+);
+
+const AppRoutes = ({
+  setActivePage,
+  handlePageChange,
+  handleNavigateComponent,
+  handleNavigateToArticle,
+  handleNavigateToAgendaEvent,
+  handleNavigateToEditorialResource,
+  handleNavigateToMapLayer,
+  handleOpenMapParticipation,
+  selectedArticle,
+  selectedAgendaEventId,
+  selectedEditorialResourceId,
+  mapaNavigationRequest,
+}) => {
+  return (
+    <Routes>
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.home]}
+        element={withSuspense(
+          <HomeContent
+            setPage={handlePageChange}
+            onNavigateToArticle={handleNavigateToArticle}
+            onNavigateToAgendaEvent={handleNavigateToAgendaEvent}
+            onNavigateToMapLayer={handleNavigateToMapLayer}
+            onOpenMapParticipation={handleOpenMapParticipation}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.pnmc]}
+        element={withSuspense(
+          <SobreElPnmcPage
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            onNavigate={handlePageChange}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.ejes]}
+        element={withSuspense(
+          <EjesPage
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            onNavigateComponent={handleNavigateComponent}
+          />
+        )}
+      />
+      <Route
+        path="/ejes/componentes/:componentId"
+        element={withSuspense(
+          <ComponentRoutePage
+            onBack={() => setActivePage(PAGE_IDS.ejes)}
+            onNavigate={handlePageChange}
+            onNavigateToEditorialResource={handleNavigateToEditorialResource}
+            ejesData={ejesDataGlobal}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.editorial]}
+        element={withSuspense(
+          <EditorialPage
+            key={`editorial-${selectedEditorialResourceId || 'base'}`}
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            initialExpandedResourceId={selectedEditorialResourceId}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.galeria]}
+        element={withSuspense(<GaleriaPage onBack={() => setActivePage(PAGE_IDS.home)} />)}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.mapa]}
+        element={withSuspense(
+          <MapaEcosistemicoPage
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            navigationRequest={mapaNavigationRequest}
+            onOpenParticipation={handleOpenMapParticipation}
+          />
+        )}
+      />
+      <Route
+        path="/mapa-v2"
+        element={withSuspense(
+          <MapaEcosistemicoPageV2
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            navigationRequest={mapaNavigationRequest}
+            onOpenParticipation={handleOpenMapParticipation}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.mapaParticipa]}
+        element={withSuspense(<MapaParticipaPage onBack={() => handlePageChange(PAGE_IDS.mapa)} />)}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.agenda]}
+        element={withSuspense(
+          <AgendaPage
+            onBack={() => handlePageChange(PAGE_IDS.home)}
+            initialOpenEventId={selectedAgendaEventId}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.noticias]}
+        element={withSuspense(
+          <NoticiasPage
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            initialSelectedArticle={selectedArticle}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.estrategiaCirculacion]}
+        element={withSuspense(
+          <StrategySubPage
+            title="Celebra la Música"
+            context="Estrategia de Circulación"
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            onNavigate={handlePageChange}
+          />
+        )}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.estrategiaInvestigacion]}
+        element={withSuspense(
+          <StrategySubPage
+            title="Territorios Sonoros"
+            context="Estrategia de Investigación"
+            onBack={() => setActivePage(PAGE_IDS.home)}
+            onNavigate={handlePageChange}
+          />
+        )}
+      />
+      <Route path="/home" element={<Navigate to={PAGE_PATHS[PAGE_IDS.home]} replace />} />
+      <Route
+        path="*"
+        element={withSuspense(<UnknownRoutePage onGoHome={() => setActivePage(PAGE_IDS.home)} />)}
+      />
+    </Routes>
+  );
+};
+
+export { AppRoutes };

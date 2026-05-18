@@ -6,6 +6,7 @@ const isEjesRelatedPage = (activePage = '') => activePage === 'ejes' || activePa
 
 export const AppNavigation = ({
   scrolled,
+  forceSolid = false,
   mobileMenuOpen,
   setMobileMenuOpen,
   activePage,
@@ -28,8 +29,8 @@ export const AppNavigation = ({
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-300 px-6 lg:px-12 ${
-        scrolled || mobileMenuOpen
+      className={`fixed w-full z-[3000] transition-all duration-300 px-6 lg:px-12 ${
+        forceSolid || scrolled || mobileMenuOpen
           ? 'py-4 bg-[#291242]/95 backdrop-blur-md shadow-lg border-b border-white/5'
           : 'py-8 bg-transparent'
       }`}

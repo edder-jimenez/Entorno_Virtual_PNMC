@@ -4,12 +4,20 @@ import { useMap } from 'react-leaflet';
 
 const MapZoomControls = ({ initialBounds }) => {
   const map = useMap();
+  const handleResetView = () => {
+    map.fitBounds(initialBounds, {
+      paddingTopLeft: [28, 20],
+      paddingBottomRight: [0, 0],
+      animate: true,
+      duration: 0.45,
+    });
+  };
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2">
+    <div className="absolute bottom-6 right-6 z-[1001] flex items-center gap-2">
       <button
         type="button"
-        onClick={() => map.fitBounds(initialBounds, { paddingTopLeft: [28, 20], paddingBottomRight: [0, 0] })}
+        onClick={handleResetView}
         className="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#291242] hover:bg-slate-50 transition-all"
         aria-label="Volver al encuadre inicial"
       >
@@ -39,10 +47,11 @@ const MapZoomLimiter = ({ initialBounds }) => {
   const map = useMap();
 
   useEffect(() => {
-    map.fitBounds(initialBounds, { paddingTopLeft: [28, 20], paddingBottomRight: [0, 0] });
+    map.fitBounds(initialBounds, { paddingTopLeft: [28, 20], paddingBottomRight: [0, 0], animate: false });
     map.whenReady(() => {
       const initialZoom = map.getZoom();
-      map.setMinZoom(initialZoom - 1);
+      map.setMinZoom(initialZoom - 1.5);
+      map.setMaxZoom(Math.max(initialZoom + 4.8, map.getMaxZoom()));
     });
   }, [map, initialBounds]);
 
@@ -55,7 +64,12 @@ const MapViewportResetter = ({ initialBounds, resetToken }) => {
   useEffect(() => {
     if (!resetToken) return;
 
-    map.fitBounds(initialBounds, { paddingTopLeft: [28, 20], paddingBottomRight: [0, 0] });
+    map.fitBounds(initialBounds, {
+      paddingTopLeft: [28, 20],
+      paddingBottomRight: [0, 0],
+      animate: true,
+      duration: 0.45,
+    });
   }, [map, initialBounds, resetToken]);
 
   return null;
@@ -69,11 +83,25 @@ const MapTrackpadGestureHandler = () => {
     let rafId = null;
     let pendingPanX = 0;
     let pendingPanY = 0;
+    let pendingZoomDelta = 0;
     let gestureStartZoom = map.getZoom();
     let gestureAnchor = null;
     let isNativeGestureActive = false;
+    let lastWheelTs = 0;
 
-    const flushPan = () => {
+    const flushWheel = () => {
+      if (pendingZoomDelta !== 0) {
+        const anchor = gestureAnchor || map.containerPointToLatLng([
+          container.clientWidth / 2,
+          container.clientHeight / 2,
+        ]);
+        const nextZoom = map.getZoom() + pendingZoomDelta;
+        const boundedZoom = Math.max(map.getMinZoom(), Math.min(nextZoom, map.getMaxZoom()));
+        map.setZoomAround(anchor, boundedZoom, { animate: false });
+        pendingZoomDelta = 0;
+        gestureAnchor = null;
+      }
+
       if (pendingPanX !== 0 || pendingPanY !== 0) {
         map.panBy([pendingPanX, pendingPanY], { animate: false, noMoveStart: true });
         pendingPanX = 0;
@@ -82,12 +110,23 @@ const MapTrackpadGestureHandler = () => {
       rafId = null;
     };
 
-    const queuePan = (deltaX, deltaY) => {
+    const queuePan = (deltaX, deltaY, eventTs) => {
       pendingPanX += deltaX;
       pendingPanY += deltaY;
+      lastWheelTs = eventTs;
 
       if (!rafId) {
-        rafId = window.requestAnimationFrame(flushPan);
+        rafId = window.requestAnimationFrame(flushWheel);
+      }
+    };
+
+    const queueZoom = (deltaZoom, anchor, eventTs) => {
+      pendingZoomDelta += deltaZoom;
+      gestureAnchor = anchor;
+      lastWheelTs = eventTs;
+
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(flushWheel);
       }
     };
 
@@ -106,12 +145,6 @@ const MapTrackpadGestureHandler = () => {
       ]);
     };
 
-    const applyZoom = (delta, anchor) => {
-      const nextZoom = map.getZoom() + delta;
-      const boundedZoom = Math.max(map.getMinZoom(), Math.min(nextZoom, map.getMaxZoom()));
-      map.setZoomAround(anchor, boundedZoom, { animate: false });
-    };
-
     const handleWheel = (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -120,23 +153,38 @@ const MapTrackpadGestureHandler = () => {
         return;
       }
 
+      const now = performance.now();
       if (event.ctrlKey) {
-        const zoomDelta = -event.deltaY / 240;
+        const zoomDelta = -event.deltaY / 320;
         if (zoomDelta === 0) return;
-
-        applyZoom(zoomDelta, getGestureAnchor(event));
+        queueZoom(zoomDelta, getGestureAnchor(event), now);
         return;
       }
 
-      const panFactor = event.deltaMode === 1 ? 18 : 1.35;
-      const nextPanX = -event.deltaX * panFactor;
-      const nextPanY = -event.deltaY * panFactor;
+      const absDeltaX = Math.abs(event.deltaX);
+      const absDeltaY = Math.abs(event.deltaY);
+      const isMouseWheel = event.deltaMode === 1 || (absDeltaY > 20 && absDeltaX < absDeltaY * 0.45);
+      const isTrackpadLike = event.deltaMode === 0 && !isMouseWheel;
 
-      if (nextPanX === 0 && nextPanY === 0) {
+      if (isMouseWheel) {
+        const zoomStep = event.deltaMode === 1 ? 0.24 : 0.11;
+        const direction = event.deltaY > 0 ? -1 : 1;
+        queueZoom(direction * zoomStep, getGestureAnchor(event), now);
         return;
       }
 
-      queuePan(nextPanX, nextPanY);
+      if (isTrackpadLike) {
+        const panFactor = event.shiftKey ? 1.5 : 1.25;
+        const nextPanX = -event.deltaX * panFactor;
+        const nextPanY = -event.deltaY * panFactor;
+        if (nextPanX === 0 && nextPanY === 0) return;
+        queuePan(nextPanX, nextPanY, now);
+        return;
+      }
+
+      if (now - lastWheelTs < 12) {
+        return;
+      }
     };
 
     const handleGestureStart = (event) => {
@@ -164,7 +212,7 @@ const MapTrackpadGestureHandler = () => {
       gestureAnchor = null;
     };
 
-    container.style.touchAction = 'none';
+    container.style.touchAction = 'pan-x pan-y pinch-zoom';
     container.style.overscrollBehavior = 'contain';
 
     container.addEventListener('wheel', handleWheel, { passive: false });

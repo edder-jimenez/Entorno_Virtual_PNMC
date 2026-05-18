@@ -20,6 +20,7 @@ import {
 import { buildNewsItemFromRecord } from '../../content/domain/mediaLibrary.js';
 import { scrollToElementWithOffset } from '../../map/domain/mapDomain.js';
 import { PageHero, Tag } from '../../shared/components/PagePrimitives.jsx';
+import { sanitizeHtml } from '../../../lib/sanitizeHtml.js';
 
 const NoticiasPage = ({ onBack, initialSelectedArticle = null }) => {
   const [selectedArticle, setSelectedArticle] = useState(initialSelectedArticle);
@@ -83,6 +84,10 @@ const NoticiasPage = ({ onBack, initialSelectedArticle = null }) => {
   const selectedArticleHeroCopy = useMemo(
     () => splitHeroHeadline(selectedArticle?.title || ''),
     [selectedArticle]
+  );
+  const selectedArticleSafeContent = useMemo(
+    () => sanitizeHtml(selectedArticle?.content || ''),
+    [selectedArticle?.content]
   );
 
   useEffect(() => {
@@ -176,7 +181,7 @@ const NoticiasPage = ({ onBack, initialSelectedArticle = null }) => {
               <div className="max-w-4xl">
                 <div className="space-y-8 text-slate-600 font-nunito text-lg font-light leading-relaxed">
                   {selectedArticle.content ? (
-                    <div dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
+                    <div dangerouslySetInnerHTML={{ __html: selectedArticleSafeContent }} />
                   ) : (
                     <>
                       <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>

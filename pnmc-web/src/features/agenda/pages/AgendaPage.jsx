@@ -453,4 +453,5 @@ const AgendaPage = ({ onBack, initialOpenEventId = null }) => {
 
 export {
   AgendaPage,
+  AgendaExplorer,
 };

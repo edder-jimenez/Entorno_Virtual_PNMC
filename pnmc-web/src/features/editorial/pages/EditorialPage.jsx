@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowUpRight,
@@ -639,7 +639,7 @@ const EditorialPage = ({ onBack, initialExpandedResourceId = null }) => {
                       ].filter((detail) => detail.value);
 
                       return (
-                        <React.Fragment key={item.id}>
+                        <Fragment key={item.id}>
                           <tr
                             ref={(element) => {
                               resourceRowRefs.current[item.id] = element;
@@ -785,7 +785,7 @@ const EditorialPage = ({ onBack, initialExpandedResourceId = null }) => {
                               </td>
                             </tr>
                           )}
-                        </React.Fragment>
+                        </Fragment>
                       );
                     })}
                   </tbody>

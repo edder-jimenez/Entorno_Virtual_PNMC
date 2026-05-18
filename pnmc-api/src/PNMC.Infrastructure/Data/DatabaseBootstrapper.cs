@@ -13,26 +13,40 @@ public static class DatabaseBootstrapper
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrapper");
         var db = scope.ServiceProvider.GetRequiredService<PnmcDbContext>();
         var options = scope.ServiceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+        var timeoutSeconds = Math.Clamp(options.StartupTimeoutSeconds, 5, 300);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+        var startupToken = timeoutCts.Token;
 
-        if (db.Database.IsSqlServer())
+        try
         {
-            var canConnect = await db.Database.CanConnectAsync(cancellationToken);
-            if (!canConnect)
+            if (db.Database.IsSqlServer())
             {
-                throw new InvalidOperationException("No fue posible conectar con SQL Server.");
+                var canConnect = await db.Database.CanConnectAsync(startupToken);
+                if (!canConnect)
+                {
+                    throw new InvalidOperationException("No fue posible conectar con SQL Server.");
+                }
+
+                if (options.EnsureSupportTables)
+                {
+                    await EnsureParticipationSupportTableAsync(db, startupToken);
+                }
+
+                logger.LogInformation("SQL Server connection established and support tables verified.");
+                return;
             }
 
-            if (options.EnsureSupportTables)
-            {
-                await EnsureParticipationSupportTableAsync(db, cancellationToken);
-            }
-
-            logger.LogInformation("SQL Server connection established and support tables verified.");
-            return;
+            await db.Database.EnsureCreatedAsync(startupToken);
+            logger.LogInformation("Database initialized with EnsureCreated for non-SQL provider.");
         }
-
-        await db.Database.EnsureCreatedAsync(cancellationToken);
-        logger.LogInformation("Database initialized with EnsureCreated for non-SQL provider.");
+        catch (Exception exception) when (options.ContinueOnStartupFailure)
+        {
+            logger.LogWarning(
+                exception,
+                "Database bootstrap failed at startup. The API will continue running in degraded mode. TimeoutSeconds={TimeoutSeconds}",
+                timeoutSeconds);
+        }
     }
 
     private static async Task EnsureParticipationSupportTableAsync(PnmcDbContext db, CancellationToken cancellationToken)

@@ -1,38 +1,9 @@
 import { feature as topojsonFeature } from 'topojson-client';
-
-const API_BASE_URL = (import.meta?.env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
+import { fetchApiJson } from '../http/apiClient.js';
 
 const GALLERY_MANIFEST_PATH = '/api/v1/gallery/albums';
 const TOPOLOGY_DEPARTMENTS_OBJECT = 'MGN_ADM_DPTO_POLITICO';
 const TOPOLOGY_MUNICIPALITIES_OBJECT = 'MGN_ADM_MPIO_GRAFICO';
-
-const buildUrl = (path, params = {}) => {
-  const query = new URLSearchParams(
-    Object.entries(params)
-      .filter(([, value]) => value !== undefined && value !== null && value !== '')
-      .map(([key, value]) => [key, String(value)])
-  ).toString();
-
-  const base = API_BASE_URL || '';
-  return `${base}${path}${query ? `?${query}` : ''}`;
-};
-
-const fetchJson = async (path, params = {}) => {
-  const response = await fetch(buildUrl(path, params), { cache: 'no-store' });
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.message || payload?.title || `No fue posible cargar datos (${response.status}).`);
-  }
-
-  return payload;
-};
 
 const normalizeDepartmentCode = (value) => {
   const digits = String(value ?? '').replace(/\D+/g, '');
@@ -142,14 +113,23 @@ const toGeoBundleFromTopology = (topologyPayload) => {
 };
 
 export const fetchEditorialCatalog = async () => {
-  const payload = await fetchJson('/api/v1/editorial/resources', { limit: 500, offset: 0 });
+  const payload = await fetchApiJson({
+    path: '/api/v1/editorial/resources',
+    params: { limit: 500, offset: 0 },
+    init: { cache: 'no-store' },
+    errorFallback: 'No fue posible cargar datos',
+  });
   return {
     items: Array.isArray(payload?.items) ? payload.items : [],
   };
 };
 
 export const fetchColombiaGeoJson = async () => {
-  const payload = await fetchJson('/api/v1/map/topojson/territories');
+  const payload = await fetchApiJson({
+    path: '/api/v1/map/topojson/territories',
+    init: { cache: 'no-store' },
+    errorFallback: 'No fue posible cargar datos',
+  });
 
   if (payload?.type === 'Topology') {
     const geoBundle = toGeoBundleFromTopology(payload);
@@ -177,12 +157,20 @@ export const fetchColombiaGeoJson = async () => {
 };
 
 export const fetchGalleryAlbums = async () => {
-  const payload = await fetchJson('/api/v1/gallery/albums');
+  const payload = await fetchApiJson({
+    path: '/api/v1/gallery/albums',
+    init: { cache: 'no-store' },
+    errorFallback: 'No fue posible cargar datos',
+  });
   return Array.isArray(payload?.items) ? payload.items : [];
 };
 
 export const fetchDivipolaGrouped = async () => {
-  const payload = await fetchJson('/api/v1/divipola/grouped');
+  const payload = await fetchApiJson({
+    path: '/api/v1/divipola/grouped',
+    init: { cache: 'no-store' },
+    errorFallback: 'No fue posible cargar datos',
+  });
   return payload && typeof payload === 'object' ? payload : {};
 };
 

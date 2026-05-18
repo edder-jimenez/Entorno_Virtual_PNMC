@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using PNMC.Contracts;
+using PNMC.Infrastructure.Common;
 using PNMC.Infrastructure.Data;
 
 namespace PNMC.Api.Endpoints;
@@ -114,7 +115,7 @@ public static class NewsEndpoints
             ResolveCategory(row.CategoryId, categories),
             row.Title,
             row.Lead ?? string.Empty,
-            row.Body,
+            HtmlSanitizer.SanitizeRichHtml(row.Body),
             mediaByNews.TryGetValue(row.Id, out var imageUrl) ? imageUrl : string.Empty
         );
     }

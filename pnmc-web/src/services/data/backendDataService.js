@@ -1,3 +1,5 @@
+import { buildApiUrl, fetchApiJson } from '../http/apiClient.js';
+
 const DATA_API_CONFIG = {
   tables: {
     agenda: 'Agenda',
@@ -7,8 +9,6 @@ const DATA_API_CONFIG = {
     markets: 'Mercados',
   },
 };
-
-const API_BASE_URL = (import.meta?.env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 const REQUEST_CACHE_TTL_MS = 15 * 1000;
 const inFlightRequests = new Map();
@@ -41,17 +41,6 @@ const toNumber = (value, fallback = 0) => {
 };
 
 const trimText = (value) => (typeof value === 'string' ? value.trim() : '');
-
-const buildUrl = (path, params = {}) => {
-  const query = new URLSearchParams(
-    Object.entries(params)
-      .filter(([, value]) => value !== undefined && value !== null && value !== '')
-      .map(([key, value]) => [key, String(value)])
-  ).toString();
-
-  const base = API_BASE_URL || '';
-  return `${base}${path}${query ? `?${query}` : ''}`;
-};
 
 const mapPagingParams = (params = {}) => {
   const limit = toNumber(params.limit ?? params.pageSize ?? params.maxRecords ?? 100, 100);
@@ -102,26 +91,10 @@ const fetchJson = async (url) => {
   }
 
   const requestPromise = (async () => {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-      },
+    const payload = await fetchApiJson({
+      path: url,
+      errorFallback: 'Error al consultar backend',
     });
-
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        payload?.title
-        || payload?.message
-        || `Error al consultar backend (${response.status}).`
-      );
-    }
 
     resolvedCache.set(url, { timestamp: Date.now(), payload });
     return payload;
@@ -260,7 +233,7 @@ const mapMarketItemsToLegacyRecords = (items = []) => (
 );
 
 const fetchFromBackend = async (path, params = {}) => {
-  const url = buildUrl(path, params);
+  const url = buildApiUrl(path, params);
   const payload = await fetchJson(url);
   return normalizePagedResponse(payload);
 };
@@ -270,17 +243,17 @@ const buildModuleUrl = (table, params = {}) => {
 
   switch (table) {
     case DATA_API_CONFIG.tables.agenda:
-      return buildUrl('/api/v1/agenda/events', paging);
+      return buildApiUrl('/api/v1/agenda/events', paging);
     case DATA_API_CONFIG.tables.news:
-      return buildUrl('/api/v1/news/articles', paging);
+      return buildApiUrl('/api/v1/news/articles', paging);
     case DATA_API_CONFIG.tables.festivals:
-      return buildUrl('/api/v1/festivals', paging);
+      return buildApiUrl('/api/v1/festivals', paging);
     case DATA_API_CONFIG.tables.schools:
-      return buildUrl('/api/v1/music-schools', paging);
+      return buildApiUrl('/api/v1/music-schools', paging);
     case DATA_API_CONFIG.tables.markets:
-      return buildUrl('/api/v1/music-markets', paging);
+      return buildApiUrl('/api/v1/music-markets', paging);
     default:
-      return buildUrl('/api/v1/admin/data/stats');
+      return buildApiUrl('/api/v1/admin/data/stats');
   }
 };
 

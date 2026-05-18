@@ -27,6 +27,11 @@ Crear variables de entorno desde `.env.example`:
 No hardcodear credenciales en código ni en `appsettings`.
 La API carga automáticamente un archivo `.env` local ubicado en `pnmc-api/.env` (o en carpetas padre), por lo que no necesitas exportarlas manualmente en cada terminal.
 
+Opciones de bootstrap (`appsettings*.json`, sección `Database`):
+- `EnsureSupportTables`: crea/verifica tablas de soporte (participación).
+- `StartupTimeoutSeconds`: tiempo máximo de espera al conectar SQL durante arranque.
+- `ContinueOnStartupFailure`: si `true`, el API inicia en modo degradado aunque SQL no esté disponible temporalmente.
+
 ## Ejecutar local
 
 ```bash
@@ -37,7 +42,9 @@ dotnet run --project src/PNMC.Api/PNMC.Api.csproj
 ```
 
 Swagger: `http://localhost:8080/swagger`
-Health: `http://localhost:8080/health/live`
+Health: `http://localhost:8080/health/live` y `http://localhost:8080/health/ready`
+
+Nota: si Azure SQL está en auto-pause, la primera conexión puede tardar unos segundos mientras despierta la base.
 
 ## Endpoints clave (compatibilidad)
 

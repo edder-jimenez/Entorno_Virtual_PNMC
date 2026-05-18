@@ -1,0 +1,116 @@
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+<header class="app-header" role="banner" [class.scrolled]="scrolled || mobileMenuOpen">
+  <div class="header-inner">
+    <a class="brand-link" routerLink="/" aria-label="Ir al inicio PNMC">
+      <img src="/branding/pnmc-blanco.png" alt="PNMC" />
+    </a>
+
+    <nav class="nav-desktop" aria-label="Navegación principal PNMC">
+      <a routerLink="/pnmc" routerLinkActive="active">Sobre el PNMC</a>
+
+      <div class="ejes-dropdown" [class.open]="ejesMenuOpen" (mouseenter)="openEjesMenu()" (mouseleave)="closeEjesMenu()">
+        <button
+          class="ejes-trigger"
+          type="button"
+          [attr.aria-expanded]="ejesMenuOpen"
+          (click)="ejesMenuOpen = !ejesMenuOpen"
+        >
+          Ejes
+        </button>
+
+        <div class="ejes-menu" *ngIf="ejesMenuOpen">
+          <div class="ejes-menu-left">
+            <button
+              type="button"
+              *ngFor="let group of ejeGroups"
+              [class.active]="activeEjeGroup.id === group.id"
+              (mouseenter)="setActiveEjeGroup(group.id)"
+              (focus)="setActiveEjeGroup(group.id)"
+              [routerLink]="'/ejes'"
+              [fragment]="group.sectionId"
+            >
+              {{ group.name }}
+            </button>
+          </div>
+
+          <div class="ejes-menu-right">
+            <p>Componentes del eje</p>
+            <div class="ejes-components">
+              <a
+                *ngFor="let component of activeEjeGroup.components"
+                [routerLink]="['/ejes/componentes', component.id]"
+              >
+                {{ component.name }}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <a routerLink="/galeria" routerLinkActive="active">Galería</a>
+      <a routerLink="/noticias" routerLinkActive="active">Noticias</a>
+      <a routerLink="/agenda" routerLinkActive="active">Agenda</a>
+      <a routerLink="/editorial" routerLinkActive="active" class="ghost">Editorial</a>
+      <a routerLink="/mapa" routerLinkActive="active" class="cta">Mapa Ecosistémico</a>
+    </nav>
+
+    <button
+      class="mobile-toggle"
+      type="button"
+      [attr.aria-expanded]="mobileMenuOpen"
+      aria-label="Abrir menú principal"
+      (click)="toggleMobileMenu()"
+    >
+      {{ mobileMenuOpen ? '✕' : '☰' }}
+    </button>
+  </div>
+
+  <nav class="nav-mobile" *ngIf="mobileMenuOpen" aria-label="Navegación móvil PNMC">
+    <a routerLink="/pnmc" routerLinkActive="active">Sobre el PNMC</a>
+    <a routerLink="/ejes" routerLinkActive="active">Ejes</a>
+    <a routerLink="/galeria" routerLinkActive="active">Galería</a>
+    <a routerLink="/noticias" routerLinkActive="active">Noticias</a>
+    <a routerLink="/agenda" routerLinkActive="active">Agenda</a>
+    <a routerLink="/editorial" routerLinkActive="active">Editorial</a>
+    <a routerLink="/mapa" routerLinkActive="active">Mapa Ecosistémico</a>
+    <a routerLink="/participacion" routerLinkActive="active">Participación</a>
+  </nav>
+</header>
+
+<main class="app-main" id="main-content" role="main">
+  <section class="app-shell">
+    <router-outlet></router-outlet>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <div class="footer-inner">
+    <div class="footer-col brand">
+      <div class="footer-brand">
+        <img src="/branding/logo-gov-co.png" alt="GOV.CO" class="gov-logo" />
+        <img src="/branding/gov-co-footer.png" alt="Colombia" class="co-logo" />
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ministerio de las Culturas, las Artes y los Saberes</h4>
+      <p>Dirección: Calle 9 No. 8 - 31 Bogotá</p>
+      <p>Horario de atención: 8:00 a.m. a 5:00 p.m.</p>
+      <p>Teléfono: +57 (601) 3424100</p>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto Correspondencia</h4>
+      <p>Correo: servicioalciudadano@mincultura.gov.co</p>
+      <p>Notificaciones: notificaciones@mincultura.gov.co</p>
+      <p>Denuncias: soytransparente@mincultura.gov.co</p>
+    </div>
+    <div class="footer-col">
+      <h4>Servicios a la Ciudadanía</h4>
+      <p>PQRSD</p>
+      <p>Preguntas Frecuentes</p>
+      <p>Términos y condiciones</p>
+    </div>
+    <div class="footer-copy">
+      <p class="copy">Copyright © {{ currentYear }}</p>
+    </div>
+  </div>
+</footer>

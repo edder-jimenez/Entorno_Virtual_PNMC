@@ -57,6 +57,8 @@ public sealed class PnmcDbContext : DbContext
         {
             entity.ToTable("DivipolaLocations");
             entity.HasKey(x => new { x.DepartmentCode, x.MunicipalityCode });
+            entity.Property(x => x.Latitude).HasPrecision(9, 6);
+            entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<AgendaEventRow>(entity =>
@@ -99,6 +101,8 @@ public sealed class PnmcDbContext : DbContext
         {
             entity.ToTable("MusicSchools");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Latitude).HasPrecision(9, 6);
+            entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<MarketRow>(entity =>
@@ -117,6 +121,8 @@ public sealed class PnmcDbContext : DbContext
         {
             entity.ToTable("SpacesInfrastructure");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Latitude).HasPrecision(9, 6);
+            entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<ProcessEntityRelationRow>(entity =>
