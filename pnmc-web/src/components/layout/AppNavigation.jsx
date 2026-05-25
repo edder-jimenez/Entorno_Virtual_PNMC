@@ -44,7 +44,7 @@ export const AppNavigation = ({
             onClick={() => onPageChange('home')}
             aria-label="Ir al inicio"
           >
-            <img src={pnmcBlancoLogo} className="h-24 w-auto object-contain" alt="PNMC" />
+            <img src={pnmcBlancoLogo} className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto object-contain transition-all" alt="PNMC" />
           </button>
 
           <div className="hidden lg:flex items-center gap-8">
@@ -83,51 +83,49 @@ export const AppNavigation = ({
 
                   {hasEjesMenu && activeNavDropdown === link.id && (
                     <div className="absolute left-0 top-full w-[min(66rem,calc(100vw-4rem))] pt-5">
-                      <div className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-md">
-                        <div className="grid grid-cols-[17rem_minmax(0,1fr)] gap-0">
-                          <div className="border-r border-slate-200 bg-slate-50 p-4">
-                            <div className="space-y-1">
-                              {ejeNavigationGroups.map((group) => {
-                                const isActiveGroup = activeEjeGroup?.id === group.id;
-                                return (
-                                  <button
-                                    key={group.id}
-                                    type="button"
-                                    onMouseEnter={() => setActiveEjeMenuId(group.id)}
-                                    onFocus={() => setActiveEjeMenuId(group.id)}
-                                    onClick={() => onNavigateToPageSection(link.id, group.sectionId)}
-                                    className={`flex w-full items-center justify-between gap-4 rounded-[1rem] px-4 py-3.5 text-left text-[0.62rem] font-bold uppercase tracking-[0.16em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E] focus-visible:ring-offset-2 ${
-                                      isActiveGroup
-                                        ? 'bg-[#291242] text-white shadow-sm'
-                                        : 'text-slate-500 hover:bg-white hover:text-[#291242]'
-                                    }`}
-                                  >
-                                    <span>{group.name}</span>
-                                    <ChevronRight size={14} className="shrink-0" />
-                                  </button>
-                                );
-                              })}
-                            </div>
+                      <div className="overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/95 shadow-2xl backdrop-blur-xl p-2">
+                        <div className="grid grid-cols-[18rem_minmax(0,1fr)] gap-2">
+                          <div className="bg-slate-50/70 rounded-[2rem] p-3 space-y-1">
+                            {ejeNavigationGroups.map((group) => {
+                              const isActiveGroup = activeEjeGroup?.id === group.id;
+                              return (
+                                <button
+                                  key={group.id}
+                                  type="button"
+                                  onMouseEnter={() => setActiveEjeMenuId(group.id)}
+                                  onFocus={() => setActiveEjeMenuId(group.id)}
+                                  onClick={() => onNavigateToPageSection(link.id, group.sectionId)}
+                                  className={`flex w-full items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left text-[0.65rem] font-bold uppercase tracking-[0.18em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E] focus-visible:ring-offset-2 ${
+                                    isActiveGroup
+                                      ? 'bg-[#00DA5E] text-[#291242] shadow-sm'
+                                      : 'text-slate-500 hover:bg-white hover:text-[#291242] hover:shadow-sm'
+                                  }`}
+                                >
+                                  <span>{group.name}</span>
+                                  <ChevronRight size={14} className={`shrink-0 transition-transform ${isActiveGroup ? 'translate-x-1' : ''}`} />
+                                </button>
+                              );
+                            })}
                           </div>
 
-                          <div className="p-5">
-                            <div className="rounded-[1.4rem] bg-[linear-gradient(180deg,rgba(41,18,66,0.03),rgba(255,255,255,0.96))] border border-slate-100 p-5">
-                              <div className="pb-4">
-                                <div className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#291242]">Componentes del eje</div>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-                                {(activeEjeGroup?.components || []).map((component) => (
-                                  <button
-                                    key={component.id}
-                                    type="button"
-                                    onClick={() => onNavigateToComponentFromMenu(component.id)}
-                                    className="flex min-h-[4.6rem] w-full items-start justify-between gap-4 rounded-[1rem] border border-transparent bg-white/80 px-4 py-3.5 text-left text-[0.6rem] font-bold tracking-[0.04em] text-slate-500 transition-all hover:border-[#8BF784]/40 hover:bg-white hover:text-[#291242] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E] focus-visible:ring-offset-2"
-                                  >
-                                    <span className="line-clamp-3">{component.name}</span>
-                                    <ArrowUpRight size={13} className="shrink-0 mt-0.5 text-[#00DA5E]" />
-                                  </button>
-                                ))}
-                              </div>
+                          <div className="p-6 pl-4 flex flex-col justify-center">
+                            <div className="pb-5">
+                              <div className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-slate-400">Componentes del eje</div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                              {(activeEjeGroup?.components || []).map((component) => (
+                                <button
+                                  key={component.id}
+                                  type="button"
+                                  onClick={() => onNavigateToComponentFromMenu(component.id)}
+                                  className="group flex min-h-[4.5rem] w-full items-center justify-between gap-4 rounded-[1.25rem] border border-slate-100 bg-white px-5 py-3 text-left text-[0.65rem] font-bold tracking-[0.05em] text-slate-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#00DA5E]/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E] focus-visible:ring-offset-2"
+                                >
+                                  <span className="line-clamp-2 leading-relaxed group-hover:text-[#291242]">{component.name}</span>
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-50 group-hover:bg-[#00DA5E]/10 shrink-0 transition-colors">
+                                    <ArrowUpRight size={14} className="text-slate-400 group-hover:text-[#00DA5E] transition-colors" />
+                                  </div>
+                                </button>
+                              ))}
                             </div>
                           </div>
                         </div>

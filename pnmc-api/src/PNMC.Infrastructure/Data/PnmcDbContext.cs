@@ -27,174 +27,627 @@ public sealed class PnmcDbContext : DbContext
     public DbSet<ProcessEntityRelationRow> ProcessEntityRelations => Set<ProcessEntityRelationRow>();
     public DbSet<ProcessRelationRow> ProcessRelations => Set<ProcessRelationRow>();
 
-    public DbSet<EditorialItemRow> EditorialItems => Set<EditorialItemRow>();
-    public DbSet<EditorialClassificationRow> EditorialClassifications => Set<EditorialClassificationRow>();
-    public DbSet<EditorialBibliographicRecordRow> EditorialBibliographicRecords => Set<EditorialBibliographicRecordRow>();
-    public DbSet<EditorialAvailabilityRow> EditorialAvailabilities => Set<EditorialAvailabilityRow>();
-    public DbSet<EditorialFileRow> EditorialFiles => Set<EditorialFileRow>();
+    public DbSet<GalleryAlbumRow> GalleryAlbums => Set<GalleryAlbumRow>();
+    public DbSet<GalleryAlbumFileRow> GalleryAlbumFiles => Set<GalleryAlbumFileRow>();
+    public DbSet<EditorialCatalogResourceRow> EditorialCatalogResources => Set<EditorialCatalogResourceRow>();
     public DbSet<FileRow> Files => Set<FileRow>();
 
     public DbSet<UserRow> Users => Set<UserRow>();
     public DbSet<RoleRow> Roles => Set<RoleRow>();
+    public DbSet<AuditLogRow> AuditLogs => Set<AuditLogRow>();
+    public DbSet<UserVerificationCodeRow> UserVerificationCodes => Set<UserVerificationCodeRow>();
+    public DbSet<EntityProfileRow> EntityProfiles => Set<EntityProfileRow>();
+    public DbSet<UserEntityRow> UserEntities => Set<UserEntityRow>();
+    public DbSet<EntityRelationRow> EntityRelations => Set<EntityRelationRow>();
+    public DbSet<EntitySourceRecordRow> EntitySourceRecords => Set<EntitySourceRecordRow>();
+    public DbSet<EntityReviewHistoryRow> EntityReviewHistory => Set<EntityReviewHistoryRow>();
 
-    public DbSet<ParticipationSubmissionRow> ParticipationSubmissions => Set<ParticipationSubmissionRow>();
+    public DbSet<ParticipationSubmissionRow> Participations => Set<ParticipationSubmissionRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CategoryRow>(entity =>
         {
-            entity.ToTable("Categories");
+            entity.ToTable("Categorias");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdCategoria");
+            entity.Property(x => x.ModuleCode).HasColumnName("CodigoModulo");
+            entity.Property(x => x.Name).HasColumnName("NombreCategoria");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
+            entity.Ignore(x => x.ParentCategoryId);
+            entity.Ignore(x => x.IsActive);
         });
 
         modelBuilder.Entity<ContentStatusRow>(entity =>
         {
-            entity.ToTable("ContentStatuses");
+            entity.ToTable("EstadosContenido");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEstadoContenido");
+            entity.Property(x => x.Code).HasColumnName("CodigoEstado");
+            entity.Property(x => x.Name).HasColumnName("NombreEstado");
+            entity.Property(x => x.Description).HasColumnName("DescripcionEstado");
         });
 
         modelBuilder.Entity<DivipolaLocationRow>(entity =>
         {
-            entity.ToTable("DivipolaLocations");
+            entity.ToTable("Divipola");
             entity.HasKey(x => new { x.DepartmentCode, x.MunicipalityCode });
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.DepartmentName).HasColumnName("NombreDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.MunicipalityName).HasColumnName("NombreMunicipio");
+            entity.Property(x => x.LocationType).HasColumnName("TipoTerritorio");
+            entity.Property(x => x.Latitude).HasColumnName("Latitud");
+            entity.Property(x => x.Longitude).HasColumnName("Longitud");
             entity.Property(x => x.Latitude).HasPrecision(9, 6);
             entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<AgendaEventRow>(entity =>
         {
-            entity.ToTable("AgendaEvents");
+            entity.ToTable("Agenda");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdAgenda");
+            entity.Property(x => x.Title).HasColumnName("Titulo");
+            entity.Property(x => x.Description).HasColumnName("DescripcionLarga");
+            entity.Property(x => x.CategoryId).HasColumnName("IdCategoria");
+            entity.Property(x => x.StartDate).HasColumnName("FechaInicio");
+            entity.Property(x => x.EndDate).HasColumnName("FechaFin");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.SpecificLocation).HasColumnName("LugarEspecifico");
+            entity.Property(x => x.OrganizationName).HasColumnName("Organizador");
+            entity.Property(x => x.MoreInfoUrl).HasColumnName("UrlMasInformacion");
+            entity.Property(x => x.StatusId).HasColumnName("IdEstadoContenido");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("IdUsuarioCreador");
+            entity.Property(x => x.ReviewedByUserId).HasColumnName("IdUsuarioRevisor");
+            entity.Property(x => x.ApprovedByUserId).HasColumnName("IdUsuarioAprobador");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.PublishedAt).HasColumnName("FechaPublicacion");
+            entity.Property(x => x.ArchivedAt).HasColumnName("FechaArchivo");
+            entity.Property(x => x.ShortDescription).HasColumnName("DescripcionCorta");
+            entity.Property(x => x.StartTime).HasColumnName("HoraInicio");
+            entity.Property(x => x.EndTime).HasColumnName("HoraFin");
+            entity.Property(x => x.FestivalId).HasColumnName("IdFestival");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
         });
 
         modelBuilder.Entity<NewsArticleRow>(entity =>
         {
-            entity.ToTable("News");
+            entity.ToTable("Noticias");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdNoticia");
+            entity.Property(x => x.Title).HasColumnName("Titulo");
+            entity.Property(x => x.Lead).HasColumnName("Entradilla");
+            entity.Property(x => x.Body).HasColumnName("Cuerpo");
+            entity.Property(x => x.QuoteText).HasColumnName("CitaDestacada");
+            entity.Property(x => x.SlugPrimary).HasColumnName("Slug");
+            entity.Property(x => x.AuthorName).HasColumnName("Autor");
+            entity.Property(x => x.CategoryId).HasColumnName("IdCategoria");
+            entity.Property(x => x.PublishedDate).HasColumnName("FechaPublicacion");
+            entity.Property(x => x.PrimaryExternalUrl).HasColumnName("UrlExterna");
+            entity.Property(x => x.PrimaryEmbedUrl).HasColumnName("UrlEmbed");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
+            entity.Property(x => x.StatusId).HasColumnName("IdEstadoContenido");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("IdUsuarioCreador");
+            entity.Property(x => x.ReviewedByUserId).HasColumnName("IdUsuarioRevisor");
+            entity.Property(x => x.ApprovedByUserId).HasColumnName("IdUsuarioAprobador");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.ArchivedAt).HasColumnName("FechaArchivo");
+            entity.Ignore(x => x.SlugSecondary);
+            entity.Ignore(x => x.SlugTertiary);
+            entity.Ignore(x => x.UpdatedDate);
+            entity.Ignore(x => x.PublishedAt);
         });
 
         modelBuilder.Entity<NewsMediaRow>(entity =>
         {
-            entity.ToTable("NewsMedia");
+            entity.ToTable("NoticiasArchivos");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdNoticiaArchivo");
+            entity.Property(x => x.NewsId).HasColumnName("IdNoticia");
+            entity.Property(x => x.FileId).HasColumnName("IdArchivo");
+            entity.Property(x => x.MediaType).HasColumnName("RolArchivo");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
+            entity.Ignore(x => x.ExternalUrl);
+            entity.Ignore(x => x.Caption);
+            entity.Ignore(x => x.Credit);
+            entity.Ignore(x => x.IsPrimary);
         });
 
         modelBuilder.Entity<NewsTagRow>(entity =>
         {
-            entity.ToTable("NewsTags");
+            entity.ToTable("NoticiasEtiquetas");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdNoticiaEtiqueta");
+            entity.Property(x => x.NewsId).HasColumnName("IdNoticia");
+            entity.Property(x => x.TagId).HasColumnName("IdEtiqueta");
         });
 
         modelBuilder.Entity<TagRow>(entity =>
         {
-            entity.ToTable("Tags");
+            entity.ToTable("Etiquetas");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEtiqueta");
+            entity.Property(x => x.Name).HasColumnName("NombreEtiqueta");
         });
 
         modelBuilder.Entity<FestivalRow>(entity =>
         {
-            entity.ToTable("Festivals");
+            entity.ToTable("Festivales");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdFestival");
+            entity.Property(x => x.Name).HasColumnName("NombreFestival");
+            entity.Property(x => x.VersionsCount).HasColumnName("NumeroVersiones");
+            entity.Property(x => x.LastEditionDate).HasColumnName("FechaUltimaVersion");
+            entity.Property(x => x.Description).HasColumnName("Descripcion");
+            entity.Property(x => x.OrganizerDisplayName).HasColumnName("Organizador");
+            entity.Property(x => x.OrganizerContactEmail).HasColumnName("CorreoOrganizador");
+            entity.Property(x => x.OrganizerContactPhone).HasColumnName("TelefonoOrganizador");
+            entity.Property(x => x.OrganizerWebsiteUrl).HasColumnName("SitioWebOrganizador");
+            entity.Property(x => x.ContactEmail).HasColumnName("CorreoFestival");
+            entity.Property(x => x.InstagramUrl).HasColumnName("InstagramFestival");
+            entity.Property(x => x.FacebookUrl).HasColumnName("FacebookFestival");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWebFestival");
+            entity.Property(x => x.OtherUrl).HasColumnName("OtroEnlaceFestival");
+            entity.Property(x => x.ContactPhone).HasColumnName("TelefonoFestival");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.HasCurrentYearEdition).HasColumnName("TieneVersionVigenteAnoActual");
+            entity.Property(x => x.CurrentYearEditionStatus).HasColumnName("EstadoVersionAnoActual");
+            entity.Property(x => x.CurrentYearStartDate).HasColumnName("FechaInicioVersionActual");
+            entity.Property(x => x.CurrentYearEndDate).HasColumnName("FechaFinVersionActual");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Ignore(x => x.HasRegisteredOrganizer);
+            entity.Ignore(x => x.SpecificLocation);
+            entity.Ignore(x => x.StatusId);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.ReviewedByUserId);
+            entity.Ignore(x => x.ApprovedByUserId);
+            entity.Ignore(x => x.PublishedAt);
+            entity.Ignore(x => x.ArchivedAt);
         });
 
         modelBuilder.Entity<SchoolRow>(entity =>
         {
-            entity.ToTable("MusicSchools");
+            entity.ToTable("EscuelasMusica");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEscuelaMusica");
+            entity.Property(x => x.Name).HasColumnName("NombreEscuela");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.SpecificLocation).HasColumnName("LugarEspecifico");
+            entity.Property(x => x.AddressText).HasColumnName("Direccion");
+            entity.Property(x => x.Latitude).HasColumnName("Latitud");
+            entity.Property(x => x.Longitude).HasColumnName("Longitud");
+            entity.Property(x => x.SchoolCategory).HasColumnName("CategoriaEscuela");
+            entity.Property(x => x.SchoolType).HasColumnName("TipoEscuela");
+            entity.Property(x => x.ResponsibleEntityDisplayName).HasColumnName("EntidadResponsable");
+            entity.Property(x => x.DirectorName).HasColumnName("NombreDirector");
+            entity.Property(x => x.ContactEmail).HasColumnName("CorreoContacto");
+            entity.Property(x => x.ContactPhone).HasColumnName("TelefonoContacto");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWeb");
+            entity.Property(x => x.InstagramUrl).HasColumnName("Instagram");
+            entity.Property(x => x.FacebookUrl).HasColumnName("Facebook");
+            entity.Property(x => x.OtherUrl).HasColumnName("OtroEnlace");
+            entity.Property(x => x.TrainingProcesses).HasColumnName("ProcesosFormativos");
+            entity.Property(x => x.MusicalPractices).HasColumnName("PracticasMusicales");
+            entity.Property(x => x.ActiveGroupsCount).HasColumnName("CantidadGruposActivos");
+            entity.Property(x => x.StudentsAgeTotal).HasColumnName("CapacidadFormativa");
+            entity.Property(x => x.StudentsTotal).HasColumnName("CantidadEstudiantes");
+            entity.Property(x => x.IsActiveSchool).HasColumnName("EscuelaActiva");
+            entity.Property(x => x.Observations).HasColumnName("Observaciones");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Ignore(x => x.HasRegisteredResponsibleEntity);
+            entity.Ignore(x => x.HasCommunityOrganization);
+            entity.Ignore(x => x.CommunityOrganizationName);
+            entity.Ignore(x => x.CommunityOrganizationContact);
+            entity.Ignore(x => x.CommunityOrganizationPhone);
+            entity.Ignore(x => x.CommunityOrganizationEmail);
+            entity.Ignore(x => x.StatusId);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.ReviewedByUserId);
+            entity.Ignore(x => x.ApprovedByUserId);
+            entity.Ignore(x => x.PublishedAt);
+            entity.Ignore(x => x.ArchivedAt);
             entity.Property(x => x.Latitude).HasPrecision(9, 6);
             entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<MarketRow>(entity =>
         {
-            entity.ToTable("MusicMarkets");
+            entity.ToTable("MercadosMusicales");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdMercadoMusical");
+            entity.Property(x => x.Name).HasColumnName("NombreMercado");
+            entity.Property(x => x.EditionsCount).HasColumnName("NumeroEdiciones");
+            entity.Property(x => x.Periodicity).HasColumnName("Periodicidad");
+            entity.Property(x => x.Description).HasColumnName("Descripcion");
+            entity.Property(x => x.HasCurrentYearEdition).HasColumnName("TieneEdicionVigenteAnoActual");
+            entity.Property(x => x.CurrentYearEditionStatus).HasColumnName("EstadoEdicionAnoActual");
+            entity.Property(x => x.CurrentYearStartDate).HasColumnName("FechaInicioEdicionActual");
+            entity.Property(x => x.CurrentYearEndDate).HasColumnName("FechaFinEdicionActual");
+            entity.Property(x => x.ResponsibleEntityDisplayName).HasColumnName("EntidadResponsable");
+            entity.Property(x => x.ResponsibleEntityContactEmail).HasColumnName("CorreoEntidadResponsable");
+            entity.Property(x => x.ResponsibleEntityContactPhone).HasColumnName("TelefonoEntidadResponsable");
+            entity.Property(x => x.ResponsibleEntityWebsiteUrl).HasColumnName("SitioWebEntidadResponsable");
+            entity.Property(x => x.AssociatedFestivalDisplayName).HasColumnName("NombreFestivalAsociado");
+            entity.Property(x => x.AssociatedFestivalId).HasColumnName("IdFestivalAsociado");
+            entity.Property(x => x.ScopeType).HasColumnName("Alcance");
+            entity.Property(x => x.MarketMode).HasColumnName("Modalidad");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.SpecificLocation).HasColumnName("LugarEspecifico");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Ignore(x => x.HasRegisteredResponsibleEntity);
+            entity.Ignore(x => x.HasAssociatedFestival);
+            entity.Ignore(x => x.StatusId);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.ReviewedByUserId);
+            entity.Ignore(x => x.ApprovedByUserId);
+            entity.Ignore(x => x.PublishedAt);
+            entity.Ignore(x => x.ArchivedAt);
         });
 
         modelBuilder.Entity<OrganizationRow>(entity =>
         {
-            entity.ToTable("Organizations");
+            entity.ToTable("RedesDocumentacion");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRedDocumentacion");
+            entity.Property(x => x.Name).HasColumnName("Nombre");
+            entity.Property(x => x.ContactEmail).HasColumnName("CorreoContacto");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.TerritorialScope).HasColumnName("Zona");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWeb");
+            entity.Property(x => x.FacebookUrl).HasColumnName("Facebook");
+            entity.Property(x => x.InstagramUrl).HasColumnName("Instagram");
+            entity.Property(x => x.OtherUrl).HasColumnName("OtroEnlace");
+            entity.Property(x => x.OrganizationType).HasColumnName("TipoCentro");
+            entity.Property(x => x.Latitude).HasColumnName("Latitud");
+            entity.Property(x => x.Longitude).HasColumnName("Longitud");
+            entity.Property(x => x.Description).HasColumnName("Descripcion");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Ignore(x => x.SocialReason);
+            entity.Ignore(x => x.LegalName);
+            entity.Ignore(x => x.ContactPersonName);
+            entity.Ignore(x => x.ContactPersonRole);
+            entity.Ignore(x => x.ContactPhone);
+            entity.Ignore(x => x.CreationYear);
+            entity.Ignore(x => x.MusicalPractices);
+            entity.Ignore(x => x.PrimaryFunction);
+            entity.Ignore(x => x.SecondaryFunctions);
+            entity.Ignore(x => x.OtherPrimaryFunction);
+            entity.Ignore(x => x.StatusId);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.ReviewedByUserId);
+            entity.Ignore(x => x.ApprovedByUserId);
+            entity.Ignore(x => x.PublishedAt);
+            entity.Ignore(x => x.ArchivedAt);
+            entity.Property(x => x.Latitude).HasPrecision(9, 6);
+            entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<SpaceInfrastructureRow>(entity =>
         {
-            entity.ToTable("SpacesInfrastructure");
+            entity.ToTable("Lutieres");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdLutier");
+            entity.Property(x => x.Name).HasColumnName("NombreTaller");
+            entity.Property(x => x.ResponsibleEntityDisplayName).HasColumnName("Nombre");
+            entity.Property(x => x.ContactPersonName).HasColumnName("NombreContacto");
+            entity.Property(x => x.ContactEmail).HasColumnName("CorreoContacto");
+            entity.Property(x => x.ContactPhone).HasColumnName("TelefonoContacto");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.SpecificLocation).HasColumnName("Zona");
+            entity.Property(x => x.AddressText).HasColumnName("Direccion");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWeb");
+            entity.Property(x => x.FacebookUrl).HasColumnName("Facebook");
+            entity.Property(x => x.InstagramUrl).HasColumnName("Instagram");
+            entity.Property(x => x.OtherUrl).HasColumnName("OtroEnlace");
+            entity.Property(x => x.PrimaryFunction).HasColumnName("Especialidad");
+            entity.Property(x => x.SecondaryFunctions).HasColumnName("Instrumentos");
+            entity.Property(x => x.ActorType).HasColumnName("TipoLutier");
+            entity.Property(x => x.MainUses).HasColumnName("Descripcion");
+            entity.Property(x => x.Latitude).HasColumnName("Latitud");
+            entity.Property(x => x.Longitude).HasColumnName("Longitud");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Ignore(x => x.HasRegisteredResponsibleEntity);
+            entity.Ignore(x => x.ContactPersonRole);
+            entity.Ignore(x => x.OtherPrimaryFunction);
+            entity.Ignore(x => x.MaxCapacityApprox);
+            entity.Ignore(x => x.MusicalPractices);
+            entity.Ignore(x => x.StatusId);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.ReviewedByUserId);
+            entity.Ignore(x => x.ApprovedByUserId);
+            entity.Ignore(x => x.PublishedAt);
+            entity.Ignore(x => x.ArchivedAt);
             entity.Property(x => x.Latitude).HasPrecision(9, 6);
             entity.Property(x => x.Longitude).HasPrecision(9, 6);
         });
 
         modelBuilder.Entity<ProcessEntityRelationRow>(entity =>
         {
-            entity.ToTable("ProcessEntityRelations");
+            entity.ToTable("RegistrosEcosistemaTerritoriosSonoros");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRelacionTerritorioSonoro");
+            entity.Property(x => x.ProcessId).HasColumnName("IdRegistroEcosistema");
+            entity.Property(x => x.EntityId).HasColumnName("IdTerritorioSonoro");
+            entity.Ignore(x => x.ProcessType);
+            entity.Ignore(x => x.EntityType);
+            entity.Ignore(x => x.RelationshipType);
+            entity.Ignore(x => x.Notes);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.CreatedAt);
         });
 
         modelBuilder.Entity<ProcessRelationRow>(entity =>
         {
-            entity.ToTable("ProcessRelations");
+            entity.ToTable("RegistrosEcosistema");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRegistroEcosistema");
+            entity.Property(x => x.SourceProcessId).HasColumnName("IdRegistroOrigen");
+            entity.Property(x => x.TargetProcessId).HasColumnName("IdTipoRegistroEcosistema");
+            entity.Ignore(x => x.SourceProcessType);
+            entity.Ignore(x => x.TargetProcessType);
+            entity.Ignore(x => x.RelationshipType);
+            entity.Ignore(x => x.Notes);
+            entity.Ignore(x => x.CreatedByUserId);
+            entity.Ignore(x => x.CreatedAt);
         });
 
-        modelBuilder.Entity<EditorialItemRow>(entity =>
+        modelBuilder.Entity<GalleryAlbumRow>(entity =>
         {
-            entity.ToTable("EditorialItems");
+            entity.ToTable("AlbumesGaleria");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdAlbum");
+            entity.Property(x => x.Title).HasColumnName("TituloAlbum");
+            entity.Property(x => x.Description).HasColumnName("DescripcionAlbum");
+            entity.Property(x => x.CategoryId).HasColumnName("IdCategoria");
+            entity.Property(x => x.StatusId).HasColumnName("IdEstadoContenido");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("IdUsuarioCreador");
+            entity.Property(x => x.ReviewedByUserId).HasColumnName("IdUsuarioRevisor");
+            entity.Property(x => x.ApprovedByUserId).HasColumnName("IdUsuarioAprobador");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.PublishedAt).HasColumnName("FechaPublicacion");
+            entity.Property(x => x.ArchivedAt).HasColumnName("FechaArchivo");
         });
 
-        modelBuilder.Entity<EditorialClassificationRow>(entity =>
+        modelBuilder.Entity<GalleryAlbumFileRow>(entity =>
         {
-            entity.ToTable("EditorialClassifications");
+            entity.ToTable("AlbumesGaleriaArchivos");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdAlbumGaleriaArchivo");
+            entity.Property(x => x.AlbumId).HasColumnName("IdAlbum");
+            entity.Property(x => x.FileId).HasColumnName("IdArchivo");
+            entity.Property(x => x.FileRole).HasColumnName("RolArchivo");
+            entity.Property(x => x.SortOrder).HasColumnName("OrdenVisualizacion");
         });
 
-        modelBuilder.Entity<EditorialBibliographicRecordRow>(entity =>
+        modelBuilder.Entity<EditorialCatalogResourceRow>(entity =>
         {
-            entity.ToTable("EditorialBibliographicRecords");
+            entity.ToTable("CatalogoEditorial");
             entity.HasKey(x => x.Id);
-        });
-
-        modelBuilder.Entity<EditorialAvailabilityRow>(entity =>
-        {
-            entity.ToTable("EditorialAvailability");
-            entity.HasKey(x => x.Id);
-        });
-
-        modelBuilder.Entity<EditorialFileRow>(entity =>
-        {
-            entity.ToTable("EditorialFiles");
-            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRecursoEditorial");
+            entity.Property(x => x.ExternalId).HasColumnName("CodigoRecurso");
+            entity.Property(x => x.Title).HasColumnName("Titulo");
+            entity.Property(x => x.Year).HasColumnName("Anio");
+            entity.Property(x => x.Section).HasColumnName("SeccionPrincipal");
+            entity.Property(x => x.SectionPath).HasColumnName("RutaSeccion");
+            entity.Property(x => x.PublicationType).HasColumnName("TipoPublicacion");
+            entity.Property(x => x.Practice).HasColumnName("PracticaMusical");
+            entity.Property(x => x.Category).HasColumnName("Categoria");
+            entity.Property(x => x.Subcategory).HasColumnName("Subcategoria");
+            entity.Property(x => x.Author).HasColumnName("Autor");
+            entity.Property(x => x.CorporateAuthor).HasColumnName("AutorCorporativo");
+            entity.Property(x => x.Credits).HasColumnName("CreditosAdicionales");
+            entity.Property(x => x.Isbn).HasColumnName("ISBN");
+            entity.Property(x => x.Ismn).HasColumnName("ISMN");
+            entity.Property(x => x.FormatSize).HasColumnName("TamanoFormato");
+            entity.Property(x => x.Pages).HasColumnName("Paginas");
+            entity.Property(x => x.Duration).HasColumnName("Duracion");
+            entity.Property(x => x.RegionalScope).HasColumnName("AmbitoRegional");
+            entity.Property(x => x.Location).HasColumnName("UbicacionPublicacion");
+            entity.Property(x => x.Url).HasColumnName("Url");
+            entity.Property(x => x.Keywords).HasColumnName("PalabrasClave");
+            entity.Property(x => x.Summary).HasColumnName("Resumen");
+            entity.Property(x => x.AdditionalFields).HasColumnName("CamposAdicionales");
+            entity.Property(x => x.SourceSlide).HasColumnName("DiapositivaOrigen");
+            entity.Property(x => x.ThumbnailPath).HasColumnName("ArchivoMiniatura");
+            entity.Property(x => x.CoverText).HasColumnName("TextoPortada");
+            entity.Property(x => x.SourceText).HasColumnName("TextoFuenteCompleto");
+            entity.Property(x => x.SourceOrder).HasColumnName("OrdenFuente");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.ImportedAt).HasColumnName("FechaImportacion");
         });
 
         modelBuilder.Entity<FileRow>(entity =>
         {
-            entity.ToTable("Files");
+            entity.ToTable("Archivos");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdArchivo");
+            entity.Property(x => x.OriginalName).HasColumnName("NombreOriginal");
+            entity.Property(x => x.StoredName).HasColumnName("NombreAlmacenado");
+            entity.Property(x => x.MimeType).HasColumnName("TipoMime");
+            entity.Property(x => x.FileSizeBytes).HasColumnName("PesoBytes");
+            entity.Property(x => x.StoragePath).HasColumnName("RutaAlmacenamiento");
+            entity.Property(x => x.PublicUrl).HasColumnName("UrlPublica");
+            entity.Property(x => x.AltText).HasColumnName("TextoAlternativo");
+            entity.Property(x => x.Caption).HasColumnName("Pie");
+            entity.Property(x => x.Credit).HasColumnName("Credito");
+            entity.Property(x => x.UploadedByUserId).HasColumnName("IdUsuarioCarga");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCarga");
         });
 
         modelBuilder.Entity<UserRow>(entity =>
         {
-            entity.ToTable("Users");
+            entity.ToTable("Usuarios");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdUsuario");
+            entity.Property(x => x.FullName).HasColumnName("NombreCompleto");
+            entity.Property(x => x.Email).HasColumnName("CorreoElectronico");
+            entity.Property(x => x.PasswordHash).HasColumnName("HashContrasena");
+            entity.Property(x => x.RoleId).HasColumnName("IdRol");
+            entity.Property(x => x.AccessChannel).HasColumnName("CanalAcceso");
+            entity.Property(x => x.ProfileType).HasColumnName("TipoPerfil");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.LastLoginAt).HasColumnName("UltimoAcceso");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
         });
 
         modelBuilder.Entity<RoleRow>(entity =>
         {
             entity.ToTable("Roles");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRol");
+            entity.Property(x => x.Name).HasColumnName("NombreRol");
+            entity.Property(x => x.Description).HasColumnName("DescripcionRol");
+        });
+
+        modelBuilder.Entity<AuditLogRow>(entity =>
+        {
+            entity.ToTable("BitacoraAuditoria");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdAuditoria");
+            entity.Property(x => x.UserId).HasColumnName("IdUsuario");
+            entity.Property(x => x.TableName).HasColumnName("TablaAfectada");
+            entity.Property(x => x.RecordId).HasColumnName("IdRegistroAfectado");
+            entity.Property(x => x.Action).HasColumnName("Accion");
+            entity.Property(x => x.PreviousValuesJson).HasColumnName("ValoresAnteriores");
+            entity.Property(x => x.NewValuesJson).HasColumnName("ValoresNuevos");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaAccion");
+        });
+
+        modelBuilder.Entity<UserVerificationCodeRow>(entity =>
+        {
+            entity.ToTable("UsuariosCodigosVerificacion");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdUsuarioCodigoVerificacion");
+            entity.Property(x => x.UserId).HasColumnName("IdUsuario");
+            entity.Property(x => x.Purpose).HasColumnName("Proposito");
+            entity.Property(x => x.Code).HasColumnName("Codigo");
+            entity.Property(x => x.ExpiresAt).HasColumnName("FechaExpiracion");
+            entity.Property(x => x.ConsumedAt).HasColumnName("FechaConsumo");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+        });
+
+        modelBuilder.Entity<EntityProfileRow>(entity =>
+        {
+            entity.ToTable("Entidades");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEntidad");
+            entity.Property(x => x.EntityType).HasColumnName("TipoEntidad");
+            entity.Property(x => x.Name).HasColumnName("Nombre");
+            entity.Property(x => x.LegalName).HasColumnName("NombreLegal");
+            entity.Property(x => x.Description).HasColumnName("Descripcion");
+            entity.Property(x => x.ContactEmail).HasColumnName("CorreoContacto");
+            entity.Property(x => x.ContactPhone).HasColumnName("TelefonoContacto");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWeb");
+            entity.Property(x => x.FacebookUrl).HasColumnName("Facebook");
+            entity.Property(x => x.InstagramUrl).HasColumnName("Instagram");
+            entity.Property(x => x.OtherUrl).HasColumnName("OtroEnlace");
+            entity.Property(x => x.CoverageLevel).HasColumnName("NivelCobertura");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.AddressText).HasColumnName("Direccion");
+            entity.Property(x => x.Latitude).HasColumnName("Latitud").HasPrecision(9, 6);
+            entity.Property(x => x.Longitude).HasColumnName("Longitud").HasPrecision(9, 6);
+            entity.Property(x => x.StatusCode).HasColumnName("EstadoRegistro");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("IdUsuarioCreador");
+            entity.Property(x => x.ResponsibleUserId).HasColumnName("IdUsuarioResponsable");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+            entity.Property(x => x.ReviewedAt).HasColumnName("FechaRevision");
+            entity.Property(x => x.ApprovedAt).HasColumnName("FechaAprobacion");
+            entity.Property(x => x.PublishedAt).HasColumnName("FechaPublicacion");
+        });
+
+        modelBuilder.Entity<UserEntityRow>(entity =>
+        {
+            entity.ToTable("UsuariosEntidades");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdUsuarioEntidad");
+            entity.Property(x => x.UserId).HasColumnName("IdUsuario");
+            entity.Property(x => x.EntityId).HasColumnName("IdEntidad");
+            entity.Property(x => x.EntityRole).HasColumnName("RolEntidad");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+        });
+
+        modelBuilder.Entity<EntityRelationRow>(entity =>
+        {
+            entity.ToTable("EntidadesRelaciones");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEntidadRelacion");
+            entity.Property(x => x.SourceEntityId).HasColumnName("IdEntidadOrigen");
+            entity.Property(x => x.TargetEntityId).HasColumnName("IdEntidadDestino");
+            entity.Property(x => x.RelationshipType).HasColumnName("TipoRelacion");
+            entity.Property(x => x.Notes).HasColumnName("Notas");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+        });
+
+        modelBuilder.Entity<EntitySourceRecordRow>(entity =>
+        {
+            entity.ToTable("EntidadesRegistrosFuente");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEntidadRegistroFuente");
+            entity.Property(x => x.EntityId).HasColumnName("IdEntidad");
+            entity.Property(x => x.SourceTable).HasColumnName("TablaFuente");
+            entity.Property(x => x.SourceRecordId).HasColumnName("IdRegistroFuente");
+            entity.Property(x => x.EcosystemRecordId).HasColumnName("IdRegistroEcosistema");
+            entity.Property(x => x.IsPrimary).HasColumnName("EsPrincipal");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+        });
+
+        modelBuilder.Entity<EntityReviewHistoryRow>(entity =>
+        {
+            entity.ToTable("EntidadesHistorialRevision");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdHistorialRevision");
+            entity.Property(x => x.EntityId).HasColumnName("IdEntidad");
+            entity.Property(x => x.UserId).HasColumnName("IdUsuario");
+            entity.Property(x => x.Action).HasColumnName("Accion");
+            entity.Property(x => x.Comment).HasColumnName("Comentario");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaAccion");
         });
 
         modelBuilder.Entity<ParticipationSubmissionRow>(entity =>
         {
-            entity.ToTable("ParticipationSubmissions");
+            entity.ToTable("Participaciones");
             entity.HasKey(x => x.Reference);
-            entity.Property(x => x.Reference).HasMaxLength(64);
-            entity.Property(x => x.ActorType).HasMaxLength(80);
-            entity.Property(x => x.ActorName).HasMaxLength(240);
-            entity.Property(x => x.Email).HasMaxLength(240);
-            entity.Property(x => x.Department).HasMaxLength(120);
-            entity.Property(x => x.Municipality).HasMaxLength(120);
+            entity.Property(x => x.Reference).HasColumnName("Referencia").HasMaxLength(64);
+            entity.Property(x => x.SubmittedAt).HasColumnName("FechaEnvio");
+            entity.Property(x => x.ActorType).HasColumnName("TipoActor").HasMaxLength(80);
+            entity.Property(x => x.ActorName).HasColumnName("NombreActor").HasMaxLength(240);
+            entity.Property(x => x.Email).HasColumnName("CorreoElectronico").HasMaxLength(240);
+            entity.Property(x => x.Department).HasColumnName("Departamento").HasMaxLength(120);
+            entity.Property(x => x.Municipality).HasColumnName("Municipio").HasMaxLength(120);
+            entity.Property(x => x.PayloadJson).HasColumnName("DatosFormularioJson");
             entity.HasIndex(x => x.SubmittedAt);
             entity.HasIndex(x => x.ActorType);
             entity.HasIndex(x => x.Department);

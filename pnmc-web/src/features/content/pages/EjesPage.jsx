@@ -16,10 +16,10 @@ const AxisSection = ({ eje, onNavigateComponent }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center mb-12">
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center gap-4"><span className="font-gregor text-6xl text-[#8BF784] font-bold leading-none">{eje.id}</span><div className="h-px flex-1 bg-slate-100"></div></div>
-            <h3 className="font-alternate text-4xl lg:text-5xl text-[#291242] font-bold uppercase leading-none tracking-tight">{eje.title}</h3>
+            <h3 className="font-alternate text-4xl lg:text-5xl text-[#291242] font-bold uppercase leading-[1.1] tracking-tight text-balance">{eje.title}</h3>
             <div className="space-y-6">
               {eje.axisExplain.map((paragraph, idx) => (
-                <p key={idx} className="font-nunito text-slate-600 font-light text-base leading-relaxed">{paragraph}</p>
+                <p key={idx} className="font-nunito text-slate-700 font-light text-[1.05rem] leading-loose max-w-2xl">{paragraph}</p>
               ))}
             </div>
           </div>

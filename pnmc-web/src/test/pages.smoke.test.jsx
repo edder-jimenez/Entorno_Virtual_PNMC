@@ -12,7 +12,7 @@ describe('Segmented pages smoke', () => {
 
   it('renders Noticias page shell', () => {
     render(<NoticiasPage onBack={() => {}} />);
-    expect(screen.getByText(/Noticias y/i)).toBeInTheDocument();
+    expect(screen.getByText(/Portal Editorial y/i)).toBeInTheDocument();
   });
 
   it('renders Editorial page shell', async () => {

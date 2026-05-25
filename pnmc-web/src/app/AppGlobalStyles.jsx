@@ -33,76 +33,29 @@ const APP_GLOBAL_STYLES = `
         .transition-shadow {
           transition-timing-function: var(--ease-soft) !important;
         }
-        [class*="text-[0.42rem]"],
-        [class*="text-[0.44rem]"],
-        [class*="text-[0.45rem]"],
-        [class*="text-[0.46rem]"],
-        [class*="text-[0.48rem]"],
-        [class*="text-[0.5rem]"],
-        [class*="text-[0.52rem]"],
-        [class*="text-[0.54rem]"],
-        [class*="text-[0.55rem]"],
-        [class*="text-[0.56rem]"],
-        [class*="text-[0.58rem]"],
-        [class*="text-[0.6rem]"],
-        [class*="text-[0.62rem]"],
-        [class*="text-xs"] {
-          font-size: var(--type-step-1) !important;
-          line-height: var(--type-step-1-line) !important;
-        }
-        [class*="text-[0.64rem]"],
-        [class*="text-[0.65rem]"],
-        [class*="text-[0.66rem]"],
-        [class*="text-[0.68rem]"],
-        [class*="text-[0.7rem]"],
-        [class*="text-[0.72rem]"],
-        [class*="text-[0.74rem]"],
-        [class*="text-[0.75rem]"],
-        [class*="text-[0.76rem]"],
-        [class*="text-[0.78rem]"],
-        [class*="text-sm"] {
-          font-size: var(--type-step-2) !important;
-          line-height: var(--type-step-2-line) !important;
-        }
-        [class*="text-[0.8rem]"],
-        [class*="text-[0.82rem]"],
-        [class*="text-[0.84rem]"],
-        [class*="text-[0.85rem]"],
-        [class*="text-[0.86rem]"],
-        [class*="text-[0.9rem]"],
-        [class*="text-[0.92rem]"],
-        [class*="text-[0.95rem]"],
-        [class*="text-[0.98rem]"],
-        [class*="text-base"],
-        [class*="text-[1rem]"] {
-          font-size: var(--type-step-3) !important;
-          line-height: var(--type-step-3-line) !important;
-        }
-        [class*="text-[1.05rem]"],
-        [class*="text-[1.1rem]"],
-        [class*="text-lg"] {
-          font-size: var(--type-step-4) !important;
-          line-height: var(--type-step-4-line) !important;
-        }
-        [class*="text-[1.2rem]"] {
-          font-size: var(--type-step-5) !important;
-          line-height: var(--type-step-5-line) !important;
-        }
         ::selection { background-color: #00DA5E; color: #291242; } 
-        ::-webkit-scrollbar { width: 4px; } 
+        ::-webkit-scrollbar { width: 4px; height: 4px; } 
         ::-webkit-scrollbar-track { background: #fff; } 
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; } 
         ::-webkit-scrollbar-thumb:hover { background: #00DA5E; } 
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.02); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #291242; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #00DA5E; }
+        .thin-horizontal-scrollbar::-webkit-scrollbar { height: 3px; }
+        .thin-horizontal-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .thin-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(41, 18, 66, 0.15); border-radius: 99px; }
+        .thin-horizontal-scrollbar::-webkit-scrollbar-thumb:hover { background: #00DA5E; }
         .leaflet-container { border-radius: 2.8rem; font-family: inherit; }
-        .leaflet-container.map-v2-canvas {
+        .leaflet-container.map-canvas {
           border-radius: 1.35rem;
           box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+        }
+        .leaflet-container.map-edge-canvas {
+          border-radius: 0;
+          box-shadow: none;
         }
         .leaflet-pane,
         .leaflet-control-container,
@@ -110,6 +63,9 @@ const APP_GLOBAL_STYLES = `
         .leaflet-top { z-index: 400 !important; }
         .leaflet-interactive {
           pointer-events: all !important;
+        }
+        .map-basemap-washed {
+          filter: grayscale(100%) contrast(75%) brightness(105%);
         }
         .department-label {
           background: transparent;
@@ -121,10 +77,15 @@ const APP_GLOBAL_STYLES = `
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          text-shadow: none;
+          text-shadow: 
+            -1.5px -1.5px 0 rgba(255,255,255,0.95),  
+             1.5px -1.5px 0 rgba(255,255,255,0.95),
+            -1.5px  1.5px 0 rgba(255,255,255,0.95),
+             1.5px  1.5px 0 rgba(255,255,255,0.95),
+             0      0     4px rgba(255,255,255,1);
           pointer-events: none !important;
         }
-        .map-v2-canvas .department-label {
+        .map-canvas .department-label {
           font-size: 8px;
           letter-spacing: 0.1em;
           color: rgba(41, 18, 66, 0.88);
@@ -190,6 +151,36 @@ const APP_GLOBAL_STYLES = `
         }
         .leaflet-popup-tip {
           background: white;
+        }
+        .custom-municipality-tooltip {
+          background: rgba(255, 255, 255, 0.98) !important;
+          border: 1px solid rgba(41, 18, 66, 0.16) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1) !important;
+          color: #291242 !important;
+          font-family: 'Oswald', sans-serif !important;
+          padding: 8px 12px !important;
+          pointer-events: none !important;
+        }
+        .custom-municipality-tooltip:before {
+          display: none !important;
+        }
+        .custom-municipality-tooltip .tooltip-title {
+          font-weight: 800 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          margin: 0 !important;
+          color: #291242 !important;
+        }
+        .custom-municipality-tooltip .tooltip-value {
+          font-size: 9px !important;
+          color: #16a34a !important;
+          margin-top: 2px !important;
+          margin-bottom: 0 !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.04em !important;
         }
 `;
 

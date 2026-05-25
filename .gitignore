@@ -39,5 +39,4 @@ pnpm-debug.log*
 # Misc
 *.log
 backups/
-Trash/backups/
-Trash/reports/
+Trash/

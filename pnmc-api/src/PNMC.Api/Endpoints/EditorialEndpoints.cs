@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PNMC.Contracts;
 using PNMC.Infrastructure.Data;
+using System.Text.RegularExpressions;
 
 namespace PNMC.Api.Endpoints;
 
@@ -65,113 +66,145 @@ public static class EditorialEndpoints
         PnmcDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var items = await dbContext.EditorialItems.AsNoTracking().ToListAsync(cancellationToken);
-        var classifications = await dbContext.EditorialClassifications.AsNoTracking().ToListAsync(cancellationToken);
-        var bibliographicRecords = await dbContext.EditorialBibliographicRecords.AsNoTracking().ToListAsync(cancellationToken);
-        var availability = await dbContext.EditorialAvailabilities.AsNoTracking().ToListAsync(cancellationToken);
+        var catalogResources = await dbContext.EditorialCatalogResources.AsNoTracking()
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.SourceOrder)
+            .ThenBy(item => item.Title)
+            .ToListAsync(cancellationToken);
+
+        if (catalogResources.Count > 0)
+        {
+            return catalogResources.Select(item => new EditorialResourceDto(
+                item.ExternalId,
+                item.Title,
+                item.Year,
+                item.Section,
+                item.SectionPath,
+                item.PublicationType,
+                item.Practice,
+                item.Category,
+                item.Subcategory,
+                item.Author,
+                item.CorporateAuthor,
+                item.Credits,
+                item.Isbn,
+                item.Ismn,
+                item.FormatSize,
+                item.Pages,
+                item.Duration,
+                item.RegionalScope,
+                item.Location,
+                item.Url,
+                SplitKeywords(item.Keywords),
+                item.Summary,
+                item.AdditionalFields,
+                item.CoverText,
+                NormalizeThumbnailPath(item.ThumbnailPath),
+                ResolveDisplayAuthor(item.Author, item.CorporateAuthor)
+            )).ToList();
+        }
+
         var categories = await dbContext.Categories.AsNoTracking().ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
-        var editorialFiles = await dbContext.EditorialFiles.AsNoTracking().OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
+        var albums = await dbContext.GalleryAlbums.AsNoTracking()
+            .OrderBy(x => x.SortOrder)
+            .ThenByDescending(x => x.PublishedAt ?? x.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var albumFiles = await dbContext.GalleryAlbumFiles.AsNoTracking()
+            .OrderBy(x => x.SortOrder)
+            .ToListAsync(cancellationToken);
         var files = await dbContext.Files.AsNoTracking().ToDictionaryAsync(x => x.Id, cancellationToken);
 
-        var classificationByItem = classifications
-            .GroupBy(x => x.EditorialItemId)
+        var fileByAlbum = albumFiles
+            .GroupBy(x => x.AlbumId)
             .ToDictionary(group => group.Key, group => group.First());
 
-        var bibliographicByItem = bibliographicRecords
-            .GroupBy(x => x.EditorialItemId)
-            .ToDictionary(group => group.Key, group => group.First());
+        var resources = new List<EditorialResourceDto>(albums.Count);
 
-        var availabilityByItem = availability
-            .GroupBy(x => x.EditorialItemId)
-            .ToDictionary(group => group.Key, group => group.First());
-
-        var fileByItem = editorialFiles
-            .GroupBy(x => x.EditorialItemId)
-            .ToDictionary(group => group.Key, group => group.First());
-
-        var resources = new List<EditorialResourceDto>(items.Count);
-
-        foreach (var item in items)
+        foreach (var album in albums)
         {
-            classificationByItem.TryGetValue(item.Id, out var classification);
-            bibliographicByItem.TryGetValue(item.Id, out var bibliographic);
-            availabilityByItem.TryGetValue(item.Id, out var availabilityRecord);
-            fileByItem.TryGetValue(item.Id, out var editorialFile);
+            fileByAlbum.TryGetValue(album.Id, out var albumFile);
 
-            var fileRecord = editorialFile is not null && files.TryGetValue(editorialFile.FileId, out var foundFile)
+            var fileRecord = albumFile is not null && files.TryGetValue(albumFile.FileId, out var foundFile)
                 ? foundFile
                 : null;
 
-            var year = ResolveYear(bibliographic);
-            var keywords = SplitKeywords(bibliographic?.Keywords);
-            var categoryName = item.CategoryId.HasValue && categories.TryGetValue(item.CategoryId.Value, out var resolvedCategory)
+            var categoryName = album.CategoryId.HasValue && categories.TryGetValue(album.CategoryId.Value, out var resolvedCategory)
                 ? resolvedCategory
-                : (classification?.EditorialCategory ?? string.Empty);
+                : "Galeria";
+            var fileUrl = fileRecord?.PublicUrl ?? fileRecord?.StoragePath ?? string.Empty;
 
             resources.Add(new EditorialResourceDto(
-                item.Id.ToString(),
-                item.Title,
-                year,
-                classification?.MainSection ?? string.Empty,
-                classification?.SectionPath ?? string.Empty,
-                bibliographic?.PublicationType ?? string.Empty,
-                classification?.MusicalPractice ?? string.Empty,
+                album.Id.ToString(),
+                album.Title,
+                ResolveYear(album.PublishedAt ?? album.CreatedAt),
                 categoryName,
-                classification?.EditorialSubcategory ?? string.Empty,
-                bibliographic?.MainAuthors ?? string.Empty,
-                bibliographic?.CorporateAuthor ?? string.Empty,
+                categoryName,
+                "Album de galeria",
                 string.Empty,
-                bibliographic?.ISBN ?? string.Empty,
-                string.Empty,
-                bibliographic?.FormatOrSize ?? string.Empty,
+                categoryName,
                 string.Empty,
                 string.Empty,
-                classification?.RegionalScope ?? string.Empty,
-                availabilityRecord?.Notes ?? string.Empty,
-                availabilityRecord?.ResourceUrl ?? string.Empty,
-                keywords,
-                item.ShortDescription ?? string.Empty,
                 string.Empty,
-                bibliographic?.CoverText ?? string.Empty,
-                fileRecord?.PublicUrl ?? fileRecord?.StoragePath ?? string.Empty,
-                ResolveDisplayAuthor(bibliographic)
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                fileUrl,
+                fileUrl,
+                [],
+                album.Description ?? string.Empty,
+                string.Empty,
+                album.Description ?? string.Empty,
+                fileUrl,
+                "PNMC"
             ));
         }
 
         return resources;
     }
 
-    private static string ResolveYear(EditorialBibliographicRecordRow? bibliographic)
-    {
-        if (bibliographic is null) return string.Empty;
+    private static string ResolveYear(DateTime? date) => date?.Year.ToString() ?? string.Empty;
 
-        if (bibliographic.YearFrom.HasValue && bibliographic.YearTo.HasValue && bibliographic.YearFrom != bibliographic.YearTo)
+    private static IReadOnlyList<string> SplitKeywords(string? keywords)
+    {
+        return string.IsNullOrWhiteSpace(keywords)
+            ? []
+            : keywords.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+    }
+
+    private static string ResolveDisplayAuthor(string? author, string? corporateAuthor)
+    {
+        if (!string.IsNullOrWhiteSpace(author)) return author;
+        if (!string.IsNullOrWhiteSpace(corporateAuthor)) return corporateAuthor;
+        return "PNMC";
+    }
+
+    private static string NormalizeThumbnailPath(string? thumbnailPath)
+    {
+        if (string.IsNullOrWhiteSpace(thumbnailPath)) return string.Empty;
+
+        var normalized = thumbnailPath.Trim();
+
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out var absoluteUri)
+            && (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
         {
-            return $"{bibliographic.YearFrom}-{bibliographic.YearTo}";
+            return normalized;
         }
 
-        if (bibliographic.YearFrom.HasValue) return bibliographic.YearFrom.Value.ToString();
-        if (bibliographic.YearTo.HasValue) return bibliographic.YearTo.Value.ToString();
+        if (normalized.StartsWith("/mnt/", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("/var/", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("/tmp/", StringComparison.OrdinalIgnoreCase)
+            || Regex.IsMatch(normalized, @"^[A-Za-z]:\\"))
+        {
+            return string.Empty;
+        }
 
-        return string.Empty;
-    }
-
-    private static List<string> SplitKeywords(string? rawKeywords)
-    {
-        if (string.IsNullOrWhiteSpace(rawKeywords)) return [];
-
-        return rawKeywords
-            .Split([',', ';', '|'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static string ResolveDisplayAuthor(EditorialBibliographicRecordRow? bibliographic)
-    {
-        if (bibliographic is null) return string.Empty;
-
-        if (!string.IsNullOrWhiteSpace(bibliographic.MainAuthors)) return bibliographic.MainAuthors;
-        if (!string.IsNullOrWhiteSpace(bibliographic.CorporateAuthor)) return bibliographic.CorporateAuthor;
-        return string.Empty;
+        return normalized.StartsWith('/') ? normalized : $"/{normalized}";
     }
 }

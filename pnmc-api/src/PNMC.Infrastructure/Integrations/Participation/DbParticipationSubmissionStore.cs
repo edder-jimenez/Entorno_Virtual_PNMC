@@ -23,7 +23,7 @@ public sealed class DbParticipationSubmissionStore : IParticipationSubmissionSto
 
     public async Task SaveAsync(ParticipationSubmissionEntity entity, CancellationToken cancellationToken = default)
     {
-        var row = await _dbContext.ParticipationSubmissions
+        var row = await _dbContext.Participations
             .FirstOrDefaultAsync(x => x.Reference == entity.Reference, cancellationToken);
 
         var payload = entity.Payload ?? new ParticipationSubmissionRequest();
@@ -38,7 +38,7 @@ public sealed class DbParticipationSubmissionStore : IParticipationSubmissionSto
                 Reference = entity.Reference,
                 SubmittedAt = entity.SubmittedAt
             };
-            _dbContext.ParticipationSubmissions.Add(row);
+            _dbContext.Participations.Add(row);
         }
 
         row.ActorType = payload.ActorType;
@@ -58,7 +58,7 @@ public sealed class DbParticipationSubmissionStore : IParticipationSubmissionSto
             return null;
         }
 
-        var row = await _dbContext.ParticipationSubmissions
+        var row = await _dbContext.Participations
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Reference == reference, cancellationToken);
 
@@ -67,7 +67,7 @@ public sealed class DbParticipationSubmissionStore : IParticipationSubmissionSto
 
     public async Task<IReadOnlyList<ParticipationSubmissionEntity>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var rows = await _dbContext.ParticipationSubmissions
+        var rows = await _dbContext.Participations
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 

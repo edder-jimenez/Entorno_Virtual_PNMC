@@ -1,6 +1,11 @@
 # pnmc-api
 
-Backend oficial de PNMC con .NET 10 + Entity Framework Core sobre Azure SQL.
+Backend oficial de PNMC con .NET 10 + Entity Framework Core sobre SQL Server.
+
+En desarrollo local, el backend consulta directamente el modelo reconstruido en
+espanol (`Agenda`, `Noticias`, `Festivales`, `EscuelasMusica`,
+`MercadosMusicales`, `RedesDocumentacion`, `Lutieres`, etc.). No depende de
+vistas de compatibilidad con nombres anteriores.
 
 ## Estructura
 
@@ -41,19 +46,26 @@ dotnet restore PNMC.Api.sln
 dotnet run --project src/PNMC.Api/PNMC.Api.csproj
 ```
 
+Para trabajar contra la base local Docker del proyecto, desde la raiz del
+repositorio usa:
+
+```bash
+./scripts/api-local.sh
+```
+
 Swagger: `http://localhost:8080/swagger`
 Health: `http://localhost:8080/health/live` y `http://localhost:8080/health/ready`
 
 Nota: si Azure SQL está en auto-pause, la primera conexión puede tardar unos segundos mientras despierta la base.
 
-## Endpoints clave (compatibilidad)
+## Endpoints clave
 
 - Noticias:
   - `GET /api/v1/news/articles`
-  - `GET /api/v1/news` (alias de compatibilidad)
+  - `GET /api/v1/news`
 - Editorial:
   - `GET /api/v1/editorial/resources`
-  - `GET /api/v1/editorial` (alias de compatibilidad)
+  - `GET /api/v1/editorial`
 
 ## Pruebas
 

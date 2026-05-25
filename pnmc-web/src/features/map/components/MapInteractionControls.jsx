@@ -14,30 +14,31 @@ const MapZoomControls = ({ initialBounds }) => {
   };
 
   return (
-    <div className="absolute bottom-6 right-6 z-[1001] flex items-center gap-2">
+    <div className="absolute bottom-6 right-6 z-[1001] flex flex-col items-center gap-1 rounded-[1.25rem] bg-white/95 p-1.5 shadow-md backdrop-blur-md border border-slate-200/80">
       <button
         type="button"
         onClick={handleResetView}
-        className="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#291242] hover:bg-slate-50 transition-all"
+        className="h-10 w-10 rounded-[0.85rem] flex items-center justify-center text-[#291242] hover:bg-slate-100 transition-all"
         aria-label="Volver al encuadre inicial"
       >
         <Compass size={18} />
       </button>
-      <button
-        type="button"
-        onClick={() => map.zoomOut()}
-        className="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#291242] hover:bg-slate-50 transition-all"
-        aria-label="Alejar mapa"
-      >
-        <ZoomOut size={18} />
-      </button>
+      <div className="w-5 h-px bg-slate-200/80" />
       <button
         type="button"
         onClick={() => map.zoomIn()}
-        className="w-11 h-11 rounded-2xl bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#291242] hover:bg-slate-50 transition-all"
+        className="h-10 w-10 rounded-[0.85rem] flex items-center justify-center text-[#291242] hover:bg-slate-100 transition-all"
         aria-label="Acercar mapa"
       >
         <ZoomIn size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => map.zoomOut()}
+        className="h-10 w-10 rounded-[0.85rem] flex items-center justify-center text-[#291242] hover:bg-slate-100 transition-all"
+        aria-label="Alejar mapa"
+      >
+        <ZoomOut size={18} />
       </button>
     </div>
   );

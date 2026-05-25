@@ -9,13 +9,15 @@ Repositorio preparado para continuidad de desarrollo y despliegue futuro en Azur
 - `pnmc-database/`: SQL versionable (`schema/`, `migrations/`, `scripts/`, `seed/`).
 - `docs/internal/`: documentación técnica interna y checklist de calidad.
 - `scripts/`: utilitarios de arranque local.
-- `Trash/`: material legado/no usado (no participa en ejecución actual).
+- `backups/`: material legado/no usado movido fuera del flujo activo. Esta carpeta está ignorada para GitHub.
 
-## Contenido movido a Trash
+## Contenido movido a backups
 
-- `Trash/legacy-angular/migracion-fallida/`: intento Angular archivado.
-- `Trash/orphans/`: archivos sueltos huérfanos.
-- `Trash/backups/`: respaldos locales pesados (`.tar.gz`) fuera del flujo de desarrollo.
+- `backups/legacy-code/`: páginas/componentes React antiguos o prototipos reemplazados por la versión final.
+- `backups/legacy-angular/`: intento Angular archivado.
+- `backups/orphans/`: archivos sueltos detectados fuera del flujo actual.
+- `backups/archive-files/`: respaldos locales pesados (`.tar.gz`) fuera del flujo de desarrollo.
+- `backups/context/`: artefactos de contexto local que no deben publicarse.
 
 ## Fuente oficial de datos
 
@@ -68,3 +70,20 @@ npm run dev
 - Frontend: `http://127.0.0.1:5173`
 - API Swagger: `http://localhost:8080/swagger`
 - API Health: `http://localhost:8080/health/live`
+
+## Base local con Docker
+
+Para trabajar sin consumir Azure SQL:
+
+```bash
+./scripts/local-db-up.sh
+./scripts/api-local.sh
+```
+
+La base local queda en SQL Server:
+
+- Host: `127.0.0.1,14333`
+- Database: `PNMC_LOCAL`
+- User: `sa`
+
+El API local fuerza esa conexion sin modificar `pnmc-api/.env`, asi que puedes conservar tus credenciales de Azure separadas. Ver detalles en `pnmc-database/local/README.md`.

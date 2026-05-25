@@ -44,7 +44,7 @@ const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorial
           <div className="lg:col-span-8 space-y-12">
             <div className="space-y-6">
               <SectionHeader backgroundText="COMPONENTE" foregroundText="Descripción del Componente" compact />
-              <div className="font-nunito text-lg text-slate-600 leading-relaxed font-light space-y-4">
+              <div className="font-nunito text-[1.05rem] text-slate-700 leading-loose font-light space-y-6 max-w-3xl">
                 {component.fullText.map((p, i) => <p key={i}>{p}</p>)}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
@@ -69,7 +69,7 @@ const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorial
 
             </div>
           </div>
-          <aside className="lg:col-span-4 space-y-8">
+          <aside className="lg:col-span-4 space-y-8 lg:sticky lg:top-28 self-start">
             {component.id === 'c2-3' ? (
               <>
                 <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-10 space-y-6">
@@ -195,7 +195,7 @@ const ComponentRoutePage = ({
     return (
       <div className="bg-white min-h-screen pt-32 px-8 text-left">
         <div className="relative mb-4 lg:mb-6 w-full text-left">
-          <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-none text-3xl lg:text-5xl">Componente no encontrado</h2>
+          <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-[1.1] text-3xl lg:text-5xl text-balance">Componente no encontrado</h2>
         </div>
         <p className="text-slate-500 font-light mb-8">
           El componente solicitado no existe o cambió de identificador.
@@ -218,7 +218,7 @@ const ComponentRoutePage = ({
 const UnknownRoutePage = ({ onGoHome }) => (
   <div className="bg-white min-h-screen pt-32 px-8 text-left">
     <div className="relative mb-4 lg:mb-6 w-full text-left">
-      <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-none text-3xl lg:text-5xl">En Desarrollo</h2>
+      <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-[1.1] text-3xl lg:text-5xl text-balance">En Desarrollo</h2>
     </div>
     <p className="text-slate-500 font-light mb-8">Bajo construcción.</p>
     <Button onClick={onGoHome} variant="secondary">Volver al Inicio</Button>

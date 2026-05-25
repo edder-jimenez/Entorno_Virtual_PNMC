@@ -194,15 +194,22 @@ public sealed class AgendaEventUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+    public string ShortDescription { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
+    public string EndDate { get; set; } = string.Empty;
     public string TimeLabel { get; set; } = string.Empty;
+    public string EndTimeLabel { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string Municipality { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Organizer { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public string FestivalId { get; set; } = string.Empty;
+    public string SortOrder { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = [];
 }
 
@@ -214,66 +221,148 @@ public sealed class NewsArticleUpsertRequest
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string ContentHtml { get; set; } = string.Empty;
+    public string QuoteText { get; set; } = string.Empty;
+    public string Author { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public string EmbedUrl { get; set; } = string.Empty;
+    public string SortOrder { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class MapFestivalUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string VersionsCount { get; set; } = string.Empty;
+    public string LastEditionDate { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Organizer { get; set; } = string.Empty;
+    public string OrganizerEmail { get; set; } = string.Empty;
+    public string OrganizerPhone { get; set; } = string.Empty;
+    public string OrganizerWebsiteUrl { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
+    public string InstagramUrl { get; set; } = string.Empty;
+    public string FacebookUrl { get; set; } = string.Empty;
+    public string WebsiteUrl { get; set; } = string.Empty;
+    public string OtherUrl { get; set; } = string.Empty;
+    public string ContactPhone { get; set; } = string.Empty;
+    public bool HasCurrentYearEdition { get; set; }
+    public string CurrentYearEditionStatus { get; set; } = string.Empty;
+    public string CurrentYearStartDate { get; set; } = string.Empty;
+    public string CurrentYearEndDate { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Municipality { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class MapSchoolUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string SchoolCategory { get; set; } = string.Empty;
+    public string SchoolType { get; set; } = string.Empty;
+    public string ResponsibleEntity { get; set; } = string.Empty;
+    public string DirectorName { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
+    public string ContactPhone { get; set; } = string.Empty;
+    public string WebsiteUrl { get; set; } = string.Empty;
+    public string InstagramUrl { get; set; } = string.Empty;
+    public string FacebookUrl { get; set; } = string.Empty;
+    public string OtherUrl { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Municipality { get; set; } = string.Empty;
+    public string SpecificLocation { get; set; } = string.Empty;
+    public string AddressText { get; set; } = string.Empty;
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string TrainingCapacity { get; set; } = string.Empty;
     public int Students { get; set; }
-    public int Teachers { get; set; }
     public int ActiveGroupsCount { get; set; }
+    public string TrainingProcesses { get; set; } = string.Empty;
+    public string MusicalPractices { get; set; } = string.Empty;
+    public bool IsActiveSchool { get; set; } = true;
+    public string Observations { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class MapMarketUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public int EditionsCount { get; set; }
+    public string Periodicity { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool HasCurrentYearEdition { get; set; }
+    public string CurrentYearEditionStatus { get; set; } = string.Empty;
+    public string CurrentYearStartDate { get; set; } = string.Empty;
+    public string CurrentYearEndDate { get; set; } = string.Empty;
+    public string ResponsibleEntity { get; set; } = string.Empty;
+    public string ResponsibleEntityEmail { get; set; } = string.Empty;
+    public string ResponsibleEntityPhone { get; set; } = string.Empty;
+    public string ResponsibleEntityWebsiteUrl { get; set; } = string.Empty;
+    public string AssociatedFestivalId { get; set; } = string.Empty;
+    public string AssociatedFestivalDisplayName { get; set; } = string.Empty;
+    public string ScopeType { get; set; } = string.Empty;
+    public string MarketMode { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Municipality { get; set; } = string.Empty;
-    public string Periodicity { get; set; } = string.Empty;
-    public int EditionsCount { get; set; }
-    public string AssociatedFestivalDisplayName { get; set; } = string.Empty;
-    public int AverageProjects { get; set; }
-    public int AverageBuyers { get; set; }
+    public string SpecificLocation { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class OrganizationUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Municipality { get; set; } = string.Empty;
     public string OrganizationType { get; set; } = string.Empty;
     public string TerritorialScope { get; set; } = string.Empty;
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string Description { get; set; } = string.Empty;
     public string ContactEmail { get; set; } = string.Empty;
-    public string ContactPhone { get; set; } = string.Empty;
     public string WebsiteUrl { get; set; } = string.Empty;
+    public string FacebookUrl { get; set; } = string.Empty;
+    public string InstagramUrl { get; set; } = string.Empty;
+    public string OtherUrl { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class SpaceInfrastructureUpsertRequest
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
-    public string Municipality { get; set; } = string.Empty;
     public string ActorType { get; set; } = string.Empty;
+    public string WorkshopName { get; set; } = string.Empty;
     public string PrimaryFunction { get; set; } = string.Empty;
-    public int MaxCapacityApprox { get; set; }
+    public string Instruments { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ContactName { get; set; } = string.Empty;
     public string ContactEmail { get; set; } = string.Empty;
     public string ContactPhone { get; set; } = string.Empty;
     public string WebsiteUrl { get; set; } = string.Empty;
+    public string FacebookUrl { get; set; } = string.Empty;
+    public string InstagramUrl { get; set; } = string.Empty;
+    public string OtherUrl { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
+    public string Municipality { get; set; } = string.Empty;
+    public string AddressText { get; set; } = string.Empty;
+    public string Zone { get; set; } = string.Empty;
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class EditorialResourceUpsertRequest
@@ -289,7 +378,14 @@ public sealed class EditorialResourceUpsertRequest
     public string CorporateAuthor { get; set; } = string.Empty;
     public string Year { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
+    public string SortOrder { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public List<string> Keywords { get; set; } = [];
+}
+
+public sealed class AdminRecordStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
 }
 
 public sealed class ProcessEntityRelationUpsertRequest
@@ -314,6 +410,131 @@ public sealed class ProcessRelationUpsertRequest
     public string Notes { get; set; } = string.Empty;
 }
 
+public sealed class AdminLoginRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public sealed record AdminUserDto(
+    string Id,
+    string FullName,
+    string Email,
+    string Role,
+    string RoleLabel,
+    bool IsActive,
+    DateTime? LastLoginAt
+);
+
+public sealed record AdminAuthResponse(AdminUserDto User);
+
+public sealed class AdminUserUpsertRequest
+{
+    public string Id { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed record AdminEntitySummaryDto(
+    string Id,
+    string EntityType,
+    string EntityTypeLabel,
+    string Name,
+    string LegalName,
+    string ContactEmail,
+    string ContactPhone,
+    string DepartmentCode,
+    string Department,
+    string MunicipalityCode,
+    string Municipality,
+    string Status,
+    string StatusLabel,
+    bool IsActive,
+    string ResponsibleUser,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public sealed record AdminEntityRelationDto(
+    string Id,
+    string SourceEntityId,
+    string TargetEntityId,
+    string TargetEntityName,
+    string RelationshipType,
+    string Notes
+);
+
+public sealed record AdminEntitySourceRecordDto(
+    string Id,
+    string EntityId,
+    string SourceTable,
+    string SourceRecordId,
+    string? EcosystemRecordId,
+    bool IsPrimary
+);
+
+public sealed record AdminEntityReviewEventDto(
+    string Id,
+    string Action,
+    string Comment,
+    string UserName,
+    DateTime CreatedAt
+);
+
+public sealed record AdminEntityDetailDto(
+    AdminEntitySummaryDto Entity,
+    IReadOnlyList<AdminEntityRelationDto> Relations,
+    IReadOnlyList<AdminEntitySourceRecordDto> SourceRecords,
+    IReadOnlyList<AdminEntityReviewEventDto> ReviewHistory
+);
+
+public sealed class AdminEntityUpsertRequest
+{
+    public string Id { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string LegalName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
+    public string ContactPhone { get; set; } = string.Empty;
+    public string WebsiteUrl { get; set; } = string.Empty;
+    public string FacebookUrl { get; set; } = string.Empty;
+    public string InstagramUrl { get; set; } = string.Empty;
+    public string OtherUrl { get; set; } = string.Empty;
+    public string CoverageLevel { get; set; } = "municipal";
+    public string Department { get; set; } = string.Empty;
+    public string Municipality { get; set; } = string.Empty;
+    public string AddressText { get; set; } = string.Empty;
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string Status { get; set; } = "borrador";
+    public string ResponsibleUserId { get; set; } = string.Empty;
+}
+
+public sealed class AdminEntityStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public sealed class AdminEntityRelationRequest
+{
+    public string TargetEntityId { get; set; } = string.Empty;
+    public string RelationshipType { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+}
+
+public sealed class AdminEntitySourceRecordRequest
+{
+    public string SourceTable { get; set; } = string.Empty;
+    public string SourceRecordId { get; set; } = string.Empty;
+    public string EcosystemRecordId { get; set; } = string.Empty;
+    public bool IsPrimary { get; set; } = true;
+}
+
 public sealed record FestivalDto(
     string Id,
     string Name,
@@ -333,7 +554,9 @@ public sealed record FestivalDto(
     bool HasCurrentYearEdition,
     string CurrentYearEditionStatus,
     string CurrentYearStartDate,
-    string CurrentYearEndDate
+    string CurrentYearEndDate,
+    string SonorousTerritories,
+    string MusicalPractices
 );
 
 public sealed record MusicSchoolDto(
@@ -357,7 +580,8 @@ public sealed record MusicSchoolDto(
     string ResponsibleEntityDisplayName,
     string ContactEmail,
     string ContactPhone,
-    string WebsiteUrl
+    string WebsiteUrl,
+    string SonorousTerritories
 );
 
 public sealed record MusicMarketDto(
@@ -383,7 +607,9 @@ public sealed record MusicMarketDto(
     string CurrentYearEditionStatus,
     string CurrentYearStartDate,
     string CurrentYearEndDate,
-    string SpecificLocation
+    string SpecificLocation,
+    string SonorousTerritories,
+    string MusicalPractices
 );
 
 public sealed record OrganizationDto(
@@ -396,7 +622,12 @@ public sealed record OrganizationDto(
     string OrganizationType,
     string TerritorialScope,
     string ContactEmail,
-    string ContactPhone
+    string ContactPhone,
+    string SonorousTerritories,
+    string MusicalPractices,
+    decimal? Latitude,
+    decimal? Longitude,
+    string Description
 );
 
 public sealed record SpaceInfrastructureDto(
@@ -408,7 +639,14 @@ public sealed record SpaceInfrastructureDto(
     string MunicipalityName,
     string ActorType,
     string PrimaryFunction,
-    int MaxCapacityApprox
+    int MaxCapacityApprox,
+    string SonorousTerritories,
+    string MusicalPractices,
+    decimal? Latitude,
+    decimal? Longitude,
+    string Description,
+    string ContactEmail,
+    string ContactPhone
 );
 
 public sealed record DivipolaLocationDto(

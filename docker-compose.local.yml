@@ -1,0 +1,26 @@
+name: pnmc-local
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: pnmc-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${PNMC_LOCAL_SA_PASSWORD:-PnmcLocal_2026!}"
+    ports:
+      - "${PNMC_LOCAL_SQL_PORT:-14333}:1433"
+    volumes:
+      - pnmc_sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pgrep sqlservr >/dev/null"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 25s
+
+volumes:
+  pnmc_sqlserver_data:

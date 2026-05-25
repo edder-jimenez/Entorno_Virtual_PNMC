@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   Filter,
   List,
   MapPin,
@@ -24,10 +27,14 @@ import { PageHero, SectionHeader } from '../../shared/components/PagePrimitives.
 
 const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = 'Eventos PNMC', bottomBanner = null }) => {
   const [openIndex, setOpenIndex] = useState(-1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [dateMode, setDateMode] = useState('exact');
   const [viewMode, setViewMode] = useState('list');
   const [selectedDept, setselectedDept] = useState('');
   const [selectedMunicipality, setSelectedMunicipality] = useState('');
+  const [selectedExactDate, setSelectedExactDate] = useState('');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const agendaItemRefs = useRef({});
   const sortAgendaItems = useCallback((leftItem, rightItem) => {
     if (leftItem.dateObj.getTime() !== rightItem.dateObj.getTime()) {
@@ -52,15 +59,35 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
   
   const departments = getSortedDepartmentNames();
   const cities = selectedDept ? getMapParticipationMunicipalities(selectedDept) : [];
+
+  // Dynamically extract unique months and years from actual event dateObj values
+  const uniqueMonths = useMemo(() => {
+    const months = agendaItems.map(item => {
+      if (!item.dateObj) return null;
+      const year = item.dateObj.getFullYear();
+      const monthIndex = item.dateObj.getMonth();
+      const label = item.dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const value = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+      return { value, label };
+    }).filter(Boolean);
+
+    // Filter unique by value
+    return Array.from(new Map(months.map(m => [m.value, m])).values())
+      .sort((a, b) => a.value.localeCompare(b.value));
+  }, [agendaItems]);
+
+  // Dynamically extract categories present in current event data
+  const activityCategories = useMemo(() => {
+    const cats = [...new Set(agendaItems.map(item => item.cat).filter(Boolean))];
+    return ['Todos', ...cats];
+  }, [agendaItems]);
+
   const filteredAgendaItems = useMemo(() => {
     const selectedDepartmentNormalized = normalizeDepartmentName(getDepartmentSelectionValue(selectedDept));
     const selectedMunicipalityNormalized = normalizeMunicipalityName(selectedMunicipality);
 
-    if (!selectedDepartmentNormalized && !selectedMunicipalityNormalized) {
-      return agendaItems;
-    }
-
     return agendaItems.filter((item) => {
+      // 1. Filter by location
       const locationTokens = String(item?.l || '')
         .split(',')
         .map((token) => token.trim())
@@ -73,9 +100,45 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
       const matchesMunicipality = !selectedMunicipalityNormalized
         || normalizeMunicipalityName(itemMunicipality) === selectedMunicipalityNormalized;
 
-      return matchesDepartment && matchesMunicipality;
+      if (!matchesDepartment || !matchesMunicipality) return false;
+
+      // 2. Filter by activity type
+      const matchesCategory = selectedCategory === 'Todos' || item.cat === selectedCategory;
+      if (!matchesCategory) return false;
+
+      // 3. Filter by date / month selection
+      if (dateMode === 'exact') {
+        if (!selectedExactDate) return true;
+        const filterDateObj = new Date(selectedExactDate + 'T00:00:00');
+        return item.dateObj && 
+               item.dateObj.getFullYear() === filterDateObj.getFullYear() &&
+               item.dateObj.getMonth() === filterDateObj.getMonth() &&
+               item.dateObj.getDate() === filterDateObj.getDate();
+      } else {
+        if (dateMode === 'month' && selectedMonthFilter) {
+          const itemYear = item.dateObj.getFullYear();
+          const itemMonthIndex = item.dateObj.getMonth();
+          const itemMonthStr = `${itemYear}-${String(itemMonthIndex + 1).padStart(2, '0')}`;
+          if (itemMonthStr !== selectedMonthFilter) return false;
+        }
+
+        return true;
+      }
     });
-  }, [agendaItems, selectedDept, selectedMunicipality]);
+  }, [agendaItems, selectedDept, selectedMunicipality, selectedExactDate, selectedMonthFilter, selectedCategory, dateMode]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setCurrentPage(1), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedDept, selectedMunicipality, selectedExactDate, selectedMonthFilter, selectedCategory, dateMode]);
+
+  const ITEMS_PER_PAGE = 12;
+  const totalPages = Math.ceil(filteredAgendaItems.length / ITEMS_PER_PAGE);
+
+  const paginatedAgendaItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAgendaItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAgendaItems, currentPage]);
 
   useEffect(() => {
     if (!initialOpenEventId || filteredAgendaItems.length === 0) return;
@@ -110,47 +173,58 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-[25rem_minmax(0,1fr)] gap-0">
-          <aside className="bg-[#291242] border-r border-white/10 rounded-[2.5rem] overflow-hidden px-10 pt-6 pb-10 min-h-screen text-white flex flex-col justify-start">
-            <div className="w-full self-start space-y-12">
-              <div className="border-b border-white/10 pb-5 flex justify-between items-center">
-                <h4 className="font-alternate text-sm font-bold uppercase tracking-[0.3em] text-slate-200">Filtros</h4>
-                <Filter size={18} className="text-[#8BF784]"/>
+          <aside id="agenda-filtros" className="bg-slate-50/50 border-r border-slate-100 p-8 lg:p-10 space-y-10 lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] overflow-y-auto self-start custom-scrollbar">
+            <div className="w-full space-y-10">
+              <div className="border-b border-slate-200 pb-5 flex justify-between items-center">
+                <h4 className="font-alternate text-xs font-bold uppercase tracking-[0.25em] text-slate-500">Filtros</h4>
+                <Filter size={16} className="text-[#00DA5E]"/>
               </div>
               
               <div className="space-y-8">
                 {lockedTag && (
                   <div className="space-y-3">
                     <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Filtro fijo</label>
-                    <div className="px-4 py-4 bg-white/10 border border-white/10 rounded-xl">
-                      <span className="text-[0.7rem] font-bold uppercase tracking-widest text-[#8BF784]">{lockedTag}</span>
-                      <p className="text-[0.65rem] text-slate-300 font-nunito mt-2 leading-relaxed">Este criterio está aplicado de forma permanente en esta sección.</p>
+                    <div className="px-4 py-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                      <span className="text-[0.7rem] font-bold uppercase tracking-widest text-[#00DA5E]">{lockedTag}</span>
+                      <p className="text-[0.65rem] text-slate-500 font-nunito mt-2 leading-relaxed">Este criterio está aplicado de forma permanente en esta sección.</p>
                     </div>
                   </div>
                 )}
                 <div className="space-y-6">
-                  <div className="flex bg-white/5 p-1.5 rounded-xl border border-white/10">
+                  <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                     <button 
                       onClick={() => setDateMode('exact')}
-                      className={`flex-1 py-3 text-[0.65rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'exact' ? 'bg-[#00DA5E] text-[#291242]' : 'text-slate-400 hover:text-white'}`}
+                      className={`flex-1 py-2.5 text-[0.6rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'exact' ? 'bg-[#291242] text-white shadow-sm' : 'text-slate-400 hover:text-[#291242] hover:bg-slate-50'}`}
                     >Fecha Exacta</button>
                     <button 
                       onClick={() => setDateMode('month')}
-                      className={`flex-1 py-3 text-[0.65rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'month' ? 'bg-[#00DA5E] text-[#291242]' : 'text-slate-400 hover:text-white'}`}
+                      className={`flex-1 py-2.5 text-[0.6rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'month' ? 'bg-[#291242] text-white shadow-sm' : 'text-slate-400 hover:text-[#291242] hover:bg-slate-50'}`}
                     >Por Mes</button>
                   </div>
                   
                   <div className="space-y-3">
-                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-[0.4em] px-1">
+                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-[0.2em] px-1">
                       {dateMode === 'exact' ? 'Seleccionar día' : 'Seleccionar mes'}
                     </label>
                     {dateMode === 'exact' ? (
-                      <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 px-4 text-[0.8rem] font-nunito focus:ring-1 focus:ring-[#8BF784]/30 transition-all outline-none text-white"/>
+                      <input 
+                        type="date" 
+                        value={selectedExactDate}
+                        onChange={(e) => setSelectedExactDate(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-[0.75rem] font-nunito focus:ring-2 focus:ring-[#00DA5E]/20 focus:border-[#00DA5E] transition-all outline-none text-[#291242] shadow-sm"
+                      />
                     ) : (
-                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-[0.75rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#8BF784] outline-none">
-                        <option className="bg-[#291242]">Enero 2026</option>
-                        <option className="bg-[#291242]">Febrero 2026</option>
-                        <option className="bg-[#291242]">Marzo 2026</option>
-                        <option className="bg-[#291242]">Abril 2026</option>
+                      <select 
+                        value={selectedMonthFilter}
+                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[0.7rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 outline-none text-[#291242] shadow-sm"
+                      >
+                        <option value="">Todos los meses</option>
+                        {uniqueMonths.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
                       </select>
                     )}
                   </div>
@@ -160,10 +234,16 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                   <div className="space-y-3">
                     <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo de actividad</label>
                     <div className="grid grid-cols-1 gap-2.5">
-                      {['Todos', 'Institucional', 'Formación', 'Festival', 'Taller'].map(cat => (
-                        <label key={cat} className="flex items-center gap-4 px-4 py-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors group">
-                          <input type="radio" name="cat" className="w-4 h-4 accent-[#00DA5E]" />
-                          <span className="text-[0.75rem] font-alternate uppercase tracking-widest text-slate-300 group-hover:text-white">{cat}</span>
+                      {activityCategories.map(cat => (
+                        <label key={cat} className="flex items-center gap-4 px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#00DA5E] transition-colors group shadow-sm">
+                          <input 
+                            type="radio" 
+                            name="cat" 
+                            checked={selectedCategory === cat}
+                            onChange={() => setSelectedCategory(cat)}
+                            className="w-4 h-4 accent-[#00DA5E]" 
+                          />
+                          <span className="text-[0.7rem] font-alternate uppercase tracking-widest text-[#291242] group-hover:text-[#00DA5E] transition-colors">{cat}</span>
                         </label>
                       ))}
                     </div>
@@ -178,11 +258,11 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                           setselectedDept(e.target.value);
                           setSelectedMunicipality('');
                         }}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[0.75rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#8BF784] outline-none"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[0.7rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 outline-none text-[#291242] shadow-sm"
                       >
-                        <option value="" className="bg-[#291242]">Todos los departamentos</option>
+                        <option value="">Todos los departamentos</option>
                         {departments.map(dept => (
-                          <option key={dept} value={dept} className="bg-[#291242] text-white">{dept}</option>
+                          <option key={dept} value={dept}>{dept}</option>
                         ))}
                       </select>
                     </div>
@@ -193,9 +273,9 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                         value={selectedMunicipality}
                         onChange={(event) => setSelectedMunicipality(event.target.value)}
                         disabled={!selectedDept || cities.length === 0}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[0.75rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#8BF784] outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[0.7rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 text-[#291242] shadow-sm"
                       >
-                        <option value="" className="bg-[#291242]">
+                        <option value="">
                           {!selectedDept
                             ? 'Selecciona primero departamento'
                             : cities.length > 0
@@ -203,7 +283,7 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                             : 'Sin municipios disponibles'}
                         </option>
                         {cities.map(city => (
-                          <option key={city} value={city} className="bg-[#291242] text-white">{city}</option>
+                          <option key={city} value={city}>{city}</option>
                         ))}
                       </select>
                     </div>
@@ -215,12 +295,15 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                 setDateMode('exact');
                 setselectedDept('');
                 setSelectedMunicipality('');
-              }} className="w-full bg-white/10 hover:bg-[#8BF784] hover:text-[#291242] text-white rounded-2xl py-4 text-[0.75rem] font-bold uppercase font-alternate tracking-widest transition-all">Limpiar Filtros</button>
+                setSelectedExactDate('');
+                setSelectedMonthFilter('');
+                setSelectedCategory('Todos');
+              }} className="w-full bg-white border border-slate-200 hover:border-[#00DA5E] hover:text-[#00DA5E] text-slate-500 rounded-xl py-3.5 text-[0.7rem] font-bold uppercase font-alternate tracking-widest transition-all shadow-sm">Limpiar Filtros</button>
             </div>
           </aside>
 
           <div className="min-w-0 p-8 lg:p-12 xl:p-14">
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-6 mb-8">
+            <div id="agenda-lista-eventos" className="flex flex-col sm:flex-row justify-between items-end gap-6 mb-8 scroll-mt-32">
               <SectionHeader backgroundText="PROGRAMA" foregroundText={title} verticalContext="AGENDA" compact />
               <div className="flex bg-slate-50 border border-slate-100 p-1.5 rounded-xl">
                   <button 
@@ -244,7 +327,7 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
               </div>
             </div>
             
-            <div className="space-y-0 border-t border-slate-100">
+            <div className="space-y-0 border-t border-slate-100 min-h-[calc(100vh-20rem)]">
               {isLoading || isRefreshing ? (
                 <div className="py-10">
                   <LoadingState
@@ -268,47 +351,52 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                   />
                 </div>
               ) : viewMode === 'list' ? (
-                filteredAgendaItems.map((item, idx) => (
+                paginatedAgendaItems.map((item, idx) => (
                   <div 
                     key={item.id} 
                     ref={(el) => {
                       if (el) agendaItemRefs.current[item.id] = el;
                     }}
-                    className={`border-b border-slate-100 transition-all duration-700 overflow-hidden ${openIndex === idx ? 'bg-slate-50' : 'bg-transparent'}`}
+                    className={`border-b border-slate-100 transition-all duration-700 overflow-hidden border-l-4 ${openIndex === idx ? 'bg-slate-50 border-l-[#00DA5E]' : 'bg-transparent border-l-transparent hover:border-l-[#00DA5E]/50'}`}
                   >
                     <button 
                       onClick={() => setOpenIndex(openIndex === idx ? -1 : idx)}
-                      className="w-full grid grid-cols-12 gap-8 p-8 items-center text-left group"
+                      className="w-full grid grid-cols-12 gap-6 px-5 py-5 items-center text-left group"
                     >
-                      <div className="col-span-4 h-44 rounded-xl overflow-hidden shadow-lg relative">
+                      <div className="col-span-4 h-32 rounded-xl overflow-hidden shadow-sm relative">
                         <img src={item.img} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110" alt=""/>
                         <div className="absolute inset-0 bg-[#291242]/0 transition-all duration-700 group-hover:bg-[#291242]/32" />
-                        <div className="absolute top-3 left-3">
-                          <span className="text-[0.55rem] font-bold px-2.5 py-1 rounded bg-[#00DA5E] text-[#291242] uppercase tracking-widest">
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="text-[0.5rem] font-bold px-2 py-1 rounded bg-[#00DA5E] text-[#291242] uppercase tracking-widest">
                             {item.cat}
                           </span>
                         </div>
                       </div>
                       
                       <div className="col-span-5">
-                        <h3 className="font-alternate text-2xl lg:text-3xl uppercase text-[#291242] leading-tight mb-3 tracking-tight">
+                        <h3 className="font-alternate text-xl lg:text-2xl uppercase text-[#291242] leading-tight mb-2 tracking-tight">
                           {item.t}
                         </h3>
-                        <p className="font-nunito text-slate-500 text-[0.8rem] line-clamp-2 leading-relaxed max-w-md">
+                        <p className="font-nunito text-slate-500 text-[0.75rem] line-clamp-2 leading-relaxed max-w-sm">
                           {item.desc}
                         </p>
-                        <div className="mt-4 flex items-center gap-2 text-slate-400 font-bold text-[0.55rem] uppercase tracking-widest">
+                        <div className="mt-3 flex items-center gap-2 text-slate-400 font-bold text-[0.55rem] uppercase tracking-widest">
                           <MapPin size={10} className="text-[#00DA5E]" /> {item.l}
                         </div>
                       </div>
 
-                      <div className="col-span-3 text-right flex flex-col justify-center items-end border-l border-slate-100 pl-8">
-                        <div className="font-gregor text-4xl lg:text-5xl text-[#291242] font-bold leading-none tracking-tighter mb-1">
-                          {item.d}/{item.m}
+                      <div className="col-span-3 flex items-center justify-end border-l border-slate-100 pl-6 group-hover:border-[#00DA5E] transition-colors">
+                        <div className="flex flex-col items-end mr-4">
+                          <span className="text-slate-400 font-bold text-[0.5rem] uppercase tracking-[0.2em] mb-1">Año {item.y}</span>
+                          <span className="text-[#00DA5E] font-bold text-[0.6rem] uppercase tracking-widest">{item.time}</span>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-slate-400 font-bold text-[0.6rem] uppercase tracking-[0.2em] mb-0.5">Año {item.y}</span>
-                          <span className="text-[#00DA5E] font-bold text-[0.65rem] uppercase tracking-widest">{item.time}</span>
+                        <div className="flex flex-col items-center justify-center bg-slate-50 group-hover:bg-[#00DA5E] rounded-xl w-20 h-24 transition-colors shadow-sm">
+                          <span className="text-[0.6rem] font-bold uppercase tracking-widest text-slate-400 group-hover:text-[#291242]">
+                            {item.dateObj ? item.dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '') : `Mes ${item.m}`}
+                          </span>
+                          <span className="font-alternate text-4xl lg:text-5xl text-[#291242] font-bold leading-[1.1] mt-0.5 -mb-0.5 text-balance">
+                            {String(item.d).padStart(2, '0')}
+                          </span>
                         </div>
                       </div>
                     </button>
@@ -345,14 +433,14 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                 ))
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-8">
-                  {filteredAgendaItems.map((item, idx) => {
+                  {paginatedAgendaItems.map((item, idx) => {
                     const isCardOpen = openIndex === idx;
 
                     return (
                       <div
                         key={item.id}
                         onClick={() => setOpenIndex(isCardOpen ? -1 : idx)}
-                        className={`bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500 cursor-pointer ${isCardOpen ? 'shadow-xl border-[#8BF784]' : ''}`}
+                        className={`relative flex flex-col h-full bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500 cursor-pointer ${isCardOpen ? 'shadow-xl border-[#8BF784]' : ''}`}
                       >
                         <div className="h-48 relative overflow-hidden">
                           <img src={item.img} className="w-full h-full object-cover transition-all duration-700" alt=""/>
@@ -362,10 +450,14 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                               {item.cat}
                             </span>
                           </div>
-                          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl flex flex-col items-center">
-                            <span className="font-gregor text-2xl text-[#291242] font-bold leading-none">{item.d}</span>
-                            <span className="text-[0.55rem] font-bold uppercase text-slate-500">{item.m}</span>
-                            <span className="text-[0.45rem] font-bold text-[#291242]/40 tracking-widest -mt-0.5">{item.y}</span>
+                          <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md px-4 py-3 rounded-[1.2rem] flex flex-col items-center shadow-lg border border-white">
+                            <span className="text-[0.55rem] font-bold uppercase tracking-widest text-[#00DA5E]">
+                              {item.dateObj ? item.dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '') : item.m}
+                            </span>
+                            <span className="font-alternate text-4xl text-[#291242] font-bold leading-[1.1] mt-1 -mb-1 text-balance">
+                              {String(item.d).padStart(2, '0')}
+                            </span>
+                            <span className="text-[0.45rem] font-bold text-slate-400 tracking-[0.2em] mt-1.5">{item.y}</span>
                           </div>
                         </div>
                         <div className="relative p-8">
@@ -382,37 +474,49 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                               <button className="text-[#00DA5E] group-hover:translate-x-1 transition-transform"><ArrowUpRight size={18}/></button>
                             </div>
                           </div>
+                        </div>
 
-                          <div className={`absolute inset-8 overflow-hidden rounded-[1.4rem] bg-white transition-opacity duration-500 ${isCardOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="flex min-h-full flex-col justify-between gap-4 px-1 py-1">
-                              <p className="font-nunito text-[0.76rem] leading-relaxed text-slate-600 line-clamp-5">
-                                {item.desc}
-                              </p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                  variant="secondary"
-                                  className="w-full px-2 py-2 text-[0.44rem] leading-tight tracking-[0.08em]"
-                                  icon={ArrowUpRight}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    if (item.link && item.link !== '#') window.open(item.link, '_blank', 'noopener,noreferrer');
-                                  }}
-                                >
-                                  Más información
-                                </Button>
-                                <Button
-                                  variant="outlineDark"
-                                  className="w-full px-2 py-2 text-[0.44rem] leading-tight tracking-[0.08em]"
-                                  icon={Plus}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleAddToCalendar(item);
-                                  }}
-                                >
-                                  Añadir calendario
-                                </Button>
+                        {/* Vista de detalle que cubre toda la tarjeta */}
+                        <div className={`absolute inset-0 z-20 bg-white p-8 transition-all duration-500 flex flex-col ${isCardOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
+                          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4 space-y-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <h4 className="font-alternate text-xl text-[#291242] uppercase font-bold leading-tight">{item.t}</h4>
+                              <div className="flex flex-col items-center shrink-0 border border-slate-100 bg-slate-50 rounded-xl px-3 py-1.5">
+                                <span className="text-[0.45rem] font-bold uppercase tracking-widest text-[#00DA5E]">{item.dateObj ? item.dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '') : item.m}</span>
+                                <span className="font-alternate text-2xl text-[#291242] font-bold leading-none my-0.5">{String(item.d).padStart(2, '0')}</span>
                               </div>
                             </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 font-bold text-[0.6rem] uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5"><MapPin size={13} className="text-[#00DA5E]" /> {item.l}</span>
+                              <span className="flex items-center gap-1.5"><Clock size={13} className="text-[#00DA5E]" /> {item.time}</span>
+                            </div>
+                            <p className="font-nunito text-[0.85rem] leading-relaxed text-slate-600 mt-2">
+                              {item.desc}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 shrink-0 pt-4 border-t border-slate-100">
+                            <Button
+                              variant="secondary"
+                              className="w-full justify-center py-3.5 text-[0.65rem] tracking-[0.15em]"
+                              icon={ArrowUpRight}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (item.link && item.link !== '#') window.open(item.link, '_blank', 'noopener,noreferrer');
+                              }}
+                            >
+                              Más información
+                            </Button>
+                            <Button
+                              variant="outlineDark"
+                              className="w-full justify-center py-3.5 text-[0.65rem] tracking-[0.15em]"
+                              icon={Plus}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleAddToCalendar(item);
+                              }}
+                            >
+                              Añadir calendario
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -421,6 +525,38 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                 </div>
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div className="mt-12 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(1, p - 1));
+                    setOpenIndex(-1);
+                    scrollToElementWithOffset(document.getElementById('agenda-lista-eventos'), 112);
+                  }}
+                  disabled={currentPage === 1}
+                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-[#291242] hover:border-[#00DA5E] disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:text-slate-400 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                
+                <div className="flex items-center justify-center bg-white border border-slate-200 rounded-xl px-5 h-11 shadow-sm text-[0.65rem] font-bold text-slate-500 font-nunito tracking-widest uppercase">
+                  Página <span className="text-[#291242] text-[0.8rem] mx-2">{currentPage}</span> de {totalPages}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(totalPages, p + 1));
+                    setOpenIndex(-1);
+                    scrollToElementWithOffset(document.getElementById('agenda-lista-eventos'), 112);
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-[#291242] hover:border-[#00DA5E] disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:text-slate-400 transition-all shadow-sm"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       {bottomBanner}
@@ -444,7 +580,7 @@ const AgendaPage = ({ onBack, initialOpenEventId = null }) => {
         onBack={onBack} 
       />
       
-      <div id="agenda-explorador" className="max-w-[100rem] mx-auto px-6 lg:px-8 py-16 scroll-mt-28">
+      <div id="agenda-explorador" className="max-w-[100rem] mx-auto scroll-mt-28">
         <AgendaExplorer initialOpenEventId={initialOpenEventId} />
       </div>
     </div>

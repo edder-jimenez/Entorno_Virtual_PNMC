@@ -54,6 +54,9 @@ public sealed class AgendaEventRow
     public DateTime? ArchivedAt { get; set; }
     public string? ShortDescription { get; set; }
     public TimeSpan? StartTime { get; set; }
+    public TimeSpan? EndTime { get; set; }
+    public int? FestivalId { get; set; }
+    public int? SortOrder { get; set; }
 }
 
 public sealed class NewsArticleRow
@@ -72,6 +75,7 @@ public sealed class NewsArticleRow
     public DateTime? UpdatedDate { get; set; }
     public string? PrimaryExternalUrl { get; set; }
     public string? PrimaryEmbedUrl { get; set; }
+    public int? SortOrder { get; set; }
     public int StatusId { get; set; }
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
@@ -132,6 +136,7 @@ public sealed class FestivalRow
     public string? MunicipalityCode { get; set; }
     public string? SpecificLocation { get; set; }
     public int StatusId { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -180,6 +185,7 @@ public sealed class SchoolRow
     public bool IsActiveSchool { get; set; }
     public string? Observations { get; set; }
     public int StatusId { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -206,6 +212,7 @@ public sealed class MarketRow
     public string? ResponsibleEntityWebsiteUrl { get; set; }
     public bool HasRegisteredResponsibleEntity { get; set; }
     public string? AssociatedFestivalDisplayName { get; set; }
+    public int? AssociatedFestivalId { get; set; }
     public bool HasAssociatedFestival { get; set; }
     public string? ScopeType { get; set; }
     public string? MarketMode { get; set; }
@@ -214,6 +221,7 @@ public sealed class MarketRow
     public string? MunicipalityCode { get; set; }
     public string? SpecificLocation { get; set; }
     public int StatusId { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -247,7 +255,11 @@ public sealed class OrganizationRow
     public string? PrimaryFunction { get; set; }
     public string? SecondaryFunctions { get; set; }
     public string? OtherPrimaryFunction { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string? Description { get; set; }
     public int StatusId { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -286,6 +298,7 @@ public sealed class SpaceInfrastructureRow
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public int StatusId { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -321,14 +334,14 @@ public sealed class ProcessRelationRow
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed class EditorialItemRow
+public sealed class GalleryAlbumRow
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string? ShortDescription { get; set; }
-    public string? Content { get; set; }
+    public string? Description { get; set; }
     public int? CategoryId { get; set; }
     public int StatusId { get; set; }
+    public int SortOrder { get; set; }
     public int CreatedByUserId { get; set; }
     public int? ReviewedByUserId { get; set; }
     public int? ApprovedByUserId { get; set; }
@@ -338,52 +351,48 @@ public sealed class EditorialItemRow
     public DateTime? ArchivedAt { get; set; }
 }
 
-public sealed class EditorialClassificationRow
+public sealed class GalleryAlbumFileRow
 {
     public int Id { get; set; }
-    public int EditorialItemId { get; set; }
-    public string? MainSection { get; set; }
-    public string? SectionPath { get; set; }
-    public string? MusicalPractice { get; set; }
-    public string? EditorialCategory { get; set; }
-    public string? EditorialSubcategory { get; set; }
-    public string? RegionalScope { get; set; }
-}
-
-public sealed class EditorialBibliographicRecordRow
-{
-    public int Id { get; set; }
-    public int EditorialItemId { get; set; }
-    public short? YearFrom { get; set; }
-    public short? YearTo { get; set; }
-    public string? PublicationType { get; set; }
-    public string? MainAuthors { get; set; }
-    public string? AdditionalAuthors { get; set; }
-    public string? CorporateAuthor { get; set; }
-    public string? ISBN { get; set; }
-    public string? FormatOrSize { get; set; }
-    public string? ReferenceCode { get; set; }
-    public string? Keywords { get; set; }
-    public string? CoverText { get; set; }
-}
-
-public sealed class EditorialAvailabilityRow
-{
-    public int Id { get; set; }
-    public int EditorialItemId { get; set; }
-    public string? AvailabilityText { get; set; }
-    public string? ResourceUrl { get; set; }
-    public string? AccessType { get; set; }
-    public string? Notes { get; set; }
-}
-
-public sealed class EditorialFileRow
-{
-    public int Id { get; set; }
-    public int EditorialItemId { get; set; }
+    public int AlbumId { get; set; }
     public int FileId { get; set; }
     public string FileRole { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+}
+
+public sealed class EditorialCatalogResourceRow
+{
+    public int Id { get; set; }
+    public string ExternalId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Year { get; set; } = string.Empty;
+    public string Section { get; set; } = string.Empty;
+    public string SectionPath { get; set; } = string.Empty;
+    public string PublicationType { get; set; } = string.Empty;
+    public string Practice { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Subcategory { get; set; } = string.Empty;
+    public string Author { get; set; } = string.Empty;
+    public string CorporateAuthor { get; set; } = string.Empty;
+    public string Credits { get; set; } = string.Empty;
+    public string Isbn { get; set; } = string.Empty;
+    public string Ismn { get; set; } = string.Empty;
+    public string FormatSize { get; set; } = string.Empty;
+    public string Pages { get; set; } = string.Empty;
+    public string Duration { get; set; } = string.Empty;
+    public string RegionalScope { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Keywords { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string AdditionalFields { get; set; } = string.Empty;
+    public string SourceSlide { get; set; } = string.Empty;
+    public string ThumbnailPath { get; set; } = string.Empty;
+    public string CoverText { get; set; } = string.Empty;
+    public string SourceText { get; set; } = string.Empty;
+    public int SourceOrder { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime ImportedAt { get; set; }
 }
 
 public sealed class FileRow
@@ -410,6 +419,8 @@ public sealed class UserRow
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public int RoleId { get; set; }
+    public string AccessChannel { get; set; } = "interno";
+    public string? ProfileType { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -421,6 +432,101 @@ public sealed class RoleRow
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+}
+
+public sealed class AuditLogRow
+{
+    public long Id { get; set; }
+    public int? UserId { get; set; }
+    public string TableName { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? PreviousValuesJson { get; set; }
+    public string? NewValuesJson { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class UserVerificationCodeRow
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string Purpose { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? ConsumedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class EntityProfileRow
+{
+    public int Id { get; set; }
+    public string EntityType { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? LegalName { get; set; }
+    public string? Description { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? ContactPhone { get; set; }
+    public string? WebsiteUrl { get; set; }
+    public string? FacebookUrl { get; set; }
+    public string? InstagramUrl { get; set; }
+    public string? OtherUrl { get; set; }
+    public string CoverageLevel { get; set; } = "municipal";
+    public string? DepartmentCode { get; set; }
+    public string? MunicipalityCode { get; set; }
+    public string? AddressText { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string StatusCode { get; set; } = "borrador";
+    public bool IsActive { get; set; } = true;
+    public int CreatedByUserId { get; set; }
+    public int? ResponsibleUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
+}
+
+public sealed class UserEntityRow
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int EntityId { get; set; }
+    public string EntityRole { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class EntityRelationRow
+{
+    public int Id { get; set; }
+    public int SourceEntityId { get; set; }
+    public int TargetEntityId { get; set; }
+    public string RelationshipType { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class EntitySourceRecordRow
+{
+    public int Id { get; set; }
+    public int EntityId { get; set; }
+    public string SourceTable { get; set; } = string.Empty;
+    public int SourceRecordId { get; set; }
+    public int? EcosystemRecordId { get; set; }
+    public bool IsPrimary { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class EntityReviewHistoryRow
+{
+    public int Id { get; set; }
+    public int EntityId { get; set; }
+    public int UserId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class ParticipationSubmissionRow

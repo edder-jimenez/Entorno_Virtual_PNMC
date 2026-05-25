@@ -2,691 +2,806 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   Download,
-  Eye,
-  FileType,
-  Globe,
   Grid3X3,
-  Heart,
-  Landmark,
-  Loader2,
-  Map as MapIcon,
-  Music2,
-  Play,
-  Plus,
+  LayoutList,
+  MapPin,
+  Calendar,
+  Images,
   Search,
-  Share2,
-  Sparkles,
-  Target,
+  X,
+  ZoomIn,
+  FolderOpen,
+  Layers,
+  Globe,
+  Zap,
   Users,
   Users2,
   Building2,
+  Landmark,
+  Music2,
+  MapIcon as MapIcon,
+  Target,
   Boxes,
-  Zap,
   UserCircle2,
-  X,
-  DownloadCloud,
   MessageCircle,
 } from 'lucide-react';
-import { MEDIA_LIBRARY } from '../../content/domain/mediaLibrary.js';
-import {
-  METRIC_FORMATTER,
-  scrollToElementWithOffset,
-} from '../../map/domain/mapDomain.js';
-import {
-  GALLERY_WALL_FADE_IN_MS,
-  GALLERY_WALL_FADE_OUT_MS,
-  GALLERY_WALL_LAYOUT_PATTERNS,
-  GALLERY_WALL_SLOT_COUNT,
-  GALLERY_WALL_SWAP_INTERVAL_MS,
-  buildGalleryDownloadName,
-} from '../domain/galleryWall.js';
-import {
-  ContentWrapper,
-  PageHero,
-  SectionHeader,
-  Tag,
-} from '../../shared/components/PagePrimitives.jsx';
+import { MEDIA_LIBRARY, RANDOM_GALLERY_IMAGES } from '../../content/domain/mediaLibrary.js';
+import { scrollToElementWithOffset } from '../../map/domain/mapDomain.js';
+import { ContentWrapper, PageHero, SectionHeader, Tag } from '../../shared/components/PagePrimitives.jsx';
 import { useGalleryAlbums } from '../../../hooks/data/index.js';
-import { Button, EmptyState, ErrorState, LoadingState } from '../../../components/ui/index.js';
+import { EmptyState, ErrorState, LoadingState } from '../../../components/ui/index.js';
+
+// ─── Sub-Components ───────────────────────────────────────────────────────────
+
+const buildGalleryDownloadName = (photo, index) => {
+  const extensionMatch = String(photo?.src || '').match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/);
+  const extension = extensionMatch?.[1] || 'jpg';
+  const titleToken = String(photo?.title || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || `imagen-${index + 1}`;
+
+  return `pnmc-galeria-${titleToken}.${extension}`;
+};
+
+const AlbumCard = ({ album, onClick, featured = false, cover }) => {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(album.id)}
+      className={`group relative overflow-hidden rounded-[1.6rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E] focus-visible:ring-offset-2 ${featured ? 'h-[22rem] md:h-[26rem]' : 'h-[18rem]'}`}
+    >
+      {/* Background Image */}
+      <img
+        src={cover}
+        alt={album.title}
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+      />
+
+      {/* Dark gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0d0820]/92 via-[#0d0820]/35 to-transparent transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-[#291242]/0 group-hover:bg-[#291242]/20 transition-all duration-500" />
+
+      {/* Top badges */}
+      <div className="absolute top-4 left-4 flex items-center gap-2">
+        {album.featured && (
+          <span className="inline-flex items-center rounded-full bg-[#00DA5E] px-2.5 py-1 text-[0.45rem] font-bold uppercase tracking-[0.2em] text-[#0d0820]">
+            Destacado
+          </span>
+        )}
+        {album.category && (
+          <span className="inline-flex items-center rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[0.42rem] font-bold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
+            {album.category}
+          </span>
+        )}
+      </div>
+
+      {/* Hover action */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-[0.58rem] font-bold uppercase tracking-widest text-white backdrop-blur-md">
+          <FolderOpen size={13} />
+          Explorar álbum
+        </span>
+      </div>
+
+      {/* Bottom info */}
+      <div className="absolute inset-x-0 bottom-0 p-4 lg:p-5">
+        <h3 className="font-alternate text-[0.9rem] lg:text-[1rem] font-bold uppercase leading-tight text-white tracking-wide mb-2">
+          {album.title}
+        </h3>
+        <div className="flex flex-wrap items-center gap-3">
+          {album.location && (
+            <span className="flex items-center gap-1 text-[0.48rem] font-bold uppercase tracking-[0.14em] text-white/65">
+              <MapPin size={9} />
+              {album.location}
+            </span>
+          )}
+          {album.dateLabel && (
+            <span className="flex items-center gap-1 text-[0.48rem] font-bold uppercase tracking-[0.14em] text-white/65">
+              <Calendar size={9} />
+              {album.dateLabel}
+            </span>
+          )}
+          <span className="flex items-center gap-1 text-[0.48rem] font-bold uppercase tracking-[0.14em] text-[#8BF784]">
+            <Images size={9} />
+            {album.photoCount || 0} fotos
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+const PhotoThumbnail = ({ photo, index, onClick, isActive = false }) => {
+  const isVideo = photo.src.toLowerCase().endsWith('.mp4') || photo.type === 'video';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(index)}
+      className={`relative flex-shrink-0 h-16 w-24 overflow-hidden rounded-lg transition-all duration-200 ${isActive ? 'ring-2 ring-[#00DA5E] opacity-100 scale-100' : 'opacity-50 hover:opacity-80 scale-95 hover:scale-100'}`}
+    >
+      {isVideo ? (
+        <video src={photo.src} muted preload="metadata" className="h-full w-full object-cover" />
+      ) : (
+        <img src={photo.src} alt={photo.title || ''} className="h-full w-full object-cover" />
+      )}
+      {isVideo && (
+        <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+          <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+      )}
+    </button>
+  );
+};
+
+// ─── Main GaleriaPage ─────────────────────────────────────────────────────────
 
 const GaleriaPage = ({ onBack }) => {
-  const [albumViewState, setAlbumViewState] = useState({
-    isOpen: false,
-    albumId: null,
-  });
-  const [wallSlots, setWallSlots] = useState([]);
-  const [wallAnimatingIndex, setWallAnimatingIndex] = useState(null);
-  const wallSwapTimeoutRef = useRef(null);
-  const wallFadeTimeoutRef = useRef(null);
-  const wallLastAnimatedIndexRef = useRef(-1);
-  const [lightboxState, setLightboxState] = useState({
-    items: [],
-    index: null,
-    contextTitle: '',
-  });
+  const [activeAlbumId, setActiveAlbumId] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [albumSearch, setAlbumSearch] = useState('');
+  const [viewLayout, setViewLayout] = useState('grid'); // 'grid' | 'list'
+  const [lightbox, setLightbox] = useState({ items: [], index: null, contextTitle: '' });
+  const [visiblePhotosCount, setVisiblePhotosCount] = useState(24);
+  const thumbnailStripRef = useRef(null);
 
-  const {
-    albums,
-    isLoading,
-    isError,
-    retry,
-  } = useGalleryAlbums();
+  const { albums, isLoading, isError, retry } = useGalleryAlbums();
+
+  // ── Derived data ─────────────────────────────────────────────────────────
 
   const sortedAlbums = useMemo(
-    () => [...albums].sort((left, right) => left.title.localeCompare(right.title, 'es')),
+    () => [...albums].sort((a, b) => {
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.title.localeCompare(b.title, 'es');
+    }),
     [albums],
   );
 
-  const displayedAlbums = useMemo(() => {
-    const featured = sortedAlbums.filter((album) => album.featured);
-    const regular = sortedAlbums.filter((album) => !album.featured);
-    return [...featured, ...regular];
+  const categories = useMemo(() => {
+    const cats = [...new Set(sortedAlbums.map((a) => a.category).filter(Boolean))];
+    return cats;
   }, [sortedAlbums]);
 
-  const albumsById = useMemo(
-    () => Object.fromEntries(sortedAlbums.map((album) => [album.id, album])),
-    [sortedAlbums],
-  );
+  const filteredAlbums = useMemo(() => {
+    return sortedAlbums.filter((album) => {
+      const matchCat = categoryFilter === 'all' || album.category === categoryFilter;
+      const q = albumSearch.trim().toLowerCase();
+      const matchSearch = !q || album.title.toLowerCase().includes(q) || (album.location || '').toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [sortedAlbums, categoryFilter, albumSearch]);
 
   const featuredAlbums = useMemo(() => {
-    const explicitFeatured = sortedAlbums.filter((album) => album.featured);
-    return (explicitFeatured.length > 0 ? explicitFeatured : sortedAlbums).slice(0, 3);
+    const expl = sortedAlbums.filter((a) => a.featured);
+    return (expl.length > 0 ? expl : sortedAlbums).slice(0, 4);
   }, [sortedAlbums]);
+
+  const heroImage = useMemo(
+    () => featuredAlbums[0]?.cover || MEDIA_LIBRARY.fieldworkWide,
+    [featuredAlbums],
+  );
 
   const getAlbumCover = useCallback(
     (album) => album?.cover || album?.photos?.[0]?.src || MEDIA_LIBRARY.fieldworkWide,
     [],
   );
 
-  const allPhotos = useMemo(() => {
-    return sortedAlbums.flatMap((album) => {
-      return (album.photos || []).map((photo, photoIndex) => ({
-        ...photo,
-        id: photo.id || `${album.id}-photo-${photoIndex + 1}`,
-        albumId: album.id,
-        albumTitle: album.title,
-        albumCover: getAlbumCover(album),
-        sectionTitle: photo.sectionTitle || 'General',
-      }));
-    });
-  }, [getAlbumCover, sortedAlbums]);
-
-  const pickRandomPhoto = useCallback((photos, excludedPhotoId = null, excludedPhotoIds = []) => {
-    if (!Array.isArray(photos) || photos.length === 0) return null;
-
-    if (photos.length === 1) return photos[0];
-
-    let nextPhoto = photos[Math.floor(Math.random() * photos.length)] || null;
-    if (!excludedPhotoId && excludedPhotoIds.length === 0) return nextPhoto;
-
-    let attempts = 0;
-    while ((nextPhoto?.id === excludedPhotoId || excludedPhotoIds.includes(nextPhoto?.id)) && attempts < 20) {
-      nextPhoto = photos[Math.floor(Math.random() * photos.length)] || null;
-      attempts += 1;
-    }
-
-    return nextPhoto;
-  }, []);
-
-  const heroImage = useMemo(
-    () => featuredAlbums[0]?.cover || MEDIA_LIBRARY.fieldworkWide,
-    [featuredAlbums]
+  const activeAlbum = useMemo(
+    () => (activeAlbumId ? sortedAlbums.find((a) => a.id === activeAlbumId) || null : null),
+    [activeAlbumId, sortedAlbums],
   );
 
-  const activeAlbumView = useMemo(
-    () => (albumViewState.albumId ? albumsById[albumViewState.albumId] || null : null),
-    [albumViewState.albumId, albumsById],
-  );
 
-  const albumSectionsForDisplay = useMemo(() => {
-    if (!activeAlbumView) return [];
-
-    const sections = (activeAlbumView.sections || []).filter((section) => (section.photos || []).length > 0);
-
-    if (sections.length <= 1) {
-      const section = sections[0];
-      const photos = (section?.photos || activeAlbumView.photos || []).map((photo, photoIndex) => ({
-        ...photo,
-        id: photo.id || `${activeAlbumView.id}-photo-${photoIndex + 1}`,
-        albumId: activeAlbumView.id,
-        albumTitle: activeAlbumView.title,
-        sectionTitle: photo.sectionTitle || section?.title || 'General',
-      }));
-
-      return [{
-        id: section?.id || `${activeAlbumView.id}-section-general`,
-        title: section?.title || 'General',
-        photos,
-      }];
+  const activeAlbumSections = useMemo(() => {
+    if (!activeAlbum) return [];
+    const sects = (activeAlbum.sections || []).filter((s) => s.photos?.length > 0);
+    if (sects.length === 0) {
+      return [{ id: 'general', title: 'General', photos: activeAlbum.photos || [] }];
     }
+    return sects;
+  }, [activeAlbum]);
 
-    return sections.map((section) => ({
-      id: section.id,
-      title: section.title,
-      photos: (section.photos || []).map((photo, photoIndex) => ({
-        ...photo,
-        id: photo.id || `${activeAlbumView.id}-${section.id}-${photoIndex + 1}`,
-        albumId: activeAlbumView.id,
-        albumTitle: activeAlbumView.title,
-        sectionTitle: photo.sectionTitle || section.title,
-      })),
-    }));
-  }, [activeAlbumView]);
+  const hasMultipleSections = activeAlbumSections.length > 1;
 
-  const albumHasMultipleSections = albumSectionsForDisplay.length > 1;
+  // Lightbox helpers
+  const activeLightboxPhoto = lightbox.index !== null ? lightbox.items[lightbox.index] || null : null;
+  const isLightboxVideo = activeLightboxPhoto ? (activeLightboxPhoto.src.toLowerCase().endsWith('.mp4') || activeLightboxPhoto.type === 'video') : false;
 
-  const openAlbumView = useCallback((albumId) => {
-    if (!albumId) return;
-    setAlbumViewState({
-      isOpen: true,
-      albumId,
-    });
+  const openAlbum = useCallback((albumId) => {
+    setActiveAlbumId(albumId);
+    setVisiblePhotosCount(24);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const closeAlbumView = useCallback(() => {
-    setAlbumViewState({
-      isOpen: false,
-      albumId: null,
-    });
+  const closeAlbum = useCallback(() => {
+    setActiveAlbumId(null);
+    setVisiblePhotosCount(24);
   }, []);
 
   const openLightbox = useCallback((items, index, contextTitle = '') => {
-    if (!Array.isArray(items) || !items[index]) return;
-    setLightboxState({
-      items,
-      index,
-      contextTitle,
+    if (!items?.[index]) return;
+    setLightbox({ items, index, contextTitle });
+  }, []);
+
+  const closeLightbox = useCallback(() => setLightbox({ items: [], index: null, contextTitle: '' }), []);
+
+  const prevPhoto = useCallback(() => {
+    setLightbox((s) => {
+      if (s.index === null) return s;
+      return { ...s, index: s.index === 0 ? s.items.length - 1 : s.index - 1 };
     });
   }, []);
 
-  const closeLightbox = useCallback(() => {
-    setLightboxState({
-      items: [],
-      index: null,
-      contextTitle: '',
+  const nextPhoto = useCallback(() => {
+    setLightbox((s) => {
+      if (s.index === null) return s;
+      return { ...s, index: s.index === s.items.length - 1 ? 0 : s.index + 1 };
     });
   }, []);
 
-  const showPreviousPhoto = useCallback(() => {
-    setLightboxState((currentState) => {
-      if (currentState.index === null || currentState.items.length === 0) return currentState;
-      const nextIndex = currentState.index === 0 ? currentState.items.length - 1 : currentState.index - 1;
-      return { ...currentState, index: nextIndex };
-    });
-  }, []);
-
-  const showNextPhoto = useCallback(() => {
-    setLightboxState((currentState) => {
-      if (currentState.index === null || currentState.items.length === 0) return currentState;
-      const nextIndex = currentState.index === currentState.items.length - 1 ? 0 : currentState.index + 1;
-      return { ...currentState, index: nextIndex };
-    });
-  }, []);
-
-  const activeLightboxPhoto = lightboxState.index !== null
-    ? lightboxState.items[lightboxState.index] || null
-    : null;
-
-  const activeLightboxAlbum = useMemo(
-    () => (activeLightboxPhoto?.albumId ? albumsById[activeLightboxPhoto.albumId] || null : null),
-    [activeLightboxPhoto?.albumId, albumsById],
-  );
-
-  const openActiveLightboxAlbum = () => {
-    if (!activeLightboxPhoto?.albumId) return;
-    closeLightbox();
-    openAlbumView(activeLightboxPhoto.albumId);
-  };
-
-  const openLightboxFromWall = useCallback((photo) => {
-    if (!photo) return;
-    const photoIndex = allPhotos.findIndex((item) => item.id === photo.id);
-    openLightbox(allPhotos, photoIndex >= 0 ? photoIndex : 0, 'Vista General');
-  }, [allPhotos, openLightbox]);
-
+  // ── Scroll thumbnail into view when lightbox navigates ────────────────────
   useEffect(() => {
-    if (allPhotos.length === 0) {
-      window.requestAnimationFrame(() => {
-        setWallSlots([]);
-        setWallAnimatingIndex(null);
-      });
-      return undefined;
+    if (lightbox.index === null || !thumbnailStripRef.current) return;
+    const thumbEl = thumbnailStripRef.current.children[lightbox.index];
+    if (thumbEl) {
+      thumbEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
+  }, [lightbox.index]);
 
-    window.requestAnimationFrame(() => {
-      const slotCount = GALLERY_WALL_SLOT_COUNT;
-      const remainingPhotos = [...allPhotos];
-      const nextSlots = [];
+  // ── Keyboard navigation ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (lightbox.index === null) return undefined;
+    const handle = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') prevPhoto();
+      else if (e.key === 'ArrowRight') nextPhoto();
+    };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [lightbox.index, closeLightbox, prevPhoto, nextPhoto]);
 
-      while (nextSlots.length < slotCount && remainingPhotos.length > 0) {
-        const nextIndex = Math.floor(Math.random() * remainingPhotos.length);
-        const [nextPhoto] = remainingPhotos.splice(nextIndex, 1);
-        if (nextPhoto) nextSlots.push(nextPhoto);
-      }
-
-      while (nextSlots.length < slotCount) {
-        const fallbackPhoto = pickRandomPhoto(allPhotos);
-        if (!fallbackPhoto) break;
-        nextSlots.push(fallbackPhoto);
-      }
-
-      setWallSlots(nextSlots);
-      setWallAnimatingIndex(null);
-      wallLastAnimatedIndexRef.current = -1;
-    });
-
+  useEffect(() => {
+    if (activeAlbumId && lightbox.index === null) {
+      const handle = (e) => { if (e.key === 'Escape') closeAlbum(); };
+      window.addEventListener('keydown', handle);
+      return () => window.removeEventListener('keydown', handle);
+    }
     return undefined;
-  }, [allPhotos, pickRandomPhoto]);
+  }, [activeAlbumId, lightbox.index, closeAlbum]);
 
+  // ── Body scroll lock ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (allPhotos.length === 0 || wallSlots.length === 0) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      let slotIndex = Math.floor(Math.random() * wallSlots.length);
-      let attempts = 0;
-      while (slotIndex === wallLastAnimatedIndexRef.current && attempts < 10) {
-        slotIndex = Math.floor(Math.random() * wallSlots.length);
-        attempts += 1;
-      }
-
-      wallLastAnimatedIndexRef.current = slotIndex;
-      setWallAnimatingIndex(slotIndex);
-
-      if (wallSwapTimeoutRef.current) window.clearTimeout(wallSwapTimeoutRef.current);
-      if (wallFadeTimeoutRef.current) window.clearTimeout(wallFadeTimeoutRef.current);
-
-      wallSwapTimeoutRef.current = window.setTimeout(() => {
-        setWallSlots((currentSlots) => {
-          if (!currentSlots.length) return currentSlots;
-          const currentSlotPhoto = currentSlots[slotIndex];
-          const occupiedPhotoIds = currentSlots
-            .filter((_, currentIndex) => currentIndex !== slotIndex)
-            .map((photo) => photo?.id)
-            .filter(Boolean);
-          const nextPhoto = pickRandomPhoto(allPhotos, currentSlotPhoto?.id || null, occupiedPhotoIds);
-          if (!nextPhoto) return currentSlots;
-
-          const nextSlots = [...currentSlots];
-          nextSlots[slotIndex] = nextPhoto;
-          return nextSlots;
-        });
-
-        wallFadeTimeoutRef.current = window.setTimeout(() => {
-          setWallAnimatingIndex((currentIndex) => (
-            currentIndex === slotIndex ? null : currentIndex
-          ));
-        }, GALLERY_WALL_FADE_IN_MS);
-      }, GALLERY_WALL_FADE_OUT_MS);
-    }, GALLERY_WALL_SWAP_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-      if (wallSwapTimeoutRef.current) window.clearTimeout(wallSwapTimeoutRef.current);
-      if (wallFadeTimeoutRef.current) window.clearTimeout(wallFadeTimeoutRef.current);
-    };
-  }, [allPhotos, pickRandomPhoto, wallSlots.length]);
-
-  useEffect(() => {
-    if (lightboxState.index === null || lightboxState.items.length === 0) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        closeLightbox();
-      } else if (event.key === 'ArrowLeft') {
-        showPreviousPhoto();
-      } else if (event.key === 'ArrowRight') {
-        showNextPhoto();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [closeLightbox, lightboxState.index, lightboxState.items.length, showNextPhoto, showPreviousPhoto]);
-
-  useEffect(() => {
-    if (!albumViewState.isOpen || lightboxState.index !== null) return undefined;
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') closeAlbumView();
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [albumViewState.isOpen, closeAlbumView, lightboxState.index]);
-
-  useEffect(() => {
-    const shouldLockScroll = albumViewState.isOpen || lightboxState.index !== null;
-    if (!shouldLockScroll) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
+    const locked = !!activeAlbumId || lightbox.index !== null;
+    if (!locked) return undefined;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [albumViewState.isOpen, lightboxState.index]);
+    return () => { document.body.style.overflow = prev; };
+  }, [activeAlbumId, lightbox.index]);
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-white min-h-screen text-left">
+    <div className="bg-[#f8f7fb] min-h-screen text-left">
       <PageHero
         tag="Galería"
         title="Archivo"
         titleAccent="Fotográfico"
-        description="Una pared viva de imágenes y un índice completo de colecciones para explorar cada proceso visual."
+        description="Colecciones visuales de los procesos, eventos y territorios que dan vida al Plan Nacional de Música para la Convivencia."
         bgImage={heroImage}
         onBack={onBack}
       />
 
-      <div className="max-w-[100rem] mx-auto px-6 lg:px-8 py-16 space-y-10">
+      <div className="max-w-[100rem] mx-auto px-6 lg:px-10 py-14 space-y-14">
+
+        {/* ── Loading / Error / Empty ─────────────────────────────────────── */}
         {isLoading && albums.length === 0 && (
-          <LoadingState
-            title="Cargando galería..."
-            description="Estamos preparando los álbumes y sus imágenes."
-          />
+          <LoadingState title="Cargando galería…" description="Preparando álbumes e imágenes." />
         )}
-
         {isError && albums.length === 0 && (
-          <ErrorState
-            title="No pudimos cargar la galería"
-            description="Intenta de nuevo en unos segundos."
-            onRetry={retry}
-          />
+          <ErrorState title="No pudimos cargar la galería" description="Intenta de nuevo en unos segundos." onRetry={retry} />
         )}
-
         {!isLoading && !isError && albums.length === 0 && (
-          <EmptyState
-            title="No hay álbumes disponibles"
-            description="No encontramos contenido cargado para esta sección."
-          />
+          <EmptyState title="No hay álbumes disponibles" description="Aún no se ha cargado contenido visual para esta sección." />
         )}
 
         {!isLoading && albums.length > 0 && (
           <>
-            <section className="rounded-[2.8rem] border border-slate-100 bg-white overflow-hidden">
-              <div className="p-4 lg:p-6">
-                <div className="rounded-[1.8rem] border border-slate-100 bg-slate-100 overflow-hidden">
-                  {wallSlots.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 auto-rows-[11.2rem] md:auto-rows-[12.8rem] xl:auto-rows-[14rem] gap-0 grid-flow-dense">
-                      {wallSlots.map((photo, index) => (
-                        <button
-                          key={`wall-slot-${index}-${photo.id}`}
-                          type="button"
-                          onClick={() => openLightboxFromWall(photo)}
-                          className={`group relative overflow-hidden rounded-none text-left ${GALLERY_WALL_LAYOUT_PATTERNS[index % GALLERY_WALL_LAYOUT_PATTERNS.length]}`}
-                        >
-                          <img
-                            src={photo.src}
-                            alt={photo.alt || photo.title}
-                            className={`absolute inset-0 h-full w-full object-cover transition-all duration-[1450ms] ease-in-out ${wallAnimatingIndex === index ? 'opacity-25 scale-[1.04]' : 'opacity-100 scale-100'}`}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#291242]/68 via-[#291242]/10 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-2.5 flex justify-end">
-                            <span className="inline-flex max-w-[72%] truncate items-center rounded-sm border border-white/30 bg-black/35 px-2 py-[3px] text-[0.38rem] font-bold uppercase tracking-[0.12em] text-white/90 backdrop-blur-[1px]">
-                              {photo.albumTitle}
-                            </span>
-                          </div>
-                        </button>
+            {/* ── Featured Editorial Showcase ───────────────────────────── */}
+            {featuredAlbums.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-6 rounded-full bg-[#00DA5E]" />
+                    <h2 className="font-alternate text-[0.75rem] font-bold uppercase tracking-[0.22em] text-[#291242]">
+                      Colecciones Destacadas
+                    </h2>
+                  </div>
+                </div>
+
+                {featuredAlbums.length === 1 && (
+                  <div className="grid grid-cols-1">
+                    <AlbumCard album={featuredAlbums[0]} onClick={openAlbum} featured cover={getAlbumCover(featuredAlbums[0])} />
+                  </div>
+                )}
+
+                {featuredAlbums.length === 2 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {featuredAlbums.map((album) => (
+                      <AlbumCard key={album.id} album={album} onClick={openAlbum} featured cover={getAlbumCover(album)} />
+                    ))}
+                  </div>
+                )}
+
+                {featuredAlbums.length === 3 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 lg:col-span-2">
+                      <AlbumCard album={featuredAlbums[0]} onClick={openAlbum} featured cover={getAlbumCover(featuredAlbums[0])} />
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {featuredAlbums.slice(1).map((album) => (
+                        <AlbumCard key={album.id} album={album} onClick={openAlbum} cover={getAlbumCover(album)} />
                       ))}
                     </div>
-                  ) : (
-                    <EmptyState
-                      title="No hay imágenes para la pared visual"
-                      description="Carga álbumes para visualizar la pared viva."
+                  </div>
+                )}
+
+                {featuredAlbums.length >= 4 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+                    {/* Main large */}
+                    <div className="lg:col-span-7">
+                      <AlbumCard album={featuredAlbums[0]} onClick={openAlbum} featured cover={getAlbumCover(featuredAlbums[0])} />
+                    </div>
+                    {/* Side stack */}
+                    <div className="lg:col-span-5 flex flex-col gap-4">
+                      {featuredAlbums.slice(1, 4).map((album) => (
+                        <AlbumCard key={album.id} album={album} onClick={openAlbum} cover={getAlbumCover(album)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── Divider ───────────────────────────────────────────────── */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-[0.52rem] font-bold uppercase tracking-[0.24em] text-slate-400">Todas las colecciones</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+
+            {/* ── Filter + Search bar ───────────────────────────────────── */}
+            <section>
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
+                {/* Category pills */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter('all')}
+                    className={`rounded-full px-4 py-2 text-[0.56rem] font-bold uppercase tracking-[0.18em] transition-all ${categoryFilter === 'all' ? 'bg-[#291242] text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-500 hover:border-[#291242]/30 hover:text-[#291242]'}`}
+                  >
+                    Todos ({sortedAlbums.length})
+                  </button>
+                  {categories.map((cat) => {
+                    const count = sortedAlbums.filter((a) => a.category === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategoryFilter(cat)}
+                        className={`rounded-full px-4 py-2 text-[0.56rem] font-bold uppercase tracking-[0.18em] transition-all ${categoryFilter === cat ? 'bg-[#291242] text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-500 hover:border-[#291242]/30 hover:text-[#291242]'}`}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Right side: search + layout toggle */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="relative">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar álbum…"
+                      value={albumSearch}
+                      onChange={(e) => setAlbumSearch(e.target.value)}
+                      className="rounded-full border border-slate-200 bg-white pl-8 pr-4 py-2 text-[0.62rem] font-nunito text-slate-700 outline-none w-44 focus:border-[#00DA5E] focus:w-52 transition-all placeholder:text-slate-400"
                     />
-                  )}
+                  </div>
+                  <div className="flex items-center rounded-full border border-slate-200 bg-white overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setViewLayout('grid')}
+                      className={`p-2.5 transition-colors ${viewLayout === 'grid' ? 'bg-[#291242] text-white' : 'text-slate-400 hover:text-[#291242]'}`}
+                      aria-label="Vista en cuadrícula"
+                    >
+                      <Grid3X3 size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewLayout('list')}
+                      className={`p-2.5 transition-colors ${viewLayout === 'list' ? 'bg-[#291242] text-white' : 'text-slate-400 hover:text-[#291242]'}`}
+                      aria-label="Vista en lista"
+                    >
+                      <LayoutList size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </section>
 
-            <section className="rounded-[2.2rem] border border-slate-100 bg-white p-4 lg:p-5">
-              <div className="mb-3">
-                <h3 className="font-alternate text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#291242]">
-                  Colecciones
-                </h3>
-              </div>
-              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex w-max gap-4">
-                  {displayedAlbums.map((album) => (
+              {filteredAlbums.length === 0 && (
+                <div className="rounded-[1.6rem] border border-slate-100 bg-white p-12 text-center">
+                  <p className="text-slate-400 font-nunito text-sm">No se encontraron álbumes con esos criterios.</p>
+                </div>
+              )}
+
+              {/* Grid layout */}
+              {viewLayout === 'grid' && filteredAlbums.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {filteredAlbums.map((album) => (
+                    <AlbumCard key={album.id} album={album} onClick={openAlbum} cover={getAlbumCover(album)} />
+                  ))}
+                </div>
+              )}
+
+              {/* List layout */}
+              {viewLayout === 'list' && filteredAlbums.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {filteredAlbums.map((album) => (
                     <button
-                      key={`gallery-album-${album.id}`}
+                      key={album.id}
                       type="button"
-                      onClick={() => openAlbumView(album.id)}
-                      className={`group relative h-[12rem] shrink-0 overflow-hidden rounded-[1.25rem] border border-slate-200 text-left transition-all hover:border-[#291242]/35 ${
-                        album.featured ? 'w-[20rem]' : 'w-[16.5rem]'
-                      }`}
+                      onClick={() => openAlbum(album.id)}
+                      className="group flex items-center gap-5 rounded-[1.2rem] border border-slate-200 bg-white hover:border-[#291242]/30 hover:shadow-sm transition-all overflow-hidden text-left px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E]"
                     >
-                      <img
-                        src={getAlbumCover(album)}
-                        alt={album.title}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#12081f]/88 via-[#12081f]/34 to-transparent" />
-                      <div className="relative h-full p-4 lg:p-5 flex flex-col justify-end gap-2">
-                        {album.featured && (
-                          <span className="inline-flex w-fit rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[0.45rem] font-bold uppercase tracking-[0.18em] text-[#8BF784]">
-                            Destacado
-                          </span>
-                        )}
-                        <div className="font-alternate text-[0.82rem] font-bold uppercase leading-tight text-white">{album.title}</div>
-                        <div className="text-[0.54rem] font-bold uppercase tracking-[0.14em] text-white/75">
-                          {METRIC_FORMATTER.format(album.photoCount || 0)} fotos
+                      <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-[0.8rem]">
+                        <img src={getAlbumCover(album)} alt={album.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-alternate text-[0.82rem] font-bold uppercase leading-tight text-[#291242] truncate">{album.title}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                          {album.category && (
+                            <span className="text-[0.48rem] font-bold uppercase tracking-[0.14em] text-[#291242]/50">{album.category}</span>
+                          )}
+                          {album.location && (
+                            <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                              <MapPin size={8} />{album.location}
+                            </span>
+                          )}
+                          {album.dateLabel && (
+                            <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.12em] text-slate-400">
+                              <Calendar size={8} />{album.dateLabel}
+                            </span>
+                          )}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="flex items-center gap-1 text-[0.5rem] font-bold uppercase tracking-[0.14em] text-[#00DA5E]">
+                          <Images size={10} />{album.photoCount || 0}
+                        </span>
+                        <ArrowRight size={14} className="text-slate-300 group-hover:text-[#291242] group-hover:translate-x-1 transition-all" />
                       </div>
                     </button>
                   ))}
                 </div>
-              </div>
+              )}
             </section>
           </>
         )}
       </div>
 
-      {albumViewState.isOpen && activeAlbumView && (
-        <div className="fixed inset-0 z-[115] bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(255,255,255,0.96)_100%)] backdrop-blur-sm">
-          <div className="h-full overflow-y-auto">
-            <div className="max-w-[102rem] mx-auto px-6 lg:px-8 py-6 lg:py-8">
-              <div className="sticky top-4 z-[2] rounded-[1.6rem] border border-slate-200 bg-white/96 px-4 py-4 lg:px-5 lg:py-5 mb-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_13rem] gap-4 lg:gap-5 items-start">
-                  <div>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={closeAlbumView}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.56rem] font-bold uppercase tracking-[0.18em] text-[#291242] transition-colors hover:bg-slate-100"
-                      >
-                        <ArrowLeft size={14} />
-                        Volver
-                      </button>
-                    </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+           ALBUM VIEW OVERLAY
+      ════════════════════════════════════════════════════════════════════════ */}
+      {activeAlbumId && activeAlbum && (
+        <div className="fixed inset-0 z-[3500] bg-[#f8f7fb] flex flex-col">
 
-                    <div className="mt-3">
-                      <div className="font-alternate text-[1.05rem] lg:text-[1.16rem] font-bold uppercase tracking-[0.08em] text-[#291242] leading-tight">
-                        {activeAlbumView.title}
-                      </div>
-                    </div>
+          {/* Album header — fixed at top of overlay */}
+          <div className="flex-shrink-0 bg-white border-b border-slate-100 shadow-sm">
+            <div className="max-w-[100rem] mx-auto px-6 lg:px-10 py-4 flex items-center gap-5">
+              {/* Back button */}
+              <button
+                type="button"
+                onClick={closeAlbum}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 text-[0.56rem] font-bold uppercase tracking-[0.18em] text-[#291242] transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E]"
+              >
+                <ArrowLeft size={13} />
+                Volver
+              </button>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.52rem] font-bold uppercase tracking-[0.16em] text-slate-500">
-                        {activeAlbumView.location || 'Sin ubicación registrada'}
-                      </span>
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.52rem] font-bold uppercase tracking-[0.16em] text-slate-500">
-                        {METRIC_FORMATTER.format(activeAlbumView.photoCount || 0)} fotos
-                      </span>
-                      {activeAlbumView.dateLabel && (
-                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.52rem] font-bold uppercase tracking-[0.16em] text-slate-500">
-                          {activeAlbumView.dateLabel}
-                        </span>
-                      )}
-                      {albumHasMultipleSections && (
-                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[0.52rem] font-bold uppercase tracking-[0.16em] text-slate-500">
-                          {albumSectionsForDisplay.length} secciones
-                        </span>
-                      )}
-                    </div>
-
-                    {activeAlbumView.description && (
-                      <div className="mt-4 rounded-[1rem] border border-slate-200 bg-slate-50 px-4 py-3 text-[0.78rem] text-slate-600 font-nunito leading-relaxed">
-                        {activeAlbumView.description}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="hidden lg:block">
-                    <div className="rounded-[1rem] border border-slate-200 overflow-hidden bg-slate-100">
-                      <img
-                        src={getAlbumCover(activeAlbumView)}
-                        alt={activeAlbumView.title}
-                        className="h-[10.2rem] w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                </div>
+              {/* Album cover thumbnail */}
+              <div className="hidden md:block h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-100">
+                <img src={getAlbumCover(activeAlbum)} alt={activeAlbum.title} className="h-full w-full object-cover" />
               </div>
 
-              {albumSectionsForDisplay.length > 0 ? (
-                <div className="space-y-8">
-                  {albumSectionsForDisplay.map((section) => (
-                    <div key={`album-section-${section.id}`} className={`${albumHasMultipleSections ? 'rounded-[1.35rem] border border-slate-200 bg-white p-3 lg:p-4' : ''}`}>
-                      {albumHasMultipleSections && (
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-[0.56rem] font-bold uppercase tracking-[0.16em] text-slate-500">
-                            {section.title}
-                          </div>
-                          <div className="text-[0.5rem] font-bold uppercase tracking-[0.14em] text-slate-400">
-                            {METRIC_FORMATTER.format(section.photos.length)} fotos
-                          </div>
-                        </div>
-                      )}
-                      <div className="columns-1 md:columns-2 xl:columns-3 gap-4 [column-fill:_balance]">
-                        {section.photos.map((photo, photoIndex) => (
-                          <button
-                            key={`album-view-photo-${section.id}-${photo.id}-${photoIndex}`}
-                            type="button"
-                            onClick={() => openLightbox(
-                              section.photos,
-                              photoIndex,
-                              `${activeAlbumView.title}${albumHasMultipleSections ? ` · ${section.title}` : ''}`,
-                            )}
-                            className="group relative mb-4 block w-full overflow-hidden rounded-[1.1rem] border border-slate-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.06)]"
-                          >
-                            <img
-                              src={photo.src}
-                              alt={photo.alt || photo.title}
-                              className="h-auto w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#12081f]/45 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                            <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                              <div className="inline-flex items-center rounded-sm border border-white/30 bg-black/35 px-2 py-[3px] text-[0.38rem] font-bold uppercase tracking-[0.12em] text-white/95">
-                                Ver imagen
+              {/* Album info */}
+              <div className="flex-1 min-w-0">
+                <h2 className="font-alternate text-[0.95rem] font-bold uppercase leading-none tracking-wide text-[#291242] truncate">
+                  {activeAlbum.title}
+                </h2>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  {activeAlbum.category && (
+                    <span className="inline-flex items-center rounded-full bg-[#291242]/8 px-2.5 py-0.5 text-[0.45rem] font-bold uppercase tracking-[0.16em] text-[#291242]/70">
+                      {activeAlbum.category}
+                    </span>
+                  )}
+                  {activeAlbum.location && (
+                    <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.13em] text-slate-400">
+                      <MapPin size={9} />{activeAlbum.location}
+                    </span>
+                  )}
+                  {activeAlbum.dateLabel && (
+                    <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.13em] text-slate-400">
+                      <Calendar size={9} />{activeAlbum.dateLabel}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.13em] text-[#00DA5E]">
+                    <Images size={9} />{activeAlbum.photoCount || 0} fotos
+                  </span>
+                  {hasMultipleSections && (
+                    <span className="flex items-center gap-1 text-[0.46rem] font-bold uppercase tracking-[0.13em] text-slate-400">
+                      <Layers size={9} />{activeAlbumSections.length} secciones
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Album description */}
+            {activeAlbum.description && (
+              <div className="max-w-[100rem] mx-auto px-6 lg:px-10 pb-4">
+                <p className="font-nunito text-[0.72rem] text-slate-500 leading-relaxed max-w-3xl border-l-2 border-[#8BF784] pl-3">
+                  {activeAlbum.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Album content — scrollable area */}
+          <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[100rem] mx-auto px-6 lg:px-10 py-8 space-y-10">
+            {activeAlbumSections.length > 0 ? (
+              activeAlbumSections.map((section) => (
+                <div key={section.id}>
+                  {hasMultipleSections && (
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-1 h-5 rounded-full bg-[#00DA5E]" />
+                      <h3 className="font-alternate text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#291242]">
+                        {section.title}
+                      </h3>
+                      <span className="text-[0.48rem] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        {section.photos.length} fotos
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Masonry photo grid */}
+                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 [column-fill:balance]">
+                    {section.photos.slice(0, visiblePhotosCount).map((photo, pIdx) => {
+                      const isVideo = photo.src.toLowerCase().endsWith('.mp4') || photo.type === 'video';
+
+                      return (
+                        <button
+                          key={`${section.id}-${photo.id}-${pIdx}`}
+                          type="button"
+                          onClick={() => openLightbox(section.photos, pIdx, `${activeAlbum.title}${hasMultipleSections ? ` · ${section.title}` : ''}`)}
+                          className="group relative mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-[1.1rem] border border-slate-200/60 bg-white shadow-sm hover:shadow-lg transition-shadow duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DA5E]"
+                        >
+                          {isVideo ? (
+                            <div className="relative aspect-video w-full overflow-hidden bg-slate-900 shrink-0">
+                              <video
+                                src={photo.src}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                className="h-full w-full object-cover opacity-80"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="rounded-full bg-white/20 border border-white/40 p-3.5 backdrop-blur-md text-white shadow-lg">
+                                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                  </svg>
+                                </div>
+                              </div>
+                              <div className="absolute bottom-3 left-3 pointer-events-none">
+                                <span className="inline-flex items-center rounded-md bg-black/55 px-2 py-0.5 text-[0.45rem] font-bold uppercase tracking-widest text-[#8BF784] backdrop-blur-sm border border-white/5">
+                                  Video
+                                </span>
                               </div>
                             </div>
-                          </button>
-                        ))}
+                          ) : (
+                            <img
+                              src={photo.src}
+                              alt={photo.alt || photo.title || ''}
+                              className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] [transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]"
+                            />
+                          )}
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-[#291242]/0 group-hover:bg-[#291242]/55 transition-all duration-300 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center gap-2">
+                              <div className="rounded-full bg-white/15 border border-white/30 p-3 backdrop-blur-sm">
+                                <ZoomIn size={18} className="text-white" />
+                              </div>
+                              <p className="text-white text-[0.52rem] font-bold uppercase tracking-[0.14em] text-center max-w-[80%] leading-tight">
+                                {photo.title || (isVideo ? "Ver Video" : "Ampliar Foto")}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Download button (top-right, visible on hover) */}
+                          <a
+                            href={photo.src}
+                            download={buildGalleryDownloadName(photo, pIdx)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/40 border border-white/20 text-white hover:bg-black/60 backdrop-blur-sm"
+                            aria-label={isVideo ? "Descargar video" : "Descargar foto"}
+                          >
+                            <Download size={13} />
+                          </a>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Progressive batch load button */}
+                  {visiblePhotosCount < section.photos.length && (
+                    <div className="pt-10 pb-6 flex flex-col items-center justify-center gap-4">
+                      <div className="text-[0.62rem] font-bold text-slate-400 uppercase tracking-widest font-alternate">
+                        Mostrando {visiblePhotosCount} de {section.photos.length} archivos
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setVisiblePhotosCount((prev) => prev + 24)}
+                        className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full border border-slate-200 bg-white hover:border-[#291242]/30 hover:bg-[#291242]/5 text-[0.62rem] font-bold text-[#291242] uppercase font-alternate tracking-widest transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                      >
+                        Cargar más fotos
+                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <div className="rounded-[1.6rem] border border-slate-200 bg-white p-8">
-                  <EmptyState
-                    title="No hay imágenes para esta selección"
-                    description="Este álbum todavía no tiene imágenes disponibles."
-                  />
-                </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-12">
+                <EmptyState title="Álbum sin imágenes" description="Este álbum aún no tiene fotos cargadas." />
+              </div>
+            )}
+          </div>
           </div>
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════════════
+           LIGHTBOX OVERLAY (Premium Full-Screen)
+      ════════════════════════════════════════════════════════════════════════ */}
       {activeLightboxPhoto && (
-        <div className="fixed inset-0 z-[120] bg-[#12081f]/92 backdrop-blur-sm flex items-center justify-center p-4 lg:p-8">
-          <button
-            type="button"
-            onClick={closeLightbox}
-            className="absolute inset-0"
-            aria-label="Cerrar visualizador"
-          />
+        <div className="fixed inset-0 z-[4000] flex flex-col bg-[#0a0510] select-none">
 
-          <div className="relative z-[1] w-full max-w-[94rem] flex items-center gap-3 lg:gap-6">
-            {lightboxState.items.length > 1 && (
+          {/* Top bar */}
+          <div className="relative z-[2] flex items-center justify-between gap-4 px-5 py-3 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-3">
               <button
                 type="button"
-                onClick={showPreviousPhoto}
-                className="hidden lg:inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
+                onClick={closeLightbox}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white hover:bg-white/15 transition-colors backdrop-blur-md"
+                aria-label="Cerrar"
+              >
+                <X size={16} />
+              </button>
+              {lightbox.contextTitle && (
+                <span className="text-[0.52rem] font-bold uppercase tracking-[0.2em] text-white/55">
+                  {lightbox.contextTitle}
+                </span>
+              )}
+            </div>
+            <div className="pointer-events-auto flex items-center gap-2">
+              <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[0.52rem] font-bold uppercase tracking-[0.2em] text-white/70 backdrop-blur-md">
+                {lightbox.index + 1} / {lightbox.items.length}
+              </span>
+              <a
+                href={activeLightboxPhoto.src}
+                download={buildGalleryDownloadName(activeLightboxPhoto, lightbox.index)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white hover:bg-white/15 transition-colors backdrop-blur-md"
+                aria-label={isLightboxVideo ? "Descargar video" : "Descargar imagen"}
+              >
+                <Download size={15} />
+              </a>
+            </div>
+          </div>
+
+          {/* Main image area */}
+          <div className="relative flex-1 flex items-center justify-center min-h-0">
+            {/* Backdrop */}
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default"
+              onClick={closeLightbox}
+              aria-label="Cerrar visualizador"
+            />
+
+            {/* Prev */}
+            {lightbox.items.length > 1 && (
+              <button
+                type="button"
+                onClick={prevPhoto}
+                className="absolute left-3 lg:left-6 z-[1] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white hover:bg-white/20 transition-colors backdrop-blur-md"
                 aria-label="Foto anterior"
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={20} />
               </button>
             )}
 
-            <div className="relative flex-1 rounded-[2rem] overflow-hidden bg-black shadow-2xl">
-              <div className="absolute top-4 right-4 z-[1] flex items-center gap-2">
-                {lightboxState.items.length > 1 && (
-                  <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-white/80">
-                    {lightboxState.index + 1} / {lightboxState.items.length}
-                  </div>
-                )}
-                <a
-                  href={activeLightboxPhoto.src}
-                  download={buildGalleryDownloadName(activeLightboxPhoto, lightboxState.index)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white transition-colors hover:bg-black/50"
-                  aria-label="Descargar imagen"
-                >
-                  <DownloadCloud size={18} />
-                </a>
-                <button
-                  type="button"
-                  onClick={closeLightbox}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white transition-colors hover:bg-black/50"
-                  aria-label="Cerrar"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="bg-black flex items-center justify-center max-h-[82vh] min-h-[26rem]">
+            {/* Media (Image or Video) */}
+            <div className={`relative z-[1] max-h-[calc(100vh-13rem)] max-w-[92vw] flex items-center justify-center ${isLightboxVideo ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+              {isLightboxVideo ? (
+                <video
+                  src={activeLightboxPhoto.src}
+                  controls
+                  autoPlay
+                  className="max-h-[calc(100vh-13rem)] max-w-[92vw] w-auto h-auto rounded-lg shadow-2xl bg-black"
+                />
+              ) : (
                 <img
                   src={activeLightboxPhoto.src}
-                  alt={activeLightboxPhoto.alt || activeLightboxPhoto.title}
-                  className="max-h-[82vh] w-auto max-w-full object-contain"
+                  alt={activeLightboxPhoto.alt || activeLightboxPhoto.title || ''}
+                  className="max-h-[calc(100vh-13rem)] max-w-[92vw] w-auto h-auto object-contain rounded-lg shadow-2xl"
                 />
-              </div>
+              )}
+            </div>
 
-              <div className="bg-black/88 px-5 lg:px-6 py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_14rem] gap-4">
-                <div>
-                  <div className="text-white font-alternate text-[1rem] font-bold uppercase leading-tight">{activeLightboxPhoto.title}</div>
-                  <div className="mt-1 text-[0.72rem] text-white/65 font-nunito leading-relaxed">
-                    {lightboxState.contextTitle || activeLightboxPhoto.albumTitle || 'Galería'}
-                    {activeLightboxPhoto.sectionTitle ? ` · ${activeLightboxPhoto.sectionTitle}` : ''}
-                  </div>
-                </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/5 p-3">
-                  <div className="text-[0.5rem] font-bold uppercase tracking-[0.2em] text-white/50">Álbum</div>
-                  <button
-                    type="button"
-                    onClick={openActiveLightboxAlbum}
-                    className="mt-2 text-left font-alternate text-[0.72rem] font-bold uppercase leading-tight text-white hover:text-[#8BF784] transition-colors"
-                  >
-                    {activeLightboxAlbum?.title || activeLightboxPhoto.albumTitle || 'Álbum'}
-                  </button>
-                </div>
+            {/* Next */}
+            {lightbox.items.length > 1 && (
+              <button
+                type="button"
+                onClick={nextPhoto}
+                className="absolute right-3 lg:right-6 z-[1] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white hover:bg-white/20 transition-colors backdrop-blur-md"
+                aria-label="Foto siguiente"
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom panel */}
+          <div className="relative z-[2] bg-gradient-to-t from-black/80 to-transparent">
+            {/* Photo info */}
+            <div className="flex items-end justify-between gap-4 px-5 py-3">
+              <div className="min-w-0">
+                {activeLightboxPhoto.title && (
+                  <p className="font-alternate text-[0.82rem] font-bold uppercase leading-tight text-white truncate">
+                    {activeLightboxPhoto.title}
+                  </p>
+                )}
+                {activeLightboxPhoto.description && (
+                  <p className="mt-0.5 font-nunito text-[0.65rem] text-white/55 leading-relaxed line-clamp-1">
+                    {activeLightboxPhoto.description}
+                  </p>
+                )}
               </div>
             </div>
 
-            {lightboxState.items.length > 1 && (
-              <button
-                type="button"
-                onClick={showNextPhoto}
-                className="hidden lg:inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
-                aria-label="Foto siguiente"
+            {/* Thumbnails strip */}
+            {lightbox.items.length > 1 && (
+              <div
+                ref={thumbnailStripRef}
+                className="flex items-center gap-2 overflow-x-auto px-5 pb-4 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                <ChevronRight size={22} />
-              </button>
+                {lightbox.items.map((photo, idx) => (
+                  <PhotoThumbnail
+                    key={`thumb-${photo.id || idx}`}
+                    photo={photo}
+                    index={idx}
+                    onClick={(i) => setLightbox((s) => ({ ...s, index: i }))}
+                    isActive={idx === lightbox.index}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -694,6 +809,8 @@ const GaleriaPage = ({ onBack }) => {
     </div>
   );
 };
+
+// ─── SobreElPnmcPage (preserved as-is) ───────────────────────────────────────
 
 const SobreElPnmcPage = ({ onBack, onNavigate }) => { 
   const [activeStage, setActiveStage] = useState(4); 
@@ -719,55 +836,56 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
     }, 150);
   };
 
-  const historyStages = [ 
-    { id: 0, year: '2003-2006', title: 'Creación e Institucionalización', desc: 'La aprobación del CONPES 3409 de 2006 formalizó el PNMC y consolidó las Escuelas Municipales de Música (EMM) como espacios centrales para la formación musical colectiva. Este periodo estableció los cimientos del programa: acceso, democratización, convivencia y fortalecimiento de las músicas locales. Se amplió la dotación instrumental, se fortalecieron los equipos territoriales y se empezó a articular una red nacional de formación basada en la práctica comunitaria.', img: "https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop" }, 
-    { id: 1, year: '2007-2014', title: 'Territorialización y saberes', desc: 'Durante esta etapa se profundizó en la institucionalización territorial, con énfasis en la formación de formadores, la cualificación de músicos en ejercicio y el impulso a las músicas tradicionales. Se promovió la descentralización, se consolidaron procesos comunitarios sostenidos y se promovió el reconocimiento de músicos empíricos y sabedores. Este periodo marcó un avance significativo en la diversidad musical, al visibilizar prácticas propias de cada región y promover su circulación.', img: "https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop" }, 
-    { id: 2, year: '2015-2018', title: 'Profesionalización y SIMUS', desc: 'En estos años se desarrollaron las líneas estratégicas de Musicalización de la Ciudadanía y Estructuración del Campo Profesional de la Música, orientadas a fortalecer la formación integral y la profesionalización del sector. Se creó el Sistema de Información de la Música (SIMUS), herramienta clave para la toma de decisiones y la caracterización del ecosistema musical. Además, se implementaron nuevas estrategias de circulación y se amplió la presencia del PNMC en festivales, mercados y espacios de movilidad artística.', img: "https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop" }, 
-    { id: 3, year: '2018-2022', title: 'Evaluación y Consolidación', desc: 'El Departamento Nacional de Planeación (DNP) realizó una evaluación integral del PNMC, destacando su impacto en la formación musical, el fortalecimiento del tejido social y la dignificación del trabajo artístico. A partir de esta evaluación se identificaron retos y oportunidades, como mejorar la articulación interinstitucional, fortalecer SIMUS, ampliar la presencia del PNMC en educación superior, incentivar economías creativas en los territorios y mejorar las condiciones laborales de los músicos y formadores.', img: "https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop" }, 
-    { id: 4, year: '2023-2025', title: 'Actualización y Proyección 2035', desc: 'En un ejercicio nacional sin precedentes, el Ministerio de las Culturas abrió espacios de participación a través de 34 Encuentros Territoriales, mesas sectoriales, la Mesa Nacional Vinculante y el VII Congreso Nacional de Música. Estas iniciativas permitieron recoger las necesidades, visiones y apuestas del sector musical en todo el país y dieron origen al PNMC 2025-2035, “Huellas y apuestas de la diversidad sonora”. Este nuevo Plan articula la música con la vida, el diálogo intercultural, la bioculturalidad, la equidad, la sostenibilidad y la gobernanza participativa, proyectando un ecosistema musical diverso, justo y sostenible para la próxima década.', img: "https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop" } 
+  const timelineEvents = [ 
+    { id: 0, year: '2003-2006', title: 'Creación e Institucionalización', desc: 'La aprobación del CONPES 3409 de 2006 formalizó el PNMC y consolidó las Escuelas Municipales de Música (EMM) como espacios centrales para la formación musical colectiva. Este periodo estableció los cimientos del programa: acceso, democratización, convivencia y fortalecimiento de las músicas locales. Se amplió la dotación instrumental, se fortalecieron los equipos territoriales y se empezó a articular una red nacional de formación basada en la práctica comunitaria.', img: RANDOM_GALLERY_IMAGES[11] }, 
+    { id: 1, year: '2007-2014', title: 'Territorialización y saberes', desc: 'Durante esta etapa se profundizó en la institucionalización territorial, con énfasis en la formación de formadores, la cualificación de músicos en ejercicio y el impulso a las músicas tradicionales. Se promovió la descentralización, se consolidaron procesos comunitarios sostenidos y se promovió el reconocimiento de músicos empíricos y sabedores. Este periodo marcó un avance significativo en la diversidad musical, al visibilizar prácticas propias de cada región y promover su circulación.', img: RANDOM_GALLERY_IMAGES[12] }, 
+    { id: 2, year: '2015-2018', title: 'Profesionalización y SIMUS', desc: 'En estos años se desarrollaron las líneas estratégicas de Musicalización de la Ciudadanía y Estructuración del Campo Profesional de la Música, orientadas a fortalecer la formación integral y la profesionalización del sector. Se creó el Sistema de Información de la Música (SIMUS), herramienta clave para la toma de decisiones y la caracterización del ecosistema musical. Además, se implementaron nuevas estrategias de circulación y se amplió la presencia del PNMC en festivales, mercados y espacios de movilidad artística.', img: RANDOM_GALLERY_IMAGES[13] }, 
+    { id: 3, year: '2018-2022', title: 'Evaluación y Consolidación', desc: 'El Departamento Nacional de Planeación (DNP) realizó una evaluación integral del PNMC, destacando su impacto en la formación musical, el fortalecimiento del tejido social y la dignificación del trabajo artístico. A partir de esta evaluación se identificaron retos y oportunidades, como mejorar la articulación interinstitucional, fortalecer SIMUS, ampliar la presencia del PNMC en educación superior, incentivar economías creativas en los territorios y mejorar las condiciones laborales de los músicos y formadores.', img: RANDOM_GALLERY_IMAGES[14] }, 
+    { id: 4, year: '2023-2025', title: 'Actualización y Proyección 2035', desc: 'En un ejercicio nacional sin precedentes, el Ministerio de las Culturas abrió espacios de participación a través de 34 Encuentros Territoriales, mesas sectoriales, la Mesa Nacional Vinculante y el VII Congreso Nacional de Música. Estas iniciativas permitieron recoger las necesidades, visiones y apuestas del sector musical en todo el país y dieron origen al PNMC 2025-2035, "Huellas y apuestas de la diversidad sonora". Este nuevo Plan articula la música con la vida, el diálogo intercultural, la bioculturalidad, la equidad, la sostenibilidad y la gobernanza participativa, proyectando un ecosistema musical diverso, justo y sostenible para la próxima década.', img: RANDOM_GALLERY_IMAGES[15] } 
   ]; 
+
   const normativeStages = [
     {
       id: 0,
       year: '1997',
       title: 'Ley 397 de 1997',
       desc: 'La Ley General de Cultura establece los principios, objetivos y mecanismos para proteger, fomentar y difundir la cultura en Colombia. Reconoce la diversidad cultural como fundamento de la identidad nacional y define la cultura como derecho. En su estructura se incluyen disposiciones para el fomento de las artes, la formación artística y la protección del patrimonio cultural, elementos esenciales para el desarrollo del PNMC. Actualizada por la Ley 1185 de 2008.',
-      img: 'https://images.unsplash.com/photo-1774557482533-76b2ed54afce?q=80&w=1015&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[16],
     },
     {
       id: 1,
       year: '2006',
       title: 'CONPES 3409 de 2006',
       desc: 'Este documento aprobó la política del Plan Nacional de Música para la Convivencia, institucionalizando las Escuelas Municipales de Música y definiendo estrategias para mejorar la formación musical, la dotación instrumental y la gestión cultural en los territorios. Fue la base técnica y financiera que permitió consolidar el PNMC como política pública estable.',
-      img: 'https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[17],
     },
     {
       id: 2,
       year: '2011',
       title: 'Ley 1493 de 2011',
       desc: 'La Ley de Espectáculos Públicos regula la organización de espectáculos públicos de las artes escénicas y promueve la circulación artística en condiciones más equitativas. Aunque su alcance es más amplio que la música, ha tenido un impacto directo en la infraestructura cultural y en la movilidad de artistas y agrupaciones musicales en el país, facilitando escenarios más dignos y accesibles.',
-      img: 'https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[18],
     },
     {
       id: 3,
       year: '2018',
       title: 'Decreto 2120 de 2018',
       desc: 'Este decreto reglamenta la organización, funcionamiento y articulación de los subsistemas que integran el Sistema Nacional de Cultura. Para el PNMC es clave porque define los espacios de participación ciudadana, la gobernanza territorial y las responsabilidades institucionales en procesos formativos y comunitarios, incluyendo los vinculados a las músicas del país.',
-      img: 'https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[0],
     },
     {
       id: 4,
       year: '2024-2038',
       title: 'Plan Nacional de Cultura',
       desc: 'El nuevo PNC establece la visión cultural del país para los próximos 14 años. Define la cultura como eje del cuidado de la vida, la diversidad y la paz, y orienta las políticas del Ministerio de las Culturas, las Artes y los Saberes. El PNMC 2025-2035 se enmarca plenamente en esta estrategia, en sus componentes institucional y subsectorial, articulando lineamientos de diversidad sonora, ecosistemas culturales, gobernanza y sostenibilidad.',
-      img: 'https://images.unsplash.com/photo-1774558396250-1571cdddc61c?q=80&w=687&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[1],
     },
     {
       id: 6,
       year: '2025',
       title: 'Ley 2555 de 2025',
       desc: 'La Ley Artes al Aula convierte la educación artística en un mandato para todas las instituciones educativas oficiales del país. Reconoce las artes, incluida la música, como un derecho cultural fundamental y exige su incorporación transversal en los procesos pedagógicos, fortaleciendo competencias creativas, socioemocionales y ciudadanas. Impulsa la formación docente en pedagogías artísticas, promueve la articulación entre escuela, comunidad y territorio, y orienta la implementación desde el SINEFAC, facilitando la coordinación entre los sectores de educación y cultura.',
-      img: 'https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop',
+      img: RANDOM_GALLERY_IMAGES[3],
     },
   ];
 
@@ -794,25 +912,32 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
 	            </div>
 	          </div>
 	          <div className="lg:col-span-5 flex items-start justify-center">
-	            <div className="relative w-full max-w-md min-h-[360px] lg:min-h-[400px] flex items-center justify-center group">
-	              <div className="absolute inset-0 bg-[#291242] rounded-[3rem] rotate-4 group-hover:rotate-1 transition-transform duration-700 shadow-2xl opacity-10"></div>
-	              <div className="absolute inset-0 bg-[#291242] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col p-10 lg:p-12 text-left justify-center">
-	                <div className="absolute top-0 left-0 w-full h-1.5 bg-[#00DA5E]"></div>
-	                <div className="mb-6 w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-[#00DA5E] ring-1 ring-white/10 shadow-inner">
-	                  <Target size={36} strokeWidth={1} />
+	            <div className="w-full max-w-md rounded-[3rem] bg-[#f9f8fa] p-10 lg:p-12 text-left relative overflow-hidden border border-[#291242]/5 group hover:border-[#00DA5E]/30 hover:shadow-lg transition-all duration-500">
+	              {/* Marca de agua de comillas */}
+	              <div className="absolute -top-6 -left-2 text-[12rem] font-gregor leading-none text-[#291242]/[0.03] select-none pointer-events-none">
+	                "
+	              </div>
+	              
+	              <div className="relative z-10 flex flex-col h-full justify-between space-y-8">
+	                <div className="flex flex-col space-y-6">
+	                  <span className="inline-flex w-fit items-center rounded-full bg-[#291242] px-4 py-1.5 text-[0.55rem] font-bold uppercase tracking-[0.25em] text-white font-alternate shadow-sm">
+	                    Apuesta Base
+	                  </span>
+	                  
+	                  <p className="font-nunito text-[1.15rem] lg:text-[1.25rem] text-[#291242] font-semibold leading-relaxed italic relative z-10">
+	                    Consolidar la equidad de condiciones y oportunidades en el campo musical, promoviendo la participación y el ejercicio pleno de los derechos culturales.
+	                  </p>
 	                </div>
-	                <h3 className="font-alternate text-base font-bold uppercase tracking-[0.28em] text-[#00DA5E] mb-4">Objetivo General</h3>
-	                <p className="font-nunito text-base lg:text-[1.05rem] text-white font-light leading-relaxed italic max-w-md">
-	                  Consolidar la equidad de condiciones y oportunidades en el campo musical, promoviendo la participación y el ejercicio pleno de los derechos culturales.
-	                </p>
-	                <div className="mt-6 flex gap-2">
-	                  <div className="w-1.5 h-1.5 rounded-full bg-[#00DA5E]/40"></div>
-	                  <div className="w-1.5 h-1.5 rounded-full bg-[#00DA5E]"></div>
-	                  <div className="w-1.5 h-1.5 rounded-full bg-[#00DA5E]/40"></div>
-                </div>
-              </div>
-            </div>
-          </div>
+	                
+	                <div className="flex items-center justify-between border-t border-slate-200/60 pt-6">
+	                  <div>
+	                    <h3 className="font-alternate text-sm font-bold uppercase tracking-[0.2em] text-[#00DA5E]">Objetivo General</h3>
+	                    <span className="text-slate-400 text-[0.65rem] uppercase tracking-widest font-alternate mt-1.5 block font-semibold">Plan Nacional de Música</span>
+	                  </div>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
 	          <div className="lg:col-span-12 lg:-mt-4">
 	            <div className="rounded-[2.2rem] border border-slate-100 bg-white shadow-sm w-full overflow-hidden">
 	              <div className="px-8 py-4 lg:px-10 lg:py-5 border-b border-slate-100">
@@ -823,7 +948,7 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
 	              <div className="relative overflow-hidden bg-[linear-gradient(180deg,rgba(0,218,94,0.06),rgba(255,255,255,0)_72%)] px-8 py-8 lg:px-10 lg:py-10">
 	                <div className="absolute left-0 top-0 h-full w-1.5 bg-[#00DA5E]"></div>
 	                <div className="flex gap-4 lg:gap-6">
-	                  <span className="font-alternate text-[3rem] leading-[0.75] text-[#00DA5E]/45">“</span>
+	                  <span className="font-alternate text-[3rem] leading-[0.75] text-[#00DA5E]/45">"</span>
 	                  <p className="font-nunito text-[1.02rem] lg:text-[1.18rem] leading-relaxed text-[#291242] max-w-4xl">
 	                    El PNMC 2025–2035, Huellas y apuestas de la diversidad sonora, nace de un proceso participativo sin precedentes, recogiendo voces a través de encuentros territoriales en todo el país.
 	                  </p>
@@ -861,7 +986,7 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
           <div className="lg:w-1/3">
             <Tag text="TRANSVERSALIDAD" className="bg-white/10 text-[#00DA5E] mb-6" />
-            <h2 className="font-gregor text-5xl font-bold uppercase leading-none tracking-tight mb-6">Enfoques del <br/> Sistema</h2>
+            <h2 className="font-gregor text-5xl font-bold uppercase leading-none tracking-tight mb-6">Enfoques del <br/>Sistema</h2>
             <p className="text-slate-400 font-nunito font-light text-sm leading-relaxed">Consideramos las particularidades sociales y geográficas para garantizar un acceso equitativo a la cultura.</p>
           </div>
           <div className="lg:w-2/3 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -870,10 +995,10 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
               { t: "Poblacional", d: "Equidad para infancia, mujeres, diversidades de género, pueblos étnicos y personas con capacidades diversas.", icon: Users2 },
               { t: "Territorial", d: "Estrategias diferenciadas según geografía, infraestructura local y financiamiento por contextos.", icon: MapIcon }
             ].map((enf, i) => (
-              <div key={i} className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 hover:bg-white/10 transition-all">
+              <div key={i} className="bg-[#533075]/70 p-8 rounded-[2.5rem] border border-white/10 hover:bg-[#533075] transition-all shadow-md">
                 <enf.icon size={32} className="text-[#8BF784] mb-4" />
-                <h4 className="font-alternate text-lg font-bold uppercase mb-2">{enf.t}</h4>
-                <p className="text-[0.7rem] text-slate-300 font-nunito leading-relaxed">{enf.d}</p>
+                <h4 className="font-alternate text-lg font-bold uppercase mb-2 text-white">{enf.t}</h4>
+                <p className="text-[0.7rem] text-white/95 font-nunito leading-relaxed">{enf.d}</p>
               </div>
             ))}
           </div>
@@ -889,7 +1014,7 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
                 <span className="inline-flex items-center rounded-full bg-[#291242] px-4 py-2 font-alternate text-[0.58rem] font-bold uppercase tracking-[0.28em] text-[#8BF784]">
                   Ecosistema humano
                 </span>
-                <h3 className="font-gregor text-4xl lg:text-5xl text-[#291242] font-bold uppercase leading-none tracking-tight">
+                <h3 className="font-gregor text-4xl lg:text-5xl text-[#291242] font-bold uppercase leading-[1.1] text-balance tracking-tight">
                   Tres capas de articulación
                 </h3>
                 <p className="font-nunito text-sm text-slate-500 leading-relaxed">
@@ -913,11 +1038,19 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
                       <div className="w-10 h-1 bg-[#8BF784] rounded-full mt-3 opacity-50"></div>
                     </div>
                   </div>
-                  <ul className="space-y-2.5">
+                  <ul className="relative flex flex-col before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-transparent before:via-slate-200/70 before:to-transparent space-y-2">
                     {act.list.map((li, idx) => (
-                      <li key={idx} className="flex items-center gap-3 text-[0.68rem] font-bold text-slate-500 bg-slate-50/70 p-3.5 rounded-2xl border border-transparent hover:border-[#8BF784]/20 hover:text-[#291242] transition-all">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#8BF784]" />
-                        {li}
+                      <li
+                        key={idx}
+                        className="relative flex items-center gap-4 text-[0.75rem] font-bold text-slate-500 py-1.5 px-1 hover:text-[#291242] transition-all cursor-pointer group"
+                      >
+                        <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
+                           {/* Nodo hueco por defecto, se llena y brilla en hover */}
+                           <div className="absolute w-2 h-2 rounded-full border-[1.5px] border-slate-300 bg-white group-hover:border-[#00DA5E] group-hover:bg-[#00DA5E] transition-colors duration-300 z-10" />
+                           {/* Halo de luz sutil en hover */}
+                           <div className="absolute inset-0 rounded-full bg-[#00DA5E]/15 scale-0 group-hover:scale-100 transition-transform duration-500 ease-out z-0" />
+                        </div>
+                        <span className="flex-1 group-hover:translate-x-1.5 transition-transform duration-300 ease-out">{li}</span>
                       </li>
                     ))}
                   </ul>
@@ -929,28 +1062,28 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
       </ContentWrapper>
 
       <ContentWrapper className="bg-slate-50/50" id="pnmc-hitos">
-        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-10">
+        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-14">
           <div className="flex-1 min-w-0 space-y-6">
             <SectionHeader backgroundText="EVOLUCIÓN" foregroundText="Hitos del PNMC" verticalContext="HITOS" />
-            <p className="max-w-4xl text-3xl lg:text-4xl text-[#291242] font-bold font-nunito leading-tight tracking-tight">Desde hace más de medio siglo, Colombia ha construido una política musical que reconoce la música como un derecho cultural y puente de convivencia.</p>
+            <p className="max-w-3xl text-2xl lg:text-3xl text-[#291242] font-bold font-nunito leading-snug tracking-tight">Desde hace más de medio siglo, Colombia ha construido una política musical que reconoce la música como un derecho cultural y puente de convivencia.</p>
           </div>
-          <div className="lg:w-[25rem] flex justify-end">
-            <p className="max-w-3xl text-right text-base lg:text-[1.05rem] text-slate-500 font-nunito leading-relaxed">El PNMC, creado en 2003, es el resultado de una trayectoria que inició con Colcultura en 1968, garantizando hoy que todas las personas puedan vivir plenamente la música como experiencia y bien común.</p>
+          <div className="lg:w-[28rem] flex-shrink-0">
+            <p className="text-left text-[0.95rem] lg:text-base text-slate-500 font-nunito leading-relaxed border-l-2 border-[#00DA5E]/30 pl-5 py-1">El PNMC, creado en 2003, es el resultado de una trayectoria que inició con Colcultura en 1968, garantizando hoy que todas las personas puedan vivir plenamente la música como experiencia y bien común.</p>
           </div>
         </div>
         <div className="space-y-8 mb-20">
           <div className="flex flex-col lg:flex-row h-auto lg:h-[400px] gap-2.5 w-full"> 
-            {historyStages.map((stage) => ( 
-              <div key={stage.id} onClick={() => setActiveStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border border-slate-100 min-h-[150px] lg:min-h-0 ${activeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl' : 'flex-1 bg-white hover:bg-slate-50'}`}> 
+            {timelineEvents.map((stage) => ( 
+              <div key={stage.id} onClick={() => setActiveStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border min-h-[150px] lg:min-h-0 ${activeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl border-transparent' : 'flex-1 bg-white border-[#E6DAE5] hover:border-[#00DA5E]/50 hover:bg-[#00DA5E]/5 hover:shadow-sm'}`}> 
                 <div className={`absolute inset-0 transition-opacity duration-1000 ${activeStage === stage.id ? 'opacity-20' : 'opacity-0'}`}><img src={stage.img} className="w-full h-full object-cover" alt="" /></div> 
                 <div className={`absolute inset-0 p-6 flex flex-col justify-end transition-all duration-700 ${activeStage === stage.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}> 
                   <span className="text-[#8BF784] font-alternate text-sm font-bold mb-1 tracking-widest">{stage.year}</span> 
-                  <h3 className="font-alternate text-xl text-white uppercase leading-none mb-2">{stage.title}</h3> 
-                  <p className="font-nunito text-[0.78rem] text-slate-300 font-light max-w-xl leading-relaxed">{stage.desc}</p> 
+                  <h3 className="font-alternate text-2xl lg:text-3xl font-extrabold text-white uppercase leading-none mb-3 drop-shadow-md">{stage.title}</h3> 
+                  <p className="font-nunito text-[0.85rem] text-slate-300 font-light max-w-xl leading-relaxed">{stage.desc}</p> 
                 </div> 
                 <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${activeStage === stage.id ? 'opacity-0' : 'opacity-100'}`}>
-                  <div className="rotate-[-90deg] flex items-center justify-center w-full translate-x-8 lg:translate-x-10 opacity-30">
-                    <span className="font-gregor text-6xl lg:text-[7.5rem] font-bold uppercase tracking-tighter text-[#8BF784]">
+                  <div className="rotate-[-90deg] flex items-center justify-center w-full translate-x-8 lg:translate-x-10 opacity-40">
+                    <span className="font-gregor text-6xl lg:text-[6rem] font-bold uppercase tracking-tighter text-[#00DA5E]">
                       {stage.year.split('-')[0]}
                     </span>
                   </div>
@@ -962,27 +1095,27 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
       </ContentWrapper> 
 
       <ContentWrapper id="pnmc-marco">
-        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-10">
+        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-14">
           <div className="flex-1 min-w-0 space-y-6">
             <SectionHeader backgroundText="MARCO" foregroundText="Marco Normativo" verticalContext="BASE LEGAL" />
-            <p className="max-w-4xl text-3xl lg:text-4xl text-[#291242] font-bold font-nunito leading-tight tracking-tight">El PNMC se sustenta en una trayectoria normativa que ha consolidado la cultura y la música como derechos, políticas públicas y herramientas de transformación territorial.</p>
+            <p className="max-w-3xl text-2xl lg:text-3xl text-[#291242] font-bold font-nunito leading-snug tracking-tight">El PNMC se sustenta en una trayectoria normativa que ha consolidado la cultura y la música como derechos, políticas públicas y herramientas de transformación territorial.</p>
           </div>
-          <div className="lg:w-[25rem] flex justify-end">
-            <p className="max-w-3xl text-right text-base lg:text-[1.05rem] text-slate-500 font-nunito leading-relaxed">Este marco articula leyes, decretos, documentos de política y planes nacionales que orientan la formación, la circulación, la participación y la gobernanza cultural en Colombia.</p>
+          <div className="lg:w-[28rem] flex-shrink-0">
+            <p className="text-left text-[0.95rem] lg:text-base text-slate-500 font-nunito leading-relaxed border-l-2 border-[#00DA5E]/30 pl-5 py-1">Este marco articula leyes, decretos, documentos de política y planes nacionales que orientan la formación, la circulación, la participación y la gobernanza cultural en Colombia.</p>
           </div>
         </div>
         <div className="flex flex-col lg:flex-row h-auto lg:h-[400px] gap-2.5 w-full mt-6">
           {normativeStages.map((stage) => (
-            <div key={stage.id} onClick={() => setActiveNormativeStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border border-slate-100 min-h-[150px] lg:min-h-0 ${activeNormativeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl' : 'flex-1 bg-white hover:bg-slate-50'}`}>
+            <div key={stage.id} onClick={() => setActiveNormativeStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border min-h-[150px] lg:min-h-0 ${activeNormativeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl border-transparent' : 'flex-1 bg-white border-[#E6DAE5] hover:border-[#00DA5E]/50 hover:bg-[#00DA5E]/5 hover:shadow-sm'}`}>
               <div className={`absolute inset-0 transition-opacity duration-1000 ${activeNormativeStage === stage.id ? 'opacity-20' : 'opacity-0'}`}><img src={stage.img} className="w-full h-full object-cover" alt="" /></div>
               <div className={`absolute inset-0 p-6 flex flex-col justify-end transition-all duration-700 ${activeNormativeStage === stage.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}>
                 <span className="text-[#8BF784] font-alternate text-sm font-bold mb-1 tracking-widest">{stage.year}</span>
-                <h3 className="font-alternate text-xl text-white uppercase leading-none mb-2">{stage.title}</h3>
-                <p className="font-nunito text-[0.78rem] text-slate-300 font-light max-w-xl leading-relaxed">{stage.desc}</p>
+                <h3 className="font-alternate text-2xl lg:text-3xl font-extrabold text-white uppercase leading-none mb-3 drop-shadow-md">{stage.title}</h3>
+                <p className="font-nunito text-[0.85rem] text-slate-300 font-light max-w-xl leading-relaxed">{stage.desc}</p>
               </div>
               <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${activeNormativeStage === stage.id ? 'opacity-0' : 'opacity-100'}`}>
-                <div className="rotate-[-90deg] flex items-center justify-center w-full translate-x-8 lg:translate-x-10 opacity-30">
-                  <span className="font-gregor text-5xl lg:text-[6.5rem] font-bold uppercase tracking-tighter text-[#8BF784]">
+                <div className="rotate-[-90deg] flex items-center justify-center w-full translate-x-8 lg:translate-x-10 opacity-40">
+                  <span className="font-gregor text-5xl lg:text-[5.5rem] font-bold uppercase tracking-tighter text-[#00DA5E]">
                     {stage.year.split('-')[0]}
                   </span>
                 </div>
@@ -993,13 +1126,13 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
       </ContentWrapper>
 
       <ContentWrapper className="bg-slate-50/50" id="pnmc-equipo">
-        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-10">
+        <div className="mb-8 lg:mb-12 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-14">
           <div className="flex-1 min-w-0 space-y-6">
             <SectionHeader backgroundText="EQUIPO" foregroundText="Equipo de Trabajo" verticalContext="CONTACTO" />
-            <p className="max-w-4xl text-3xl lg:text-4xl text-[#291242] font-bold font-nunito leading-tight tracking-tight">El PNMC se construye y acompaña desde un equipo técnico que articula componentes, seguimiento institucional y trabajo con los territorios.</p>
+            <p className="max-w-3xl text-2xl lg:text-3xl text-[#291242] font-bold font-nunito leading-snug tracking-tight">El PNMC se construye y acompaña desde un equipo técnico que articula componentes, seguimiento institucional y trabajo con los territorios.</p>
           </div>
-          <div className="lg:w-[25rem] flex justify-end">
-            <p className="max-w-3xl text-right text-base lg:text-[1.05rem] text-slate-500 font-nunito leading-relaxed">Aquí puedes identificar los referentes del plan por coordinación y componente, con sus canales de contacto institucional.</p>
+          <div className="lg:w-[28rem] flex-shrink-0">
+            <p className="text-left text-[0.95rem] lg:text-base text-slate-500 font-nunito leading-relaxed border-l-2 border-[#00DA5E]/30 pl-5 py-1">Aquí puedes identificar los referentes del plan por coordinación y componente, con sus canales de contacto institucional.</p>
           </div>
         </div>
         <div className="rounded-[2.8rem] border border-slate-100 bg-white shadow-sm overflow-hidden">
@@ -1044,23 +1177,21 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
                     Liderazgos por componente
                   </span>
                 </div>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-0">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-5 py-6 xl:py-8">
                   {workTeam.slice(2).map((member) => (
-                    <div key={member.role} className="border-b border-slate-100 xl:nth-[2n+1]:border-r border-slate-100 py-6 xl:pr-8">
-                      <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-5 items-stretch">
-                        <div className="w-20 h-24 rounded-[1.4rem] border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-300 overflow-hidden">
-                          <UserCircle2 size={28} strokeWidth={1.5} />
+                    <div key={member.role} className="group rounded-[1.5rem] border border-slate-100 bg-slate-50/50 p-5 transition-all hover:-translate-y-1 hover:border-[#00DA5E]/30 hover:bg-white hover:shadow-md">
+                      <div className="flex flex-row items-center gap-5">
+                        <div className="w-[4.5rem] h-[4.5rem] shrink-0 rounded-2xl border border-slate-200/60 bg-white flex items-center justify-center text-slate-300 shadow-sm transition-transform group-hover:scale-105">
+                          <UserCircle2 size={28} strokeWidth={1.5} className="group-hover:text-[#00DA5E] transition-colors" />
                         </div>
-                        <div className="min-w-0 min-h-24 flex flex-col justify-between">
-                          <div className="space-y-2">
-                            <h4 className="font-alternate text-base text-[#291242] font-bold uppercase leading-tight">
-                              {member.name || 'Por definir'}
-                            </h4>
-                            <p className="mt-2 font-nunito text-sm text-slate-500 leading-relaxed">
-                              {member.role.replace('Líder Componente: ', '')}
-                            </p>
-                          </div>
-                          <p className="font-nunito text-sm text-slate-600 leading-relaxed break-all">
+                        <div className="min-w-0 flex-1 flex flex-col justify-center space-y-1">
+                          <h4 className="font-alternate text-[0.9rem] text-[#291242] font-bold uppercase leading-tight group-hover:text-[#00DA5E] transition-colors">
+                            {member.name || 'Por definir'}
+                          </h4>
+                          <p className="font-nunito text-[0.8rem] text-slate-500 leading-snug">
+                            {member.role.replace('Líder Componente: ', '')}
+                          </p>
+                          <p className="font-nunito text-[0.75rem] font-light text-slate-400 mt-1 truncate">
                             {member.email || 'Correo pendiente'}
                           </p>
                         </div>

@@ -104,7 +104,7 @@ Un ítem queda cerrado solo si:
   - Cabeceras de seguridad HTTP base (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) agregadas por middleware.
   - Validación de URLs HTTP/HTTPS en formularios de participación y hardening null-safe para listas del payload.
   - Segmentación incremental de `App.jsx`: se extrajeron bloques de Home a `features/home/components`.
-  - Segmentación adicional: `MapaEcosistemicoPage` se movió a `pnmc-web/src/features/map/pages/MapaEcosistemicoPage.jsx` para separar la capa de rutas/shell de la lógica de mapa.
+  - Segmentación adicional: la versión activa del mapa quedó en `pnmc-web/src/features/map/pages/MapaEcosistemicoPage.jsx`; la implementación previa fue archivada fuera del flujo activo.
   - Segmentación adicional: `GaleriaPage` y `SobreElPnmcPage` se movieron a `pnmc-web/src/features/gallery/pages/GaleriaPage.jsx` para desacoplar páginas de contenido del shell principal.
   - Segmentación adicional: `ComponentSubPage`, `ComponentRoutePage` y `UnknownRoutePage` se movieron a `pnmc-web/src/features/content/pages/ComponentPages.jsx`, pasando `ejesData` por props para reducir acoplamiento en `App.jsx`.
   - Segmentación adicional: `MapaParticipaPage` se movió a `pnmc-web/src/features/participation/pages/MapaParticipaPage.jsx` para separar el formulario avanzado de participación del shell de rutas.

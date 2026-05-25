@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/ui/index.js';
-import { MEDIA_LIBRARY } from '../../content/domain/mediaLibrary.js';
+import { HOME_BANNER_IMAGES } from '../../content/domain/mediaLibrary.js';
 
 export const HomeMediaBanner = ({
   onOpenMapParticipation,
@@ -13,7 +13,7 @@ export const HomeMediaBanner = ({
 
   const slides = useMemo(() => ([
     {
-      url: MEDIA_LIBRARY.performanceWide,
+      url: HOME_BANNER_IMAGES[0],
       tag: 'Mapa Ecosistémico',
       title: 'Participa en el mapeo musical de Colombia',
       desc: 'Registra tu proceso, organización, festival, mercado, colectivo, espacio o perfil individual dentro de la lectura territorial del ecosistema musical.',
@@ -21,7 +21,7 @@ export const HomeMediaBanner = ({
       action: onOpenMapParticipation,
     },
     {
-      url: MEDIA_LIBRARY.homeHero,
+      url: HOME_BANNER_IMAGES[1],
       tag: 'Celebra la Música',
       title: 'Activa la circulación musical en tu territorio',
       desc: 'Conoce la estrategia, los recursos y las rutas de participación de Celebra la Música como movimiento nacional de circulación y encuentro.',
@@ -29,7 +29,7 @@ export const HomeMediaBanner = ({
       action: onNavigateToCirculation,
     },
     {
-      url: MEDIA_LIBRARY.fieldworkWide,
+      url: HOME_BANNER_IMAGES[2],
       tag: 'Territorios Sonoros',
       title: 'Explora turismo cultural y músicas regionales',
       desc: 'Descubre cómo esta línea articula circulación, turismo cultural, saberes locales y experiencias territoriales en torno a la música.',
@@ -68,26 +68,26 @@ export const HomeMediaBanner = ({
             <div className="absolute inset-0 bg-[#291242]/58"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-[#291242]/92 via-[#291242]/20 to-[#291242]/92"></div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_45%,rgba(139,247,132,0.12),transparent_35%)]"></div>
-            <div className="absolute inset-0 max-w-[100rem] mx-auto px-6 lg:px-12 py-8 md:py-10 flex items-end justify-end">
-              <div className="max-w-lg pb-10 md:pb-14 text-right flex flex-col items-end">
+            <div className="absolute inset-0 max-w-[100rem] mx-auto px-6 lg:px-12 py-6 sm:py-8 md:py-10 flex items-end justify-end">
+              <div className="max-w-lg pb-6 sm:pb-10 md:pb-14 text-right flex flex-col items-end">
                 <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1.5 font-alternate text-[0.55rem] font-bold uppercase tracking-[0.28em] text-[#8BF784]">
                   {s.tag}
                 </span>
-                <span className="mt-6 block font-alternate text-[0.55rem] font-bold uppercase tracking-[0.3em] text-white/45">
+                <span className="mt-4 md:mt-6 block font-alternate text-[0.55rem] font-bold uppercase tracking-[0.3em] text-white/45">
                   0{i + 1} / 03
                 </span>
-                <h3 className="mt-3 max-w-xl font-gregor text-3xl md:text-4xl text-white font-bold uppercase leading-none tracking-tight">
+                <h3 className="mt-2 md:mt-3 max-w-xl font-gregor text-2xl sm:text-3xl md:text-4xl text-white font-bold uppercase leading-none tracking-tight">
                   {s.title}
                 </h3>
-                <p className="mt-4 max-w-md font-nunito text-[0.74rem] md:text-[0.82rem] text-white/70 leading-relaxed">
+                <p className="mt-3 md:mt-4 max-w-md font-nunito text-[0.74rem] md:text-[0.82rem] text-white/70 leading-relaxed">
                   {s.desc}
                 </p>
-                <div className="mt-6">
+                <div className="mt-4 md:mt-6">
                   <Button
                     type="button"
                     onClick={s.action}
                     variant="primary"
-                    className="px-7 py-3 text-[0.66rem]"
+                    className="px-6 py-2.5 sm:px-7 sm:py-3 text-[0.66rem]"
                     icon={ArrowRight}
                   >
                     {s.cta}

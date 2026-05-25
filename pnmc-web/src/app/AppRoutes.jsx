@@ -9,11 +9,10 @@ const EJES_PAGE_IMPORT = () => import('../features/content/pages/EjesPage.jsx');
 const COMPONENT_PAGES_IMPORT = () => import('../features/content/pages/ComponentPages.jsx');
 const EDITORIAL_PAGE_IMPORT = () => import('../features/editorial/pages/EditorialPage.jsx');
 const MAPA_ECOSISTEMICO_PAGE_IMPORT = () => import('../features/map/pages/MapaEcosistemicoPage.jsx');
-const MAPA_ECOSISTEMICO_V2_PAGE_IMPORT = () => import('../features/map/pages/MapaEcosistemicoPageV2.jsx');
-const MAPA_PARTICIPA_PAGE_IMPORT = () => import('../features/participation/pages/MapaParticipaPage.jsx');
 const AGENDA_PAGE_IMPORT = () => import('../features/agenda/pages/AgendaPage.jsx');
 const NOTICIAS_PAGE_IMPORT = () => import('../features/news/pages/NoticiasPage.jsx');
 const STRATEGY_SUBPAGE_IMPORT = () => import('../features/content/pages/StrategySubPage.jsx');
+const ADMIN_SHELL_PAGE_IMPORT = () => import('../features/admin/pages/AdminShellPage.jsx');
 
 const HomeContent = lazy(() => HOME_CONTENT_IMPORT().then((module) => ({ default: module.HomeContent })));
 const SobreElPnmcPage = lazy(() => GALLERY_PAGES_IMPORT().then((module) => ({ default: module.SobreElPnmcPage })));
@@ -23,11 +22,10 @@ const UnknownRoutePage = lazy(() => COMPONENT_PAGES_IMPORT().then((module) => ({
 const EditorialPage = lazy(() => EDITORIAL_PAGE_IMPORT().then((module) => ({ default: module.EditorialPage })));
 const GaleriaPage = lazy(() => GALLERY_PAGES_IMPORT().then((module) => ({ default: module.GaleriaPage })));
 const MapaEcosistemicoPage = lazy(() => MAPA_ECOSISTEMICO_PAGE_IMPORT().then((module) => ({ default: module.MapaEcosistemicoPage })));
-const MapaEcosistemicoPageV2 = lazy(() => MAPA_ECOSISTEMICO_V2_PAGE_IMPORT().then((module) => ({ default: module.MapaEcosistemicoPageV2 })));
-const MapaParticipaPage = lazy(() => MAPA_PARTICIPA_PAGE_IMPORT().then((module) => ({ default: module.MapaParticipaPage })));
 const AgendaPage = lazy(() => AGENDA_PAGE_IMPORT().then((module) => ({ default: module.AgendaPage })));
 const NoticiasPage = lazy(() => NOTICIAS_PAGE_IMPORT().then((module) => ({ default: module.NoticiasPage })));
 const StrategySubPage = lazy(() => STRATEGY_SUBPAGE_IMPORT().then((module) => ({ default: module.StrategySubPage })));
+const AdminShellPage = lazy(() => ADMIN_SHELL_PAGE_IMPORT().then((module) => ({ default: module.AdminShellPage })));
 
 const ROUTE_FALLBACK = (
   <div
@@ -125,18 +123,16 @@ const AppRoutes = ({
         )}
       />
       <Route
-        path="/mapa-v2"
-        element={withSuspense(
-          <MapaEcosistemicoPageV2
-            onBack={() => setActivePage(PAGE_IDS.home)}
-            navigationRequest={mapaNavigationRequest}
-            onOpenParticipation={handleOpenMapParticipation}
-          />
-        )}
+        path={PAGE_PATHS[PAGE_IDS.mapaParticipa]}
+        element={<Navigate to={PAGE_PATHS[PAGE_IDS.colaboradores]} replace />}
       />
       <Route
-        path={PAGE_PATHS[PAGE_IDS.mapaParticipa]}
-        element={withSuspense(<MapaParticipaPage onBack={() => handlePageChange(PAGE_IDS.mapa)} />)}
+        path={`${PAGE_PATHS[PAGE_IDS.admin]}/*`}
+        element={withSuspense(<AdminShellPage />)}
+      />
+      <Route
+        path={PAGE_PATHS[PAGE_IDS.colaboradores]}
+        element={withSuspense(<AdminShellPage initialPortal="external" />)}
       />
       <Route
         path={PAGE_PATHS[PAGE_IDS.agenda]}

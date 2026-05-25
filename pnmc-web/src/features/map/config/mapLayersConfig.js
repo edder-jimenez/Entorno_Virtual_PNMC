@@ -1,9 +1,9 @@
-export const MAP_V2_LAYERS_CONFIG = [
+export const MAP_LAYERS_CONFIG = [
   {
     id: 'general',
     layerKey: 'General',
     label: 'Vista general',
-    description: 'Integra festivales, escuelas y mercados en una lectura territorial única.',
+    description: 'Integra festivales, escuelas, mercados, redes de documentación y lutieres en una lectura territorial única.',
     color: '#291242',
     defaultVisible: true,
     iconKey: 'layout-grid',
@@ -35,9 +35,27 @@ export const MAP_V2_LAYERS_CONFIG = [
     defaultVisible: true,
     iconKey: 'library',
   },
+  {
+    id: 'redes',
+    layerKey: 'Redes de Documentación',
+    label: 'Redes Doc.',
+    description: 'Redes de documentación e investigación musical.',
+    color: '#ec4899',
+    defaultVisible: true,
+    iconKey: 'book-open',
+  },
+  {
+    id: 'lutieres',
+    layerKey: 'Lutieres',
+    label: 'Lutieres',
+    description: 'Constructores y reparadores de instrumentos musicales.',
+    color: '#0ea5e9',
+    defaultVisible: true,
+    iconKey: 'hammer',
+  },
 ];
 
-export const MAP_V2_PANEL_IDS = {
+export const MAP_PANEL_IDS = {
   layers: 'layers',
   territory: 'territory',
   filters: 'filters',

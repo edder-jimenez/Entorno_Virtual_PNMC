@@ -31,27 +31,33 @@ public static class CatalogModuleEndpoints
             var rows = await dbContext.FestivalRecords.AsNoTracking().ToListAsync(cancellationToken);
             var departments = await BuildDepartmentDictionaryAsync(dbContext, cancellationToken);
             var municipalities = await BuildMunicipalityDictionaryAsync(dbContext, cancellationToken);
+            var relations = await LoadRelationsAsync(dbContext, cancellationToken);
 
-            var mapped = rows.Select(row => new FestivalDto(
-                row.Id.ToString(),
-                row.Name,
-                row.DepartmentCode,
-                ResolveDepartmentName(row.DepartmentCode, departments),
-                row.MunicipalityCode ?? string.Empty,
-                ResolveMunicipalityName(row.MunicipalityCode, municipalities),
-                row.CoverageLevel,
-                row.Description ?? string.Empty,
-                row.SpecificLocation ?? string.Empty,
-                row.VersionsCount ?? 0,
-                FormatDate(row.LastEditionDate),
-                row.OrganizerDisplayName ?? string.Empty,
-                row.ContactEmail ?? string.Empty,
-                row.ContactPhone ?? string.Empty,
-                row.WebsiteUrl ?? string.Empty,
-                row.HasCurrentYearEdition,
-                row.CurrentYearEditionStatus ?? string.Empty,
-                FormatDate(row.CurrentYearStartDate),
-                FormatDate(row.CurrentYearEndDate))).ToList();
+            var mapped = rows.Select(row => {
+                relations.TryGetValue((1, row.Id), out var rel);
+                return new FestivalDto(
+                    row.Id.ToString(),
+                    row.Name,
+                    row.DepartmentCode,
+                    ResolveDepartmentName(row.DepartmentCode, departments),
+                    row.MunicipalityCode ?? string.Empty,
+                    ResolveMunicipalityName(row.MunicipalityCode, municipalities),
+                    row.CoverageLevel,
+                    row.Description ?? string.Empty,
+                    row.SpecificLocation ?? string.Empty,
+                    row.VersionsCount ?? 0,
+                    FormatDate(row.LastEditionDate),
+                    row.OrganizerDisplayName ?? string.Empty,
+                    row.ContactEmail ?? string.Empty,
+                    row.ContactPhone ?? string.Empty,
+                    row.WebsiteUrl ?? string.Empty,
+                    row.HasCurrentYearEdition,
+                    row.CurrentYearEditionStatus ?? string.Empty,
+                    FormatDate(row.CurrentYearStartDate),
+                    FormatDate(row.CurrentYearEndDate),
+                    rel.Territorios ?? string.Empty,
+                    rel.Practicas ?? string.Empty);
+            }).ToList();
 
             return Results.Ok(ToPage(mapped, limit, offset));
         }).WithTags("festivals");
@@ -70,29 +76,35 @@ public static class CatalogModuleEndpoints
             var rows = await dbContext.SchoolRecords.AsNoTracking().ToListAsync(cancellationToken);
             var departments = await BuildDepartmentDictionaryAsync(dbContext, cancellationToken);
             var municipalities = await BuildMunicipalityDictionaryAsync(dbContext, cancellationToken);
+            var relations = await LoadRelationsAsync(dbContext, cancellationToken);
 
-            var mapped = rows.Select(row => new MusicSchoolDto(
-                row.Id.ToString(),
-                row.Name,
-                row.DepartmentCode,
-                ResolveDepartmentName(row.DepartmentCode, departments),
-                row.MunicipalityCode ?? string.Empty,
-                ResolveMunicipalityName(row.MunicipalityCode, municipalities),
-                row.CoverageLevel,
-                row.SpecificLocation ?? string.Empty,
-                row.AddressText ?? string.Empty,
-                row.SchoolType ?? string.Empty,
-                row.SchoolCategory ?? string.Empty,
-                row.IsActiveSchool,
-                row.StudentsTotal ?? row.StudentsAgeTotal ?? 0,
-                row.ActiveGroupsCount ?? 0,
-                row.HasCommunityOrganization,
-                row.TrainingProcesses ?? string.Empty,
-                row.MusicalPractices ?? string.Empty,
-                row.ResponsibleEntityDisplayName ?? string.Empty,
-                row.ContactEmail ?? string.Empty,
-                row.ContactPhone ?? string.Empty,
-                row.WebsiteUrl ?? string.Empty)).ToList();
+            var mapped = rows.Select(row => {
+                relations.TryGetValue((2, row.Id), out var rel);
+                var practices = !string.IsNullOrWhiteSpace(rel.Practicas) ? rel.Practicas : (row.MusicalPractices ?? string.Empty);
+                return new MusicSchoolDto(
+                    row.Id.ToString(),
+                    row.Name,
+                    row.DepartmentCode,
+                    ResolveDepartmentName(row.DepartmentCode, departments),
+                    row.MunicipalityCode ?? string.Empty,
+                    ResolveMunicipalityName(row.MunicipalityCode, municipalities),
+                    row.CoverageLevel,
+                    row.SpecificLocation ?? string.Empty,
+                    row.AddressText ?? string.Empty,
+                    row.SchoolType ?? string.Empty,
+                    row.SchoolCategory ?? string.Empty,
+                    row.IsActiveSchool,
+                    row.StudentsTotal ?? row.StudentsAgeTotal ?? 0,
+                    row.ActiveGroupsCount ?? 0,
+                    row.HasCommunityOrganization,
+                    row.TrainingProcesses ?? string.Empty,
+                    practices,
+                    row.ResponsibleEntityDisplayName ?? string.Empty,
+                    row.ContactEmail ?? string.Empty,
+                    row.ContactPhone ?? string.Empty,
+                    row.WebsiteUrl ?? string.Empty,
+                    rel.Territorios ?? string.Empty);
+            }).ToList();
 
             return Results.Ok(ToPage(mapped, limit, offset));
         }).WithTags("music-schools");
@@ -111,31 +123,37 @@ public static class CatalogModuleEndpoints
             var rows = await dbContext.MarketRecords.AsNoTracking().ToListAsync(cancellationToken);
             var departments = await BuildDepartmentDictionaryAsync(dbContext, cancellationToken);
             var municipalities = await BuildMunicipalityDictionaryAsync(dbContext, cancellationToken);
+            var relations = await LoadRelationsAsync(dbContext, cancellationToken);
 
-            var mapped = rows.Select(row => new MusicMarketDto(
-                row.Id.ToString(),
-                row.Name,
-                row.DepartmentCode,
-                ResolveDepartmentName(row.DepartmentCode, departments),
-                row.MunicipalityCode ?? string.Empty,
-                ResolveMunicipalityName(row.MunicipalityCode, municipalities),
-                row.CoverageLevel,
-                row.Description ?? string.Empty,
-                row.Periodicity ?? string.Empty,
-                row.EditionsCount ?? 0,
-                row.HasAssociatedFestival,
-                row.AssociatedFestivalDisplayName ?? string.Empty,
-                row.ScopeType ?? string.Empty,
-                row.MarketMode ?? string.Empty,
-                row.ResponsibleEntityDisplayName ?? string.Empty,
-                row.ResponsibleEntityContactEmail ?? string.Empty,
-                row.ResponsibleEntityContactPhone ?? string.Empty,
-                row.ResponsibleEntityWebsiteUrl ?? string.Empty,
-                row.HasCurrentYearEdition,
-                row.CurrentYearEditionStatus ?? string.Empty,
-                FormatDate(row.CurrentYearStartDate),
-                FormatDate(row.CurrentYearEndDate),
-                row.SpecificLocation ?? string.Empty)).ToList();
+            var mapped = rows.Select(row => {
+                relations.TryGetValue((3, row.Id), out var rel);
+                return new MusicMarketDto(
+                    row.Id.ToString(),
+                    row.Name,
+                    row.DepartmentCode,
+                    ResolveDepartmentName(row.DepartmentCode, departments),
+                    row.MunicipalityCode ?? string.Empty,
+                    ResolveMunicipalityName(row.MunicipalityCode, municipalities),
+                    row.CoverageLevel,
+                    row.Description ?? string.Empty,
+                    row.Periodicity ?? string.Empty,
+                    row.EditionsCount ?? 0,
+                    !string.IsNullOrWhiteSpace(row.AssociatedFestivalDisplayName),
+                    row.AssociatedFestivalDisplayName ?? string.Empty,
+                    row.ScopeType ?? string.Empty,
+                    row.MarketMode ?? string.Empty,
+                    row.ResponsibleEntityDisplayName ?? string.Empty,
+                    row.ResponsibleEntityContactEmail ?? string.Empty,
+                    row.ResponsibleEntityContactPhone ?? string.Empty,
+                    row.ResponsibleEntityWebsiteUrl ?? string.Empty,
+                    row.HasCurrentYearEdition,
+                    row.CurrentYearEditionStatus ?? string.Empty,
+                    FormatDate(row.CurrentYearStartDate),
+                    FormatDate(row.CurrentYearEndDate),
+                    row.SpecificLocation ?? string.Empty,
+                    rel.Territorios ?? string.Empty,
+                    rel.Practicas ?? string.Empty);
+            }).ToList();
 
             return Results.Ok(ToPage(mapped, limit, offset));
         }).WithTags("music-markets");
@@ -154,18 +172,27 @@ public static class CatalogModuleEndpoints
             var rows = await dbContext.Organizations.AsNoTracking().ToListAsync(cancellationToken);
             var departments = await BuildDepartmentDictionaryAsync(dbContext, cancellationToken);
             var municipalities = await BuildMunicipalityDictionaryAsync(dbContext, cancellationToken);
+            var relations = await LoadRelationsAsync(dbContext, cancellationToken);
 
-            var mapped = rows.Select(row => new OrganizationDto(
-                row.Id.ToString(),
-                row.Name,
-                row.DepartmentCode,
-                ResolveDepartmentName(row.DepartmentCode, departments),
-                row.MunicipalityCode ?? string.Empty,
-                ResolveMunicipalityName(row.MunicipalityCode, municipalities),
-                row.OrganizationType ?? string.Empty,
-                row.TerritorialScope ?? string.Empty,
-                row.ContactEmail ?? string.Empty,
-                row.ContactPhone ?? string.Empty)).ToList();
+            var mapped = rows.Select(row => {
+                relations.TryGetValue((4, row.Id), out var rel);
+                return new OrganizationDto(
+                    row.Id.ToString(),
+                    row.Name,
+                    row.DepartmentCode,
+                    ResolveDepartmentName(row.DepartmentCode, departments),
+                    row.MunicipalityCode ?? string.Empty,
+                    ResolveMunicipalityName(row.MunicipalityCode, municipalities),
+                    row.OrganizationType ?? string.Empty,
+                    row.TerritorialScope ?? string.Empty,
+                    row.ContactEmail ?? string.Empty,
+                    row.ContactPhone ?? string.Empty,
+                    rel.Territorios ?? string.Empty,
+                    rel.Practicas ?? string.Empty,
+                    row.Latitude,
+                    row.Longitude,
+                    row.Description ?? string.Empty);
+            }).ToList();
 
             return Results.Ok(ToPage(mapped, limit, offset));
         }).WithTags("organizations");
@@ -184,22 +211,74 @@ public static class CatalogModuleEndpoints
             var rows = await dbContext.SpacesInfrastructure.AsNoTracking().ToListAsync(cancellationToken);
             var departments = await BuildDepartmentDictionaryAsync(dbContext, cancellationToken);
             var municipalities = await BuildMunicipalityDictionaryAsync(dbContext, cancellationToken);
+            var relations = await LoadRelationsAsync(dbContext, cancellationToken);
 
-            var mapped = rows.Select(row => new SpaceInfrastructureDto(
-                row.Id.ToString(),
-                row.Name,
-                row.DepartmentCode,
-                ResolveDepartmentName(row.DepartmentCode, departments),
-                row.MunicipalityCode ?? string.Empty,
-                ResolveMunicipalityName(row.MunicipalityCode, municipalities),
-                row.ActorType ?? string.Empty,
-                row.PrimaryFunction ?? string.Empty,
-                row.MaxCapacityApprox ?? 0)).ToList();
+            var mapped = rows.Select(row => {
+                relations.TryGetValue((5, row.Id), out var rel);
+                return new SpaceInfrastructureDto(
+                    row.Id.ToString(),
+                    row.Name,
+                    row.DepartmentCode,
+                    ResolveDepartmentName(row.DepartmentCode, departments),
+                    row.MunicipalityCode ?? string.Empty,
+                    ResolveMunicipalityName(row.MunicipalityCode, municipalities),
+                    row.ActorType ?? string.Empty,
+                    row.PrimaryFunction ?? string.Empty,
+                    row.MaxCapacityApprox ?? 0,
+                    rel.Territorios ?? string.Empty,
+                    rel.Practicas ?? string.Empty,
+                    row.Latitude,
+                    row.Longitude,
+                    row.MainUses ?? string.Empty,
+                    row.ContactEmail ?? string.Empty,
+                    row.ContactPhone ?? string.Empty);
+            }).ToList();
 
             return Results.Ok(ToPage(mapped, limit, offset));
         }).WithTags("spaces-infrastructure");
 
         return group;
+    }
+
+    private static async Task<Dictionary<(int TypeId, int OrigenId), (string Territorios, string Practicas)>> LoadRelationsAsync(
+        PnmcDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<(int TypeId, int OrigenId), (string Territorios, string Practicas)>();
+        
+        try
+        {
+            using var command = dbContext.Database.GetDbConnection().CreateCommand();
+            command.CommandText = @"
+                SELECT 
+                    r.IdTipoRegistroEcosistema,
+                    r.IdRegistroOrigen,
+                    STRING_AGG(ts.NombreTerritorioSonoro, ', ') AS TerritoriosSonoros,
+                    STRING_AGG(pm.NombrePracticaMusical, ', ') AS PracticasMusicales
+                FROM dbo.RegistrosEcosistema r
+                LEFT JOIN dbo.RegistrosEcosistemaTerritoriosSonoros rts ON rts.IdRegistroEcosistema = r.IdRegistroEcosistema
+                LEFT JOIN dbo.TerritoriosSonoros ts ON ts.IdTerritorioSonoro = rts.IdTerritorioSonoro
+                LEFT JOIN dbo.RegistrosEcosistemaPracticasMusicales rpm ON rpm.IdRegistroEcosistema = r.IdRegistroEcosistema
+                LEFT JOIN dbo.PracticasMusicales pm ON pm.IdPracticaMusical = rpm.IdPracticaMusical
+                GROUP BY r.IdTipoRegistroEcosistema, r.IdRegistroOrigen";
+                
+            await dbContext.Database.OpenConnectionAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                int typeId = reader.GetInt32(0);
+                int origenId = reader.GetInt32(1);
+                string territorios = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                string practicas = reader.IsDBNull(3) ? string.Empty : reader.GetString(3);
+                result[(typeId, origenId)] = (territorios, practicas);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error querying bridge relations: " + ex.Message);
+        }
+        
+        return result;
     }
 
     private static RouteGroupBuilder MapDivipolaModuleEndpoints(this RouteGroupBuilder group)

@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { Tag } from '../../shared/components/PagePrimitives.jsx';
 import { ContentWrapper } from '../../shared/components/PagePrimitives.jsx';
+import { RANDOM_GALLERY_IMAGES } from '../../content/domain/mediaLibrary.js';
 
 export const HomeStrategiesSection = ({ onNavigate }) => (
   <ContentWrapper className="bg-white">
@@ -9,7 +10,7 @@ export const HomeStrategiesSection = ({ onNavigate }) => (
         onClick={() => onNavigate('estrategia-circulacion')}
         className="rounded-[3rem] group transition-all border border-slate-100 flex flex-col justify-end min-h-[420px] shadow-sm cursor-pointer text-left relative overflow-hidden"
       >
-        <img src="https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop" alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+        <img src={RANDOM_GALLERY_IMAGES[2]} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
         <div className="absolute inset-0 bg-white/28"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-white/72 via-white/36 to-white/0 transition-all duration-500 group-hover:from-white/80 group-hover:via-white/42 group-hover:to-white/0"></div>
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/20 rounded-full blur-[100px] transition-all group-hover:scale-125"></div>
@@ -41,7 +42,7 @@ export const HomeStrategiesSection = ({ onNavigate }) => (
         onClick={() => onNavigate('estrategia-investigacion')}
         className="rounded-[3rem] text-[#291242] shadow-xl flex flex-col justify-end min-h-[420px] relative overflow-hidden group cursor-pointer"
       >
-        <img src="https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop" alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+        <img src={RANDOM_GALLERY_IMAGES[4]} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
         <div className="absolute inset-0 bg-white/28"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-white/72 via-white/36 to-white/0 transition-all duration-500 group-hover:from-white/80 group-hover:via-white/42 group-hover:to-white/0"></div>
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/20 rounded-full blur-[100px] transition-all group-hover:scale-125"></div>

@@ -2,6 +2,7 @@ import { ArrowRight, ChevronRight } from 'lucide-react';
 import { Button } from '../../../components/ui/index.js';
 import { scrollToElementWithOffset } from '../../map/domain/mapDomain.js';
 import { ContentWrapper } from '../../shared/components/PagePrimitives.jsx';
+import { RANDOM_GALLERY_IMAGES } from '../../content/domain/mediaLibrary.js';
 
 export const PNMCPreviewSection = ({ onNavigate, scrollTargetRef }) => {
   const navigateToSection = (page, sectionId) => {
@@ -19,8 +20,8 @@ export const PNMCPreviewSection = ({ onNavigate, scrollTargetRef }) => {
           <div className="space-y-8 mb-8">
             <div className="relative group">
               <div
-                className="font-gregor text-[4.5rem] lg:text-[8rem] select-none opacity-5 font-bold leading-none tracking-tight pointer-events-none"
-                style={{ color: '#291242' }}
+                className="font-gregor text-[4.5rem] lg:text-[8rem] select-none opacity-50 font-bold leading-none tracking-tight pointer-events-none"
+                style={{ color: '#E6DAE5' }}
               >
                 IDENTIDAD
               </div>
@@ -44,7 +45,7 @@ export const PNMCPreviewSection = ({ onNavigate, scrollTargetRef }) => {
           </div>
           <div className="rounded-[2.5rem] overflow-hidden shadow-2xl bg-slate-900 border border-slate-100 relative z-10 aspect-[16/6.5]">
             <img
-              src="https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop"
+              src={RANDOM_GALLERY_IMAGES[5]}
               className="w-full h-full object-cover grayscale brightness-90"
               alt="Músicos"
             />

@@ -42,8 +42,9 @@ export const fetchApiJson = async ({
 
     if (!response.ok) {
       throw new Error(
-        payload?.title
+        payload?.detail
         || payload?.message
+        || payload?.title
         || `${errorFallback} (${response.status}).`
       );
     }

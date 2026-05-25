@@ -8,6 +8,8 @@ export const PAGE_IDS = {
   agenda: 'agenda',
   mapa: 'mapa',
   mapaParticipa: 'mapa-participa',
+  admin: 'admin',
+  colaboradores: 'colaboradores',
   estrategiaCirculacion: 'estrategia-circulacion',
   estrategiaInvestigacion: 'estrategia-investigacion',
 };
@@ -24,6 +26,8 @@ export const PAGE_PATHS = {
   [PAGE_IDS.agenda]: '/agenda',
   [PAGE_IDS.mapa]: '/mapa',
   [PAGE_IDS.mapaParticipa]: '/mapa/participa',
+  [PAGE_IDS.admin]: '/admin',
+  [PAGE_IDS.colaboradores]: '/colaboradores',
   [PAGE_IDS.estrategiaCirculacion]: '/estrategia/circulacion',
   [PAGE_IDS.estrategiaInvestigacion]: '/estrategia/investigacion',
 };

@@ -7,6 +7,8 @@ const DATA_API_CONFIG = {
     festivals: 'Festivales',
     schools: 'escuelas',
     markets: 'Mercados',
+    networks: 'Redes',
+    lutiers: 'Lutieres',
   },
 };
 
@@ -175,6 +177,8 @@ const mapFestivalItemsToLegacyRecords = (items = []) => (
         contacto_telefono: trimText(item?.contactPhone),
         sitio_web: trimText(item?.websiteUrl),
         ubicacion_especifica: trimText(item?.specificLocation),
+        'Prácticas musicales': trimText(item?.musicalPractices),
+        'Territorios sonoros': trimText(item?.sonorousTerritories),
       },
     };
   })
@@ -201,6 +205,7 @@ const mapSchoolItemsToLegacyRecords = (items = []) => (
       'Celular o contacto del director': trimText(item?.contactPhone),
       'Cuenta con organización comunitaria': item?.hasCommunityOrganization ? 'Sí' : 'No',
       'Prácticas musicales': trimText(item?.musicalPractices),
+      'Territorios sonoros': trimText(item?.sonorousTerritories),
       'Talleres independientes': trimText(item?.trainingProcesses),
       'Cantidad total de alumnos': toNumber(item?.studentsTotal),
       'Cantidad de agrupaciones vigentes': toNumber(item?.activeGroupsCount),
@@ -228,6 +233,53 @@ const mapMarketItemsToLegacyRecords = (items = []) => (
       'Ámbito del mercado': trimText(item?.scopeType),
       'Modo del mercado': trimText(item?.marketMode),
       'Ubicación específica': trimText(item?.specificLocation),
+      'Prácticas musicales': trimText(item?.musicalPractices),
+      'Territorios sonoros': trimText(item?.sonorousTerritories),
+      'sitio_web': trimText(item?.websiteUrl || item?.website || ''),
+    },
+  }))
+);
+
+const mapNetworkItemsToLegacyRecords = (items = []) => (
+  items.map((item) => ({
+    id: String(item?.id ?? ''),
+    fields: {
+      name: trimText(item?.name),
+      centerType: trimText(item?.organizationType),
+      municipio: trimText(item?.municipalityName),
+      departamento: trimText(item?.departmentName),
+      deptCode: trimText(item?.departmentCode),
+      divipola: trimText(item?.municipalityCode),
+      descripcion: trimText(item?.description),
+      desc: trimText(item?.description),
+      contact: [trimText(item?.contactEmail), trimText(item?.contactPhone)].filter(Boolean).join(' · '),
+      latitud: item?.latitude != null ? Number(item.latitude) : null,
+      longitud: item?.longitude != null ? Number(item.longitude) : null,
+      'Territorios sonoros': trimText(item?.sonorousTerritories),
+      'Prácticas musicales': trimText(item?.musicalPractices),
+      'sitio_web': trimText(item?.websiteUrl || item?.website || ''),
+    },
+  }))
+);
+
+const mapLutierItemsToLegacyRecords = (items = []) => (
+  items.map((item) => ({
+    id: String(item?.id ?? ''),
+    fields: {
+      name: trimText(item?.name),
+      oficio: trimText(item?.primaryFunction),
+      municipio: trimText(item?.municipalityName),
+      departamento: trimText(item?.departmentName),
+      deptCode: trimText(item?.departmentCode),
+      divipola: trimText(item?.municipalityCode),
+      descripcion: trimText(item?.description),
+      desc: trimText(item?.description),
+      contact: [trimText(item?.contactEmail), trimText(item?.contactPhone)].filter(Boolean).join(' · '),
+      latitud: item?.latitude != null ? Number(item.latitude) : null,
+      longitud: item?.longitude != null ? Number(item.longitude) : null,
+      'Territorios sonoros': trimText(item?.sonorousTerritories),
+      'Prácticas musicales': trimText(item?.musicalPractices),
+      'sitio_web': trimText(item?.websiteUrl || item?.website || ''),
     },
   }))
 );
@@ -252,6 +304,10 @@ const buildModuleUrl = (table, params = {}) => {
       return buildApiUrl('/api/v1/music-schools', paging);
     case DATA_API_CONFIG.tables.markets:
       return buildApiUrl('/api/v1/music-markets', paging);
+    case DATA_API_CONFIG.tables.networks:
+      return buildApiUrl('/api/v1/organizations', paging);
+    case DATA_API_CONFIG.tables.lutiers:
+      return buildApiUrl('/api/v1/spaces-infrastructure', paging);
     default:
       return buildApiUrl('/api/v1/admin/data/stats');
   }
@@ -285,6 +341,16 @@ export const fetchModuleRecords = async (table, params = {}) => {
     return { records: mapMarketItemsToLegacyRecords(items) };
   }
 
+  if (table === DATA_API_CONFIG.tables.networks) {
+    const { items } = await fetchFromBackend('/api/v1/organizations', paging);
+    return { records: mapNetworkItemsToLegacyRecords(items) };
+  }
+
+  if (table === DATA_API_CONFIG.tables.lutiers) {
+    const { items } = await fetchFromBackend('/api/v1/spaces-infrastructure', paging);
+    return { records: mapLutierItemsToLegacyRecords(items) };
+  }
+
   return { records: [] };
 };
 
@@ -295,5 +361,7 @@ export const fetchNewsRecords = (params = {}) => fetchModuleRecords(DATA_API_CON
 export const fetchFestivalRecords = (params = {}) => fetchModuleRecords(DATA_API_CONFIG.tables.festivals, params);
 export const fetchSchoolRecords = (params = {}) => fetchPaginatedModuleRecords(DATA_API_CONFIG.tables.schools, params);
 export const fetchMarketRecords = (params = {}) => fetchPaginatedModuleRecords(DATA_API_CONFIG.tables.markets, params);
+export const fetchNetworkRecords = (params = {}) => fetchPaginatedModuleRecords(DATA_API_CONFIG.tables.networks, params);
+export const fetchLutierRecords = (params = {}) => fetchPaginatedModuleRecords(DATA_API_CONFIG.tables.lutiers, params);
 
 export { DATA_API_CONFIG, buildModuleUrl };

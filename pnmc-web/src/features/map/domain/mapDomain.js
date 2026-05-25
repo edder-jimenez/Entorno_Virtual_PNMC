@@ -77,32 +77,46 @@ const DEPARTMENT_NAME_ALIASES = {
 
 const MAP_LAYER_CHOROPLETH_STEPS = {
   General: [
-    { min: 1, max: 5, color: '#bbf7d0', opacity: 0.62, label: '1 a 5' },
-    { min: 6, max: 10, color: '#86efac', opacity: 0.72, label: '6 a 10' },
-    { min: 11, max: 15, color: '#4ade80', opacity: 0.8, label: '11 a 15' },
-    { min: 16, max: 20, color: '#16a34a', opacity: 0.88, label: '16 a 20' },
-    { min: 21, max: Infinity, color: '#14532d', opacity: 0.94, label: '20 o más' },
+    { min: 1, max: 5, color: '#d1fae5', opacity: 0.6, label: '1 a 5' },
+    { min: 6, max: 10, color: '#a7f3d0', opacity: 0.65, label: '6 a 10' },
+    { min: 11, max: 15, color: '#6ee7b7', opacity: 0.7, label: '11 a 15' },
+    { min: 16, max: 20, color: '#34d399', opacity: 0.75, label: '16 a 20' },
+    { min: 21, max: Infinity, color: '#059669', opacity: 0.8, label: '20 o más' },
   ],
   Festivales: [
-    { min: 1, max: 5, color: '#bbf7d0', opacity: 0.62, label: '1 a 5' },
-    { min: 6, max: 10, color: '#86efac', opacity: 0.72, label: '6 a 10' },
-    { min: 11, max: 15, color: '#4ade80', opacity: 0.8, label: '11 a 15' },
-    { min: 16, max: 20, color: '#16a34a', opacity: 0.88, label: '16 a 20' },
-    { min: 21, max: Infinity, color: '#14532d', opacity: 0.94, label: '20 o más' },
+    { min: 1, max: 5, color: '#f3e8ff', opacity: 0.6, label: '1 a 5' },
+    { min: 6, max: 10, color: '#e9d5ff', opacity: 0.65, label: '6 a 10' },
+    { min: 11, max: 15, color: '#d8b4fe', opacity: 0.7, label: '11 a 15' },
+    { min: 16, max: 20, color: '#c084fc', opacity: 0.75, label: '16 a 20' },
+    { min: 21, max: Infinity, color: '#9333ea', opacity: 0.8, label: '20 o más' },
   ],
   'Escuelas de Música': [
-    { min: 1, max: 5, color: '#bbf7d0', opacity: 0.62, label: '1 a 5' },
-    { min: 6, max: 10, color: '#86efac', opacity: 0.72, label: '6 a 10' },
-    { min: 11, max: 15, color: '#4ade80', opacity: 0.8, label: '11 a 15' },
-    { min: 16, max: 20, color: '#16a34a', opacity: 0.88, label: '16 a 20' },
-    { min: 21, max: Infinity, color: '#14532d', opacity: 0.94, label: '20 o más' },
+    { min: 1, max: 5, color: '#e0f2fe', opacity: 0.6, label: '1 a 5' },
+    { min: 6, max: 10, color: '#bae6fd', opacity: 0.65, label: '6 a 10' },
+    { min: 11, max: 15, color: '#7dd3fc', opacity: 0.7, label: '11 a 15' },
+    { min: 16, max: 20, color: '#38bdf8', opacity: 0.75, label: '16 a 20' },
+    { min: 21, max: Infinity, color: '#0284c7', opacity: 0.8, label: '20 o más' },
   ],
   'Mercados Musicales': [
-    { min: 1, max: 5, color: '#bbf7d0', opacity: 0.62, label: '1 a 5' },
-    { min: 6, max: 10, color: '#86efac', opacity: 0.72, label: '6 a 10' },
-    { min: 11, max: 15, color: '#4ade80', opacity: 0.8, label: '11 a 15' },
-    { min: 16, max: 20, color: '#16a34a', opacity: 0.88, label: '16 a 20' },
-    { min: 21, max: Infinity, color: '#14532d', opacity: 0.94, label: '20 o más' },
+    { min: 1, max: 5, color: '#fef3c7', opacity: 0.6, label: '1 a 5' },
+    { min: 6, max: 10, color: '#fde68a', opacity: 0.65, label: '6 a 10' },
+    { min: 11, max: 15, color: '#fcd34d', opacity: 0.7, label: '11 a 15' },
+    { min: 16, max: 20, color: '#fbbf24', opacity: 0.75, label: '16 a 20' },
+    { min: 21, max: Infinity, color: '#d97706', opacity: 0.8, label: '20 o más' },
+  ],
+  'Redes de Documentación': [
+    { min: 1, max: 2, color: '#fce7f3', opacity: 0.6, label: '1 a 2' },
+    { min: 3, max: 5, color: '#fbcfe8', opacity: 0.65, label: '3 a 5' },
+    { min: 6, max: 10, color: '#f9a8d4', opacity: 0.7, label: '6 a 10' },
+    { min: 11, max: 15, color: '#f472b6', opacity: 0.75, label: '11 a 15' },
+    { min: 16, max: Infinity, color: '#db2777', opacity: 0.8, label: '16 o más' },
+  ],
+  'Lutieres': [
+    { min: 1, max: 2, color: '#ecfeff', opacity: 0.6, label: '1 a 2' },
+    { min: 3, max: 5, color: '#cffafe', opacity: 0.65, label: '3 a 5' },
+    { min: 6, max: 10, color: '#a5f3fc', opacity: 0.7, label: '6 a 10' },
+    { min: 11, max: 15, color: '#22d3ee', opacity: 0.75, label: '11 a 15' },
+    { min: 16, max: Infinity, color: '#0d9488', opacity: 0.8, label: '16 o más' },
   ],
 };
 
@@ -110,6 +124,8 @@ const EMPTY_DEPARTMENT_SUMMARY = {
   festivalCount: 0,
   schoolCount: 0,
   marketCount: 0,
+  redesCount: 0,
+  lutierCount: 0,
   totalStudents: 0,
   totalTeachers: 0,
   totalInstruments: 0,
@@ -150,6 +166,7 @@ const SCHOOL_FIELD_MAP = {
   practices: ['Prácticas musicales', 'Practicas musicales'],
   workshops: ['Talleres independientes'],
   communityOrganization: ['Cuenta con organización comunitaria', 'Cuenta con organizacion comunitaria'],
+  linkedSonorousTerritories: ['Territorios sonoros', 'Territorios Sonoros', 'linkedSonorousTerritories'],
   observations: ['Observaciones'],
 };
 
@@ -223,6 +240,9 @@ const MARKET_FIELD_MAP = {
   pnmcConnectionsDetail: ['Si en la pregunta anterior respondió “Sí”, por favor describa el vínculo o colaboración generada, indicando: ¿con qué mercado, festival o circuito se estableció la articulación?, ¿qué artistas o proyectos musicales estuvieron involucrados?, ¿en qué...'],
   collaborationPotential: ['  ¿Qué tipo de acciones o colaboraciones considera posibles desarrollar con otros mercados de su territorio o región?  ', '¿Qué tipo de acciones o colaboraciones considera posibles desarrollar con otros mercados de su territorio o región?'],
   territorialImpact: ['¿Cuáles considera que son los principales aportes de su mercado a la circulación musical en su territorio? ', '¿Cuáles considera que son los principales aportes de su mercado a la circulación musical en su territorio?'],
+  practices: ['Prácticas musicales', 'Practicas musicales'],
+  linkedSonorousTerritories: ['Territorios sonoros', 'Territorios Sonoros'],
+  websiteUrl: ['sitio_web', 'Sitio Web', 'websiteUrl', 'website', 'link'],
 };
 
 const MARKET_PUBLICATION_POLICY = {
@@ -685,8 +705,13 @@ const buildPublicSchoolRecord = (record) => {
     students: toNumericValue(getSchoolField(record, 'students')),
     groups: toNumericValue(getSchoolField(record, 'groups')),
     practices: getSchoolField(record, 'practices'),
+    linkedSonorousTerritories: getSchoolField(record, 'linkedSonorousTerritories') || '',
     workshops: normalizeBooleanishField(getSchoolField(record, 'workshops')),
     communityOrganization: normalizeBooleanishField(getSchoolField(record, 'communityOrganization')),
+    directorName: getSchoolField(record, 'directorName'),
+    directorContact: getSchoolField(record, 'directorContact'),
+    contactEmail: getSchoolField(record, 'contactEmail'),
+    contact: [getSchoolField(record, 'contactEmail'), getSchoolField(record, 'directorContact')].filter(Boolean).join(' · '),
   };
 };
 
@@ -755,6 +780,9 @@ const buildPublicMarketRecord = (record) => {
     pnmcConnectionsDetail: getMarketField(record, 'pnmcConnectionsDetail'),
     collaborationPotential: getMarketField(record, 'collaborationPotential'),
     territorialImpact: getMarketField(record, 'territorialImpact'),
+    practices: getMarketField(record, 'practices') || '',
+    linkedSonorousTerritories: getMarketField(record, 'linkedSonorousTerritories') || '',
+    websiteUrl: getMarketField(record, 'websiteUrl') || record?.fields?.sitio_web || '',
   };
 };
 
@@ -864,7 +892,14 @@ const buildMarketTotals = (records = []) => {
   };
 };
 
-const buildDepartmentSummaryMap = (baseCounts = {}, festivalRecordsByDepartment = {}, schoolRecordsByDepartment = {}, marketRecordsByDepartment = {}) => {
+const buildDepartmentSummaryMap = (
+  baseCounts = {},
+  festivalRecordsByDepartment = {},
+  schoolRecordsByDepartment = {},
+  marketRecordsByDepartment = {},
+  redesRecordsByDepartment = {},
+  lutierRecordsByDepartment = {}
+) => {
   const summaryMap = Object.keys(baseCounts).reduce((acc, departmentName) => {
     acc[departmentName] = { ...EMPTY_DEPARTMENT_SUMMARY };
     return acc;
@@ -902,8 +937,29 @@ const buildDepartmentSummaryMap = (baseCounts = {}, festivalRecordsByDepartment 
     summaryMap[departmentName].totalMarketBuyers = totals.totalBuyers;
   });
 
+  Object.entries(redesRecordsByDepartment).forEach(([departmentName, records]) => {
+    if (!summaryMap[departmentName]) {
+      summaryMap[departmentName] = { ...EMPTY_DEPARTMENT_SUMMARY };
+    }
+
+    summaryMap[departmentName].redesCount = records.length;
+  });
+
+  Object.entries(lutierRecordsByDepartment).forEach(([departmentName, records]) => {
+    if (!summaryMap[departmentName]) {
+      summaryMap[departmentName] = { ...EMPTY_DEPARTMENT_SUMMARY };
+    }
+
+    summaryMap[departmentName].lutierCount = records.length;
+  });
+
   Object.values(summaryMap).forEach((summary) => {
-    summary.totalRecords = summary.festivalCount + summary.schoolCount + summary.marketCount;
+    summary.totalRecords =
+      summary.festivalCount +
+      summary.schoolCount +
+      summary.marketCount +
+      summary.redesCount +
+      summary.lutierCount;
   });
 
   return summaryMap;
@@ -1078,10 +1134,10 @@ const DEPARTMENT_HIT_AREA_STYLE = {
 };
 
 const getChoroplethStyles = (count, isSelected = true, layerKey = 'Festivales') => {
-  let fillColor = '#291242';
-  let fillOpacity = 0.18;
-  let strokeColor = 'rgba(255,255,255,0.18)';
-  let strokeWeight = 1.1;
+  let fillColor = 'transparent';
+  let fillOpacity = 0;
+  let strokeColor = 'rgba(41, 18, 66, 0.35)'; // Default subtle border for empty/base states
+  let strokeWeight = 1.2;
   const layerSteps = MAP_LAYER_CHOROPLETH_STEPS[layerKey] || MAP_LAYER_CHOROPLETH_STEPS.Festivales;
   const activeStep = layerSteps.find((step) => count >= step.min && count <= step.max);
 
@@ -1091,13 +1147,14 @@ const getChoroplethStyles = (count, isSelected = true, layerKey = 'Festivales') 
   }
 
   if (!isSelected) {
-    fillColor = '#291242';
-    fillOpacity = 0.12;
-    strokeColor = 'rgba(255,255,255,0.08)';
+    fillColor = '#d8d3df';
+    fillOpacity = 0.3; // Muted fill for non-selected
+    strokeColor = 'rgba(41, 18, 66, 0.2)';
+    strokeWeight = 1.0;
   }
 
   if (isSelected && count > 0) {
-    strokeColor = 'rgba(255,255,255,0.38)';
+    strokeColor = 'rgba(41, 18, 66, 0.9)'; // Strong border for selected WITH data
     strokeWeight = 1.5;
   }
 

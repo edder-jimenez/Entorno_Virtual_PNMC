@@ -1,13 +1,8 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { useLocation } from 'react-router-dom';
 import {
-  fetchDivipolaGrouped,
-} from '../services/data/index.js';
-import {
-  getRuntimeDivipolaByDepartment,
   scrollToElementWithOffset,
-  setRuntimeDivipolaByDepartment,
 } from '../features/map/domain/mapDomain.js';
 import { ejesDataGlobal } from '../features/content/domain/ejesData.js';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
@@ -17,148 +12,48 @@ import { AppErrorBoundary } from '../components/system/AppErrorBoundary.jsx';
 import { AppGlobalStyles } from './AppGlobalStyles.jsx';
 import { AppFloatingStrategyButton } from './AppFloatingStrategyButton.jsx';
 import { AppRoutes } from './AppRoutes.jsx';
-import { preloadCriticalRoutes } from './appRoutePreload.js';
-import { NAVIGATION_LINKS, PAGE_IDS, toComponentPageId } from '../services/navigation/routes.js';
+import { useDivipolaSync } from './hooks/useDivipolaSync.js';
+import { useAppContentNavigation } from './hooks/useAppContentNavigation.js';
+import { useAppShellEffects } from './hooks/useAppShellEffects.js';
+import { NAVIGATION_LINKS, PAGE_IDS, PAGE_PATHS } from '../services/navigation/routes.js';
 
 
 export default function App() { 
   const { activePage, setActivePage } = useAppNavigation();
   const location = useLocation();
-  const [, setDivipolaSnapshot] = useState(() => getRuntimeDivipolaByDepartment());
-  const [scrolled, setScrolled] = useState(false); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNavDropdown, setActiveNavDropdown] = useState(null);
   const [activeEjeMenuId, setActiveEjeMenuId] = useState(ejesDataGlobal[0]?.id || null);
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  const [selectedAgendaEventId, setSelectedAgendaEventId] = useState(null);
-  const [selectedEditorialResourceId, setSelectedEditorialResourceId] = useState(null);
-  const [mapaNavigationRequest, setMapaNavigationRequest] = useState(null);
+  const {
+    selectedArticle,
+    selectedAgendaEventId,
+    selectedEditorialResourceId,
+    mapaNavigationRequest,
+    handlePageChange,
+    handleNavigateToArticle,
+    handleNavigateToAgendaEvent,
+    handleNavigateToEditorialResource,
+    handleNavigateComponent,
+    handleNavigateToMapLayer,
+    handleOpenMapParticipation,
+  } = useAppContentNavigation(setActivePage);
 
-  useEffect(() => {
-    let active = true;
+  const { scrolled } = useAppShellEffects(
+    activePage,
+    selectedArticle,
+    selectedAgendaEventId,
+    selectedEditorialResourceId
+  );
 
-    const syncDivipola = async () => {
-      try {
-        const grouped = await fetchDivipolaGrouped();
-        if (!active) return;
-        setRuntimeDivipolaByDepartment(grouped);
-        setDivipolaSnapshot(grouped);
-      } catch (error) {
-        console.warn('No se pudo sincronizar DIVIPOLA desde backend:', error);
-      }
-    };
-
-    syncDivipola();
-
-    return () => {
-      active = false;
-    };
-  }, [setDivipolaSnapshot]);
-
-  const handlePageChange = useCallback((pageId) => {
-    setActivePage(pageId);
-    setSelectedArticle(null);
-    setSelectedAgendaEventId(null);
-    setSelectedEditorialResourceId(null);
-    setMapaNavigationRequest(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  const handleNavigateToArticle = useCallback((article) => {
-    setSelectedArticle(article);
-    setSelectedAgendaEventId(null);
-    setSelectedEditorialResourceId(null);
-    setActivePage(PAGE_IDS.noticias);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  const handleNavigateToAgendaEvent = useCallback((eventId) => {
-    setSelectedAgendaEventId(eventId);
-    setSelectedArticle(null);
-    setSelectedEditorialResourceId(null);
-    setActivePage(PAGE_IDS.agenda);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  const handleNavigateToEditorialResource = useCallback((resourceId) => {
-    setSelectedEditorialResourceId(resourceId);
-    setSelectedArticle(null);
-    setSelectedAgendaEventId(null);
-    setActivePage(PAGE_IDS.editorial);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  const handleNavigateComponent = useCallback((compId) => {
-    setActivePage(toComponentPageId(compId));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  const handleOpenMapParticipation = useCallback(() => {
-    handlePageChange(PAGE_IDS.mapaParticipa);
-  }, [handlePageChange]);
-
-  const handleNavigateToMapLayer = useCallback((targetLayer = 'General', options = {}) => {
-    const {
-      targetView = 'map',
-      scrollToWorkspace = true,
-    } = options;
-
-    setSelectedArticle(null);
-    setSelectedAgendaEventId(null);
-    setSelectedEditorialResourceId(null);
-    setMapaNavigationRequest({
-      requestId: Date.now(),
-      targetLayer,
-      targetView,
-      scrollToWorkspace,
-    });
-    setActivePage(PAGE_IDS.mapa);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePage]);
-
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [activePage]);
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  useEffect(() => {
-    let cancelled = false;
-    let idleCallbackId = null;
-    let timeoutId = null;
-
-    const runPreload = () => {
-      if (cancelled) return;
-      preloadCriticalRoutes().catch((error) => {
-        console.warn('No se pudo completar la precarga de rutas críticas:', error);
-      });
-    };
-
-    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-      idleCallbackId = window.requestIdleCallback(() => {
-        runPreload();
-      }, { timeout: 1500 });
-    } else if (typeof window !== 'undefined') {
-      timeoutId = window.setTimeout(runPreload, 1200);
-    }
-
-    return () => {
-      cancelled = true;
-      if (
-        idleCallbackId !== null
-        && typeof window !== 'undefined'
-        && typeof window.cancelIdleCallback === 'function'
-      ) {
-        window.cancelIdleCallback(idleCallbackId);
-      }
-      if (timeoutId !== null && typeof window !== 'undefined') {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, []);
+  useDivipolaSync();
 
   const navigationLinks = NAVIGATION_LINKS;
-  const isMapV2Route = location.pathname.includes('/mapa-v2');
+  const normalizedPathname = location.pathname.replace(/\/$/, '') || '/';
+  const isAdminRoute = normalizedPathname === PAGE_PATHS[PAGE_IDS.admin]
+    || normalizedPathname.startsWith(`${PAGE_PATHS[PAGE_IDS.admin]}/`);
+  const isCollaboratorRoute = normalizedPathname === PAGE_PATHS[PAGE_IDS.colaboradores]
+    || normalizedPathname.startsWith(`${PAGE_PATHS[PAGE_IDS.colaboradores]}/`);
+  const isImmersiveMapRoute = normalizedPathname === PAGE_PATHS[PAGE_IDS.mapa];
   const primaryNavigationLinks = navigationLinks.filter((link) => ![PAGE_IDS.editorial, PAGE_IDS.mapa].includes(link.id));
   const featuredNavigationLinks = navigationLinks.filter((link) => [PAGE_IDS.mapa, PAGE_IDS.editorial].includes(link.id));
   const ejeNavigationGroups = [
@@ -226,25 +121,27 @@ export default function App() {
     <AppErrorBoundary>
     <>
       <AppGlobalStyles /> 
-      <div className="min-h-screen bg-white font-nunito text-slate-900 overflow-x-hidden">
-        <AppNavigation
-          scrolled={scrolled}
-          forceSolid={isMapV2Route}
-          mobileMenuOpen={mobileMenuOpen}
-          setMobileMenuOpen={setMobileMenuOpen}
-          activePage={activePage}
-          activeNavDropdown={activeNavDropdown}
-          setActiveNavDropdown={setActiveNavDropdown}
-          activeEjeMenuId={activeEjeMenuId}
-          setActiveEjeMenuId={setActiveEjeMenuId}
-          navigationLinks={navigationLinks}
-          primaryNavigationLinks={primaryNavigationLinks}
-          featuredNavigationLinks={featuredNavigationLinks}
-          ejeNavigationGroups={ejeNavigationGroups}
-          onPageChange={handlePageChange}
-          onNavigateToPageSection={handleNavigateToPageSection}
-          onNavigateToComponentFromMenu={handleNavigateToComponentFromMenu}
-        />
+      <div className="min-h-screen bg-white font-nunito text-slate-900">
+        {!isAdminRoute && !isCollaboratorRoute && (
+          <AppNavigation
+            scrolled={scrolled}
+            forceSolid={isImmersiveMapRoute}
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+            activePage={activePage}
+            activeNavDropdown={activeNavDropdown}
+            setActiveNavDropdown={setActiveNavDropdown}
+            activeEjeMenuId={activeEjeMenuId}
+            setActiveEjeMenuId={setActiveEjeMenuId}
+            navigationLinks={navigationLinks}
+            primaryNavigationLinks={primaryNavigationLinks}
+            featuredNavigationLinks={featuredNavigationLinks}
+            ejeNavigationGroups={ejeNavigationGroups}
+            onPageChange={handlePageChange}
+            onNavigateToPageSection={handleNavigateToPageSection}
+            onNavigateToComponentFromMenu={handleNavigateToComponentFromMenu}
+          />
+        )}
 
         <main className="min-h-screen">
           <AppRoutes
@@ -263,14 +160,14 @@ export default function App() {
           />
         </main>
 
-        {!isMapV2Route && (
+        {!isAdminRoute && !isCollaboratorRoute && !isImmersiveMapRoute && (
           <AppFloatingStrategyButton
             activePage={activePage}
             setActivePage={setActivePage}
           />
         )}
 
-        {activePage !== PAGE_IDS.home && !isMapV2Route && <AppFooter />}
+        {activePage !== PAGE_IDS.home && !isAdminRoute && !isCollaboratorRoute && !isImmersiveMapRoute && <AppFooter />}
       </div> 
     </>
     </AppErrorBoundary>

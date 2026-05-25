@@ -161,7 +161,9 @@ export const fetchGalleryAlbums = async () => {
     path: '/api/v1/gallery/albums',
     init: { cache: 'no-store' },
     errorFallback: 'No fue posible cargar datos',
+    timeoutMs: 5000,
   });
+
   return Array.isArray(payload?.items) ? payload.items : [];
 };
 

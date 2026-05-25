@@ -88,12 +88,12 @@ export const NoticiasAgendaPreview = ({ onNavigate, onNavigateToArticle, onNavig
                   <>
                     <article
                       onClick={() => onNavigateToArticle(featuredGroup[0])}
-                      className="col-span-12 group cursor-pointer bg-slate-50 rounded-3xl overflow-hidden border border-slate-100 flex flex-col lg:flex-row h-auto lg:h-[320px] transition-all duration-700 hover:shadow-2xl"
+                      className="col-span-12 group cursor-pointer bg-slate-50 rounded-3xl overflow-hidden border border-slate-100 flex flex-col lg:flex-row min-h-[320px] lg:h-auto transition-all duration-700 hover:shadow-2xl"
                     >
-                      <div className="lg:w-7/12 h-[220px] lg:h-full overflow-hidden">
+                      <div className="lg:w-1/2 h-[220px] lg:h-auto min-h-[240px] lg:min-h-full overflow-hidden shrink-0">
                         <img src={featuredGroup[0].img} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="" />
                       </div>
-                      <div className="lg:w-5/12 p-8 flex flex-col justify-center text-left bg-white relative text-slate-800">
+                      <div className="lg:w-1/2 p-6 sm:p-8 flex flex-col justify-center text-left bg-white relative text-slate-800">
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-[#00DA5E]"></div>
                         <span className="text-[0.55rem] text-[#00DA5E] font-bold uppercase tracking-[0.2em]">{featuredGroup[0].date} • {featuredGroup[0].category}</span>
                         <h4 className="font-alternate text-2xl text-[#291242] font-bold uppercase mt-3 leading-none tracking-tight">{featuredGroup[0].title}</h4>
@@ -103,8 +103,8 @@ export const NoticiasAgendaPreview = ({ onNavigate, onNavigateToArticle, onNavig
                     </article>
 
                     {featuredGroup.slice(1, 3).map((item, idx) => (
-                      <article key={idx} onClick={() => onNavigateToArticle(item)} className="col-span-12 md:col-span-6 group cursor-pointer bg-white rounded-3xl overflow-hidden border border-slate-100 flex h-[170px] transition-all duration-500 hover:shadow-lg">
-                        <div className="w-1/3 h-full overflow-hidden">
+                      <article key={idx} onClick={() => onNavigateToArticle(item)} className="col-span-12 md:col-span-6 group cursor-pointer bg-white rounded-3xl overflow-hidden border border-slate-100 flex min-h-[170px] h-auto transition-all duration-500 hover:shadow-lg">
+                        <div className="w-1/3 min-h-[170px] overflow-hidden shrink-0">
                           <img src={item.img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt="" />
                         </div>
                         <div className="w-2/3 p-5 text-left flex flex-col justify-center relative bg-white">

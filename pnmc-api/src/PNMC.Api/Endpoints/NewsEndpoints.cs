@@ -27,7 +27,7 @@ public static class NewsEndpoints
             var filesById = await dbContext.Files.AsNoTracking()
                 .ToDictionaryAsync(x => x.Id, x => x.PublicUrl ?? x.StoragePath, cancellationToken);
             var mediaRows = await dbContext.NewsMedia.AsNoTracking()
-                .OrderByDescending(x => x.IsPrimary)
+                .OrderByDescending(x => x.MediaType == "imagen_principal")
                 .ThenBy(x => x.SortOrder)
                 .ToListAsync(cancellationToken);
 
@@ -88,7 +88,7 @@ public static class NewsEndpoints
                 .ToDictionaryAsync(x => x.Id, x => x.PublicUrl ?? x.StoragePath, cancellationToken);
             var mediaRows = await dbContext.NewsMedia.AsNoTracking()
                 .Where(x => x.NewsId == articleIntId)
-                .OrderByDescending(x => x.IsPrimary)
+                .OrderByDescending(x => x.MediaType == "imagen_principal")
                 .ThenBy(x => x.SortOrder)
                 .ToListAsync(cancellationToken);
 

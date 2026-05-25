@@ -8,6 +8,8 @@ export {
   fetchFestivalRecords,
   fetchSchoolRecords,
   fetchMarketRecords,
+  fetchNetworkRecords,
+  fetchLutierRecords,
 } from './backendDataService.js';
 
 export {
