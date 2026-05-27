@@ -22,6 +22,7 @@ import {
   Sparkles,
   Type,
   Users2,
+  MapPin,
 } from 'lucide-react';
 import { AgendaExplorer } from '../../agenda/pages/AgendaPage.jsx';
 import { scrollToElementWithOffset } from '../../map/domain/mapDomain.js';
@@ -32,6 +33,7 @@ import {
   Tag,
 } from '../../shared/components/PagePrimitives.jsx';
 import { Button } from '../../../components/ui/index.js';
+import { getWebText } from '../../../lib/webTexts.js';
 
 const strategyPageContent = {
   'Celebra la Música': {
@@ -183,13 +185,24 @@ const StrategySubPage = ({ title, context, onBack, onNavigate }) => {
   };
 
   if (strategyContent) {
+    const isCelebra = title === 'Celebra la Música';
+    
+    // Dynamic overrides from CMS for Celebra la Música, otherwise fallback
+    const heroDescription = isCelebra ? (getWebText('strategy_celebra_hero_desc') || strategyContent.heroDescription) : strategyContent.heroDescription;
+    const sectionTitle = isCelebra ? (getWebText('strategy_celebra_section_title') || strategyContent.sectionTitle) : strategyContent.sectionTitle;
+    const intro = isCelebra ? (getWebText('strategy_celebra_intro') || strategyContent.intro) : strategyContent.intro;
+    const mission = isCelebra ? (getWebText('strategy_celebra_mission') || strategyContent.mission) : strategyContent.mission;
+    const editionIntro = isCelebra ? (getWebText('strategy_celebra_edition_intro') || strategyContent.editionIntro) : strategyContent.editionIntro;
+    const editionVision = isCelebra ? (getWebText('strategy_celebra_edition_vision') || strategyContent.editionVision) : strategyContent.editionVision;
+    const editionClosing = isCelebra ? (getWebText('strategy_celebra_edition_closing') || strategyContent.editionClosing) : strategyContent.editionClosing;
+
     return (
-      <div className="bg-white min-h-screen text-left pb-20">
+      <div className="bg-white min-h-screen text-left pb-20 font-nunito">
         <PageHero
           tag="Estrategia"
           title={title}
           titleAccent="PNMC"
-          description={strategyContent.heroDescription}
+          description={heroDescription}
           bgImage="https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop"
           onBack={onBack}
           childrenPosition="bottom-right"
@@ -201,7 +214,7 @@ const StrategySubPage = ({ title, context, onBack, onNavigate }) => {
                     key={component.id}
                     type="button"
                     onClick={() => onNavigate?.(`comp-${component.id}`)}
-                    className="px-3 py-2 rounded-2xl bg-white/8 border border-white/10 text-white text-[0.65rem] font-bold uppercase tracking-[0.12em] hover:border-[#8BF784] hover:text-[#8BF784] transition-all"
+                    className="px-3 py-2 rounded-2xl bg-white/8 border border-white/10 text-white text-[0.65rem] font-bold uppercase tracking-[0.12em] hover:border-[#8BF784] hover:text-[#8BF784] transition-all cursor-pointer"
                   >
                     {component.name}
                   </button>
@@ -216,9 +229,9 @@ const StrategySubPage = ({ title, context, onBack, onNavigate }) => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
             <div className="lg:col-span-8 space-y-12">
               <div className="space-y-6">
-                <SectionHeader backgroundText="CELEBRA" foregroundText={strategyContent.sectionTitle} compact />
-                <p className="font-nunito text-2xl text-[#291242] leading-tight tracking-tight">{strategyContent.intro}</p>
-                <p className="font-nunito text-lg text-slate-600 leading-relaxed font-light">{strategyContent.mission}</p>
+                <SectionHeader backgroundText="CELEBRA" foregroundText={sectionTitle} compact />
+                <p className="font-nunito text-2xl text-[#291242] leading-tight tracking-tight">{intro}</p>
+                <p className="font-nunito text-lg text-slate-600 leading-relaxed font-light">{mission}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -242,22 +255,93 @@ const StrategySubPage = ({ title, context, onBack, onNavigate }) => {
                 </div>
                 <div className="pt-6 space-y-4">
                   <h5 className="font-alternate text-2xl font-bold uppercase leading-tight">{strategyContent.editionTitle}</h5>
-                  <p className="text-sm text-slate-300 font-nunito leading-relaxed">{strategyContent.editionIntro}</p>
+                  <p className="text-sm text-slate-300 font-nunito leading-relaxed">{editionIntro}</p>
                   <Button variant="primary" className="w-full mt-4" icon={ArrowRight} onClick={scrollToStrategyAgenda}>Descubre la programación completa</Button>
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8">
-                <h4 className="font-alternate text-sm font-bold uppercase tracking-[0.3em] text-slate-400 mb-6">Indicadores clave</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {strategyContent.stats.map((item) => (
-                    <div key={item.label} className="bg-white rounded-[1.5rem] p-5 border border-slate-100">
-                      <span className="font-gregor text-4xl text-[#291242] font-bold leading-none">{item.value}</span>
-                      <span className="block mt-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-slate-400">{item.label}</span>
+              {(() => {
+                const heroStat = strategyContent.stats[0];
+                const listStats = strategyContent.stats.slice(1);
+                
+                const getIconForStatLabel = (label) => {
+                  const lower = label.toLowerCase();
+                  if (lower.includes('artista')) return Music2;
+                  if (lower.includes('aliado')) return Users2;
+                  if (lower.includes('depto') || lower.includes('departamento')) return Landmark;
+                  if (lower.includes('municip') || lower.includes('vereda') || lower.includes('ciudad')) return MapPin;
+                  return Sparkles;
+                };
+
+                return (
+                  <div className="relative bg-[#200d34] border border-white/10 rounded-[2.5rem] p-8 shadow-[0_20px_40px_rgba(0,0,0,0.3)] overflow-hidden group">
+                    {/* Ambient background glows */}
+                    <div className="absolute -right-24 -top-24 w-48 h-48 rounded-full bg-[#00DA5E]/8 blur-[50px] pointer-events-none"></div>
+                    <div className="absolute -left-24 -bottom-24 w-48 h-48 rounded-full bg-[#6100D7]/12 blur-[50px] pointer-events-none"></div>
+
+                    <div className="relative z-10 space-y-6">
+                      {/* Title */}
+                      <div className="flex items-center gap-2 pb-3 border-b border-white/5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#00DA5E] animate-pulse"></span>
+                        <h4 className="font-display text-[0.65rem] font-bold uppercase tracking-[0.25em] text-[#00DA5E]">Ecosistema en Cifras</h4>
+                      </div>
+
+                      {/* Hero Radar spotlight metric */}
+                      {heroStat && (
+                        <div className="flex flex-col items-center py-4 relative group/hero">
+                          {/* Outer spinning radar circle */}
+                          <div className="absolute w-36 h-36 rounded-full border border-dashed border-[#00DA5E]/20 animate-spin" style={{ animationDuration: '28s' }}></div>
+                          {/* Inner glowing pulse circle */}
+                          <div className="absolute w-32 h-32 rounded-full border border-[#00DA5E]/10 bg-[#00DA5E]/2 animate-ping" style={{ animationDuration: '4s' }}></div>
+                          
+                          {/* Core display */}
+                          <div className="relative w-28 h-28 rounded-full bg-slate-950/90 border border-white/10 flex flex-col items-center justify-center text-center shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+                            <span className="font-display text-3xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,218,94,0.4)] tracking-tight">{heroStat.value}</span>
+                            <span className="text-[0.52rem] font-black uppercase tracking-[0.22em] text-[#00DA5E] mt-1.5">{heroStat.label}</span>
+                            <span className="text-[0.45rem] font-medium text-slate-500 uppercase tracking-widest mt-0.5">En Territorio</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Audio-wave style divider line */}
+                      <div className="flex items-center justify-center gap-1 opacity-20 py-2">
+                        <div className="h-1.5 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-3 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-6 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-4 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-2 w-0.5 bg-[#00DA5E] rounded-full"></div>
+                        <div className="h-5 w-0.5 bg-[#00DA5E] rounded-full"></div>
+                        <div className="h-2 w-0.5 bg-[#00DA5E] rounded-full"></div>
+                        <div className="h-4 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-6 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-3 w-0.5 bg-[#8BF784] rounded-full"></div>
+                        <div className="h-1.5 w-0.5 bg-[#8BF784] rounded-full"></div>
+                      </div>
+
+                      {/* Staggered network metrics list */}
+                      <div className="space-y-3">
+                        {listStats.map((item) => {
+                          const StatIcon = getIconForStatLabel(item.label);
+                          return (
+                            <div 
+                              key={item.label} 
+                              className="flex items-center justify-between gap-4 py-2 px-3.5 rounded-2xl bg-white/2 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-all duration-300 group/row"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-[#8BF784] transition-colors group-hover/row:bg-[#8BF784]/15 group-hover/row:border-[#8BF784]/30">
+                                  <StatIcon size={14} />
+                                </div>
+                                <span className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-slate-400 group-hover/row:text-slate-200 transition-colors">{item.label}</span>
+                              </div>
+                              <span className="font-display text-lg font-extrabold text-white tracking-tight">{item.value}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                );
+              })()}
             </aside>
           </div>
         </ContentWrapper>
@@ -267,8 +351,8 @@ const StrategySubPage = ({ title, context, onBack, onNavigate }) => {
             <div className="lg:col-span-5 space-y-6">
               <Tag text="Edición 2025" className="bg-[#291242] text-white" />
               <SectionHeader backgroundText="2025" foregroundText="De qué se trata" compact />
-              <p className="font-nunito text-lg text-slate-600 leading-relaxed font-light">{strategyContent.editionVision}</p>
-              <p className="font-nunito text-lg text-[#291242] leading-relaxed">{strategyContent.editionClosing}</p>
+              <p className="font-nunito text-lg text-slate-600 leading-relaxed font-light">{editionVision}</p>
+              <p className="font-nunito text-lg text-[#291242] leading-relaxed">{editionClosing}</p>
             </div>
             <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-3 gap-6">
               {strategyContent.tracks.map((track, index) => (

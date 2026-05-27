@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getWebText } from '../../../lib/webTexts.js';
 import {
   ArrowUpRight,
   Calendar as CalendarIcon,
@@ -176,17 +177,23 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
           <aside id="agenda-filtros" className="bg-slate-50/50 border-r border-slate-100 p-8 lg:p-10 space-y-10 lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] overflow-y-auto self-start custom-scrollbar">
             <div className="w-full space-y-10">
               <div className="border-b border-slate-200 pb-5 flex justify-between items-center">
-                <h4 className="font-alternate text-xs font-bold uppercase tracking-[0.25em] text-slate-500">Filtros</h4>
+                <h4 className="font-alternate text-xs font-bold uppercase tracking-[0.25em] text-slate-500">
+                  {getWebText('agenda_filter_title') || 'Filtros'}
+                </h4>
                 <Filter size={16} className="text-[#00DA5E]"/>
               </div>
               
               <div className="space-y-8">
                 {lockedTag && (
                   <div className="space-y-3">
-                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Filtro fijo</label>
+                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">
+                      {getWebText('agenda_filter_fixed') || 'Filtro fijo'}
+                    </label>
                     <div className="px-4 py-4 bg-white border border-slate-200 rounded-xl shadow-sm">
                       <span className="text-[0.7rem] font-bold uppercase tracking-widest text-[#00DA5E]">{lockedTag}</span>
-                      <p className="text-[0.65rem] text-slate-500 font-nunito mt-2 leading-relaxed">Este criterio está aplicado de forma permanente en esta sección.</p>
+                      <p className="text-[0.65rem] text-slate-500 font-nunito mt-2 leading-relaxed">
+                        {getWebText('agenda_filter_fixed_note') || 'Este criterio está aplicado de forma permanente en esta sección.'}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -195,16 +202,22 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                     <button 
                       onClick={() => setDateMode('exact')}
                       className={`flex-1 py-2.5 text-[0.6rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'exact' ? 'bg-[#291242] text-white shadow-sm' : 'text-slate-400 hover:text-[#291242] hover:bg-slate-50'}`}
-                    >Fecha Exacta</button>
+                    >
+                      {getWebText('agenda_filter_date_exact') || 'Fecha Exacta'}
+                    </button>
                     <button 
                       onClick={() => setDateMode('month')}
                       className={`flex-1 py-2.5 text-[0.6rem] font-bold uppercase tracking-widest rounded-lg transition-all ${dateMode === 'month' ? 'bg-[#291242] text-white shadow-sm' : 'text-slate-400 hover:text-[#291242] hover:bg-slate-50'}`}
-                    >Por Mes</button>
+                    >
+                      {getWebText('agenda_filter_date_month') || 'Por Mes'}
+                    </button>
                   </div>
                   
                   <div className="space-y-3">
                     <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-[0.2em] px-1">
-                      {dateMode === 'exact' ? 'Seleccionar día' : 'Seleccionar mes'}
+                      {dateMode === 'exact' 
+                        ? (getWebText('agenda_filter_day_label') || 'Seleccionar día') 
+                        : (getWebText('agenda_filter_month_label') || 'Seleccionar mes')}
                     </label>
                     {dateMode === 'exact' ? (
                       <input 
@@ -219,7 +232,7 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                         onChange={(e) => setSelectedMonthFilter(e.target.value)}
                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[0.7rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 outline-none text-[#291242] shadow-sm"
                       >
-                        <option value="">Todos los meses</option>
+                        <option value="">{getWebText('agenda_filter_all_months') || 'Todos los meses'}</option>
                         {uniqueMonths.map((m) => (
                           <option key={m.value} value={m.value}>
                             {m.label}
@@ -232,7 +245,9 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
 
                 <div className="space-y-8">
                   <div className="space-y-3">
-                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo de actividad</label>
+                    <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">
+                      {getWebText('agenda_filter_activity_type') || 'Tipo de actividad'}
+                    </label>
                     <div className="grid grid-cols-1 gap-2.5">
                       {activityCategories.map(cat => (
                         <label key={cat} className="flex items-center gap-4 px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#00DA5E] transition-colors group shadow-sm">
@@ -251,7 +266,9 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
 
                   <div className="space-y-4">
                     <div className="space-y-2.5">
-                      <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Departamento</label>
+                      <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">
+                        {getWebText('agenda_filter_department_label') || 'Departamento'}
+                      </label>
                       <select 
                         value={selectedDept}
                         onChange={(e) => {
@@ -260,7 +277,7 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                         }}
                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[0.7rem] font-alternate uppercase appearance-none cursor-pointer focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 outline-none text-[#291242] shadow-sm"
                       >
-                        <option value="">Todos los departamentos</option>
+                        <option value="">{getWebText('agenda_filter_all_departments') || 'Todos los departamentos'}</option>
                         {departments.map(dept => (
                           <option key={dept} value={dept}>{dept}</option>
                         ))}
@@ -268,7 +285,9 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                     </div>
 
                     <div className="space-y-2.5">
-                      <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">Ciudad o Municipio</label>
+                      <label className="text-[0.6rem] font-bold text-slate-400 uppercase tracking-widest px-1">
+                        {getWebText('agenda_filter_city_label') || 'Ciudad o Municipio'}
+                      </label>
                       <select 
                         value={selectedMunicipality}
                         onChange={(event) => setSelectedMunicipality(event.target.value)}
@@ -277,10 +296,10 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                       >
                         <option value="">
                           {!selectedDept
-                            ? 'Selecciona primero departamento'
+                            ? (getWebText('agenda_filter_city_select_dept') || 'Selecciona primero departamento')
                             : cities.length > 0
-                            ? 'Todos los municipios'
-                            : 'Sin municipios disponibles'}
+                            ? (getWebText('agenda_filter_city_all_mun') || 'Todos los municipios')
+                            : (getWebText('agenda_filter_city_no_mun') || 'Sin municipios disponibles')}
                         </option>
                         {cities.map(city => (
                           <option key={city} value={city}>{city}</option>
@@ -298,7 +317,9 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
                 setSelectedExactDate('');
                 setSelectedMonthFilter('');
                 setSelectedCategory('Todos');
-              }} className="w-full bg-white border border-slate-200 hover:border-[#00DA5E] hover:text-[#00DA5E] text-slate-500 rounded-xl py-3.5 text-[0.7rem] font-bold uppercase font-alternate tracking-widest transition-all shadow-sm">Limpiar Filtros</button>
+              }} className="w-full bg-white border border-slate-200 hover:border-[#00DA5E] hover:text-[#00DA5E] text-slate-500 rounded-xl py-3.5 text-[0.7rem] font-bold uppercase font-alternate tracking-widest transition-all shadow-sm">
+                {getWebText('agenda_filter_clear_btn') || 'Limpiar Filtros'}
+              </button>
             </div>
           </aside>
 
@@ -331,8 +352,8 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
               {isLoading || isRefreshing ? (
                 <div className="py-10">
                   <LoadingState
-                    title="Cargando agenda..."
-                    description="Estamos sincronizando eventos territoriales."
+                    title={getWebText('agenda_loading_title') || 'Cargando agenda...'}
+                    description={getWebText('agenda_loading_desc') || 'Estamos sincronizando eventos territoriales.'}
                   />
                 </div>
               ) : isError ? (
@@ -346,8 +367,8 @@ const AgendaExplorer = ({ initialOpenEventId = null, lockedTag = null, title = '
               ) : filteredAgendaItems.length === 0 ? (
                 <div className="py-10">
                   <EmptyState
-                    title="No hay eventos programados para este filtro"
-                    description="Prueba con otro criterio o vuelve más tarde."
+                    title={getWebText('agenda_empty_title') || 'No hay eventos programados para este filtro'}
+                    description={getWebText('agenda_empty_desc') || 'Prueba con otro criterio o vuelve más tarde.'}
                   />
                 </div>
               ) : viewMode === 'list' ? (
@@ -575,7 +596,7 @@ const AgendaPage = ({ onBack, initialOpenEventId = null }) => {
         tag="Agenda" 
         title="Agenda y" 
         titleAccent="Eventos" 
-        description="Explora los próximos eventos, talleres y encuentros territoriales del Plan Nacional de Música." 
+        description={getWebText('agenda_description')} 
         bgImage="https://images.unsplash.com/photo-1774558396280-c14b21198674?q=80&w=1470&auto=format&fit=crop" 
         onBack={onBack} 
       />

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowUpRight, ChevronDown, ChevronRight, Menu, X } from 'lucide-react';
 import pnmcBlancoLogo from '../../assets/branding/pnmc-blanco.png';
+import { getWebText } from '../../lib/webTexts.js';
 
 const isEjesRelatedPage = (activePage = '') => activePage === 'ejes' || activePage.startsWith('comp-');
 
@@ -14,14 +15,42 @@ export const AppNavigation = ({
   setActiveNavDropdown,
   activeEjeMenuId,
   setActiveEjeMenuId,
-  navigationLinks,
-  primaryNavigationLinks,
-  featuredNavigationLinks,
-  ejeNavigationGroups,
+  navigationLinks: rawNavigationLinks,
+  primaryNavigationLinks: rawPrimaryNavigationLinks,
+  featuredNavigationLinks: rawFeaturedNavigationLinks,
+  ejeNavigationGroups: rawEjeNavigationGroups,
   onPageChange,
   onNavigateToPageSection,
   onNavigateToComponentFromMenu,
 }) => {
+  const navigationLinks = useMemo(() => (rawNavigationLinks || []).map(link => ({
+    ...link,
+    name: getWebText(`nav_${link.id}`) || link.name
+  })), [rawNavigationLinks]);
+
+  const primaryNavigationLinks = useMemo(() => (rawPrimaryNavigationLinks || []).map(link => ({
+    ...link,
+    name: getWebText(`nav_${link.id}`) || link.name
+  })), [rawPrimaryNavigationLinks]);
+
+  const featuredNavigationLinks = useMemo(() => (rawFeaturedNavigationLinks || []).map(link => ({
+    ...link,
+    name: getWebText(`nav_${link.id}`) || link.name
+  })), [rawFeaturedNavigationLinks]);
+
+  const ejeNavigationGroups = useMemo(() => (rawEjeNavigationGroups || []).map((group, idx) => ({
+    ...group,
+    name: getWebText(`eje0${idx + 1}_title`) 
+      ? (getWebText(`eje0${idx + 1}_title`).length > 25 
+        ? getWebText(`eje0${idx + 1}_title`).slice(0, 22) + '...' 
+        : getWebText(`eje0${idx + 1}_title`)) 
+      : group.name,
+    components: (group.components || []).map((comp, cIdx) => ({
+      ...comp,
+      name: getWebText(`eje0${idx + 1}_c${cIdx + 1}_title`) || comp.name
+    }))
+  })), [rawEjeNavigationGroups]);
+
   const isActiveLink = (linkId) => {
     if (linkId === 'ejes') return isEjesRelatedPage(activePage);
     return activePage === linkId;
@@ -82,7 +111,7 @@ export const AppNavigation = ({
                   </button>
 
                   {hasEjesMenu && activeNavDropdown === link.id && (
-                    <div className="absolute left-0 top-full w-[min(66rem,calc(100vw-4rem))] pt-5">
+                    <div className="absolute left-0 top-full w-[min(66rem,calc(100vw-4rem))] pt-5 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/95 shadow-2xl backdrop-blur-xl p-2">
                         <div className="grid grid-cols-[18rem_minmax(0,1fr)] gap-2">
                           <div className="bg-slate-50/70 rounded-[2rem] p-3 space-y-1">
@@ -110,7 +139,7 @@ export const AppNavigation = ({
 
                           <div className="p-6 pl-4 flex flex-col justify-center">
                             <div className="pb-5">
-                              <div className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-slate-400">Componentes del eje</div>
+                              <div className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-slate-400">{getWebText('nav_components_title') || 'Componentes del eje'}</div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                               {(activeEjeGroup?.components || []).map((component) => (

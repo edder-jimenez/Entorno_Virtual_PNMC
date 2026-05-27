@@ -31,11 +31,10 @@ echo "[pnmc-db] sqlcmd detectado en: $SQLCMD"
 run_sql_file() {
   local file_path="$1"
   if [[ "$SQLCMD_MODE" == "host" ]]; then
-    "$SQLCMD" -S "127.0.0.1,$DB_PORT" -U sa -P "$DB_PASSWORD" -d "$DB_NAME" -C -b < "$file_path"
+    (cat "$file_path"; echo ""; echo "GO") | "$SQLCMD" -S "127.0.0.1,$DB_PORT" -U sa -P "$DB_PASSWORD" -d "$DB_NAME" -C -b
   else
-    docker exec -i pnmc-sqlserver "$SQLCMD" \
-      -S localhost -U sa -P "$DB_PASSWORD" -d "$DB_NAME" -C -b \
-      < "$file_path"
+    (cat "$file_path"; echo ""; echo "GO") | docker exec -i pnmc-sqlserver "$SQLCMD" \
+      -S localhost -U sa -P "$DB_PASSWORD" -d "$DB_NAME" -C -b
   fi
 }
 
@@ -57,6 +56,10 @@ SCHEMAS=(
   "schema/V20260519_03__contenidos_modulos.sql"
   "schema/V20260519_04__articulacion_lectura_comun.sql"
   "schema/V20260521_01__entidades_administrativas.sql"
+  "schema/V20260525_01__administracion_extendida.sql"
+  "schema/V20260525_02__roles_finales_y_aliados.sql"
+  "schema/V20260525_03__notificaciones.sql"
+  "schema/V20260525_04__vinculacion_duplicados_calidad.sql"
 )
 
 # Lista de semillas a aplicar
@@ -67,6 +70,7 @@ SEEDS=(
   "seed/V20260519_04__contenidos_modulos_seed.sql"
   "seed/V20260519_05__articulacion_lectura_comun_seed.sql"
   "seed/V20260519_06__datos_prueba_amplios.sql"
+  "seed/V20260519_07__datos_moderacion_consola.sql"
 )
 
 echo "[pnmc-db] Aplicando archivos de esquema..."

@@ -76,6 +76,8 @@ import {
   importBulkRecords,
 } from '../services/adminApi.js';
 
+import { getWebText, saveWebText, getWebTextDetails, getWebTextsKeysList } from '../../../lib/webTexts.js';
+
 /* ═══════════════════════════════════════════════════════════════════════════
    UTILITY FUNCTIONS (preserved + new helpers)
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -3892,6 +3894,51 @@ const LiderDashboard = ({ monitor, apiStatus, onRefresh, divipola }) => {
           </div>
         </div>
       </div>
+
+      {/* Territorial Claims & Network Management */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4 shadow-sm">
+        <div>
+          <h3 className="text-sm font-black text-slate-900">Solicitudes de Vinculación y Reclamaciones de la Red</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Control de solicitudes de vinculación hechas por colaboradores externos en su territorio</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-left px-4 py-3">Colaborador / Solicitante</th>
+                <th className="text-left px-3 py-3">Tipo de Registro</th>
+                <th className="text-left px-3 py-3">Nombre del Proceso</th>
+                <th className="text-left px-3 py-3">Fecha Solicitud</th>
+                <th className="text-left px-3 py-3">Ubicación (DIVIPOLA)</th>
+                <th className="text-right px-4 py-3">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {[
+                { solicitante: "Carlos Vives", tipo: "Festival", nombre: "Festival de Cuerdas y Viento", fecha: "2026-05-26", ubicacion: "Villa de Leyva, Boyacá", estado: "aprobado" },
+                { solicitante: "Asociación Cantos de la Tierra", tipo: "Escuela de Música", nombre: "Escuela Tradicional Sandoná", fecha: "2026-05-25", ubicacion: "Sandoná, Nariño", estado: "en_revision" },
+                { solicitante: "Luthier Diego Rosero", tipo: "Lutier", nombre: "Taller Lutier Diego Rosero", fecha: "2026-05-24", ubicacion: "Pasto, Nariño", estado: "pendiente" }
+              ].map((req, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/50 transition">
+                  <td className="px-4 py-3.5 font-semibold text-slate-800">{req.solicitante}</td>
+                  <td className="px-3 py-3.5 text-slate-500">{req.tipo}</td>
+                  <td className="px-3 py-3.5 font-semibold text-slate-800">{req.nombre}</td>
+                  <td className="px-3 py-3.5 text-slate-400 font-mono">{req.fecha}</td>
+                  <td className="px-3 py-3.5 text-slate-500">{req.ubicacion}</td>
+                  <td className="px-4 py-3.5 text-right">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[0.6rem] font-bold border ${
+                      req.estado === 'aprobado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      req.estado === 'en_revision' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+                    }`}>
+                      {req.estado === 'aprobado' ? 'Aprobado' : req.estado === 'en_revision' ? 'En evaluación' : 'Pendiente'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
@@ -4335,6 +4382,10 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
   const [editingProcessId, setEditingProcessId] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const [isScanning, setIsScanning] = useState(false);
+  const [potentialMatches, setPotentialMatches] = useState([]);
+  const [previewMatch, setPreviewMatch] = useState(null);
+
   const [charForm, setCharForm] = useState({
     legalName: '',
     nit: '',
@@ -4382,9 +4433,89 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
 
   const handleCharacterizationSubmit = (e) => {
     e.preventDefault();
-    setCharacterizationStatus('en_evaluacion');
+    setIsScanning(true);
     setActiveTab('home');
-    alert('Ficha de Caracterización enviada a revisión con éxito.');
+
+    // Simulate standard background DIVIPOLA scans for existing records
+    setTimeout(() => {
+      setIsScanning(false);
+      setCharacterizationStatus('aprobado');
+
+      const muni = charForm.municipality || 'su Municipio';
+      const dept = charForm.department || 'su Departamento';
+
+      setPotentialMatches([
+        {
+          id: 'match-1',
+          type: 'musicSchools',
+          title: `Escuela de Música Municipal de ${muni}`,
+          department: dept,
+          municipality: muni,
+          directorName: 'Maestro Alejandro Tobar',
+          students: 45,
+          description: `Escuela formativa de música tradicional, cuerdas y vientos fundada para congregar a los jóvenes de ${muni} bajo directrices del Plan Nacional.`,
+          contactEmail: `escuelamusica.${muni.toLowerCase().replace(/\s+/g, '')}@pnmc.gov.co`,
+          contactPhone: '315 789 4433',
+          trainingProcesses: 'Cuerdas pulsadas, flauta, percusión.',
+          source: 'Historial de Mapeos PNMC (2018-2022)'
+        },
+        {
+          id: 'match-2',
+          type: 'festivals',
+          title: `Festival de Música y Danza de ${muni}`,
+          department: dept,
+          municipality: muni,
+          organizer: 'Colectivo Musical Local',
+          description: `Festival regional anual con muestras folclóricas de ${muni} y agrupaciones invitadas de todo el departamento de ${dept}.`,
+          contactEmail: `festival.${muni.toLowerCase().replace(/\s+/g, '')}@pnmc-aliados.org`,
+          contactPhone: '320 445 6788',
+          versionsCount: 8,
+          source: 'Registro Nacional de Festivales PNMC (2024)'
+        }
+      ]);
+    }, 3000);
+  };
+
+  const handleClaimMatch = (match) => {
+    const processId = `claimed-${Date.now()}`;
+    const claimedProcess = {
+      id: processId,
+      type: match.type,
+      title: match.title,
+      status: 'borrador', // Moves to draft!
+      department: match.department,
+      municipality: match.municipality,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      owner: session.fullName,
+      description: match.description,
+      contactEmail: session.email,
+      contactPhone: match.contactPhone || '',
+      directorName: match.directorName || '',
+      students: match.students || '',
+      trainingProcesses: match.trainingProcesses || '',
+      versionsCount: match.versionsCount || '',
+      isClaimed: true
+    };
+
+    setMyProcesses((prev) => [claimedProcess, ...prev]);
+    setPotentialMatches((prev) => prev.filter((item) => item.id !== match.id));
+
+    // Register locally for admin audit view
+    onLocalReviewItem({
+      id: claimedProcess.id,
+      moduleId: claimedProcess.type,
+      title: claimedProcess.title,
+      owner: session.fullName,
+      status: 'borrador',
+      updatedAt: claimedProcess.updatedAt,
+      contactEmail: session.email,
+    });
+
+    alert(`¡Registro vinculado con éxito! "${match.title}" ha sido cargado a su panel personal como "Borrador". Ahora puede editarlo para enriquecer la información histórica y volver a enviarlo a publicación.`);
+  };
+
+  const handleDeclineMatch = (id) => {
+    setPotentialMatches((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleCreateProcess = (e) => {
@@ -4559,112 +4690,206 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
 
         {activeTab === 'home' && !showProcessForm && (
           <div className="space-y-6 animate-fade-in">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-slate-500 border border-slate-200">
-                    Perfil Colaborador
-                  </div>
-                  <h3 className="font-alternate text-lg uppercase font-bold text-slate-900">{session.fullName}</h3>
-                  <p className="text-xs text-slate-400">{session.email}</p>
+            {isScanning ? (
+              <div className="rounded-2xl border border-violet-200 bg-white p-8 text-center space-y-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 via-[#00DA5E]/5 to-violet-500/5 animate-pulse" />
+                <div className="h-16 w-16 bg-violet-100 rounded-full flex items-center justify-center border border-violet-200 shadow-md relative z-10 animate-spin">
+                  <RefreshCw size={28} className="text-violet-600" />
                 </div>
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[0.55rem] font-black uppercase tracking-widest text-slate-400">Estado Ficha</p>
-                    <p className="text-xs font-bold text-slate-700">
-                      {characterizationStatus === 'pendiente' && 'Pendiente de rellenar'}
-                      {characterizationStatus === 'en_evaluacion' && 'En evaluación por administradores'}
-                      {characterizationStatus === 'ajustes_solicitados' && 'Ajustes solicitados por el equipo'}
-                      {characterizationStatus === 'aprobado' && 'Ficha verificada y aprobada'}
-                    </p>
-                  </div>
-                  <StatusPill status={characterizationStatus} />
+                <div className="space-y-2 relative z-10 max-w-md">
+                  <h3 className="font-alternate text-lg uppercase font-bold text-[#291242]">Escaneo de Registros Históricos PNMC</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Cruzando los datos de su organización en <strong className="text-slate-800">{charForm.municipality}, {charForm.department}</strong> con la base de datos nacional y los mapeos previos del Plan Nacional de Música para la Convivencia...
+                  </p>
                 </div>
+                <div className="w-full max-w-xs h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50 relative z-10">
+                  <div className="h-full bg-gradient-to-r from-violet-600 to-[#00DA5E] rounded-full transition-all duration-1000" style={{ width: '75%', animation: 'pulse 1.5s infinite' }} />
+                </div>
+                <p className="text-[0.62rem] font-bold text-violet-500 uppercase tracking-widest relative z-10">Buscando posibles coincidencias...</p>
               </div>
-
-              {characterizationStatus === 'pendiente' && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-amber-800">Complete su Caracterización</h3>
-                    <p className="text-xs text-amber-700 leading-relaxed">
-                      Para asegurar la validez de los procesos que registre, es prioritario que complete la ficha de caracterización con los datos de su organización.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('characterization')}
-                    className="mt-6 self-start inline-flex items-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-xs font-black text-white transition shadow-sm"
-                  >
-                    Llenar caracterización
-                    <ChevronRight size={13} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-              <div className="border-b border-slate-100 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">Mis Procesos Culturales</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Listado de escuelas, festivales o luterías registradas por usted</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowProcessForm(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#291242] hover:bg-[#3d1a63] px-4 py-2.5 text-xs font-black text-white transition shadow-md"
-                >
-                  <Plus size={13} className="text-[#00DA5E]" />
-                  Registrar Proceso
-                </button>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {myProcesses.map((proc) => (
-                  <div key={proc.id} className="px-5 py-4 flex flex-wrap items-center justify-between gap-4 hover:bg-slate-50/50 transition">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900">{proc.title}</p>
-                        <StatusPill status={proc.status} />
+            ) : (
+              <>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="rounded-xl border border-slate-200 bg-white p-6 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-slate-500 border border-slate-200">
+                        Perfil Colaborador
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {proc.type === 'festivals' && 'Festival'}
-                        {proc.type === 'musicSchools' && 'Escuela de Música'}
-                        {proc.type === 'spacesInfrastructure' && 'Lutier'} · {proc.department} / {proc.municipality} · Actualizado: {proc.updatedAt}
-                      </p>
+                      <h3 className="font-alternate text-lg uppercase font-bold text-slate-900">{session.fullName}</h3>
+                      <p className="text-xs text-slate-400">{session.email}</p>
                     </div>
-                    {proc.status === 'en_evaluacion' ? (
-                      <span className="text-[0.68rem] text-slate-400 italic">En evaluación. Esperando respuesta del equipo.</span>
-                    ) : (
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <p className="text-[0.55rem] font-black uppercase tracking-widest text-slate-400">Estado Ficha</p>
+                        <p className="text-xs font-bold text-slate-700">
+                          {characterizationStatus === 'pendiente' && 'Pendiente de rellenar'}
+                          {characterizationStatus === 'en_evaluacion' && 'En evaluación por administradores'}
+                          {characterizationStatus === 'ajustes_solicitados' && 'Ajustes solicitados por el equipo'}
+                          {characterizationStatus === 'aprobado' && 'Ficha verificada y aprobada'}
+                        </p>
+                      </div>
+                      <StatusPill status={characterizationStatus} />
+                    </div>
+                  </div>
+
+                  {characterizationStatus === 'pendiente' && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-bold text-amber-800">Complete su Caracterización</h3>
+                        <p className="text-xs text-amber-700 leading-relaxed">
+                          Para asegurar la validez de los procesos que registre, es prioritario que complete la ficha de caracterización con los datos de su organización.
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedProcessType(proc.type);
-                          setEditingProcessId(proc.id);
-                          setProcForm({
-                            name: proc.title,
-                            description: proc.description || '',
-                            department: proc.department,
-                            municipality: proc.municipality,
-                            organizer: session.fullName,
-                            contactEmail: session.email,
-                            contactPhone: proc.contactPhone || '',
-                          });
-                          setShowProcessForm(true);
-                        }}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-[#291242] hover:text-[#291242] transition"
+                        onClick={() => setActiveTab('characterization')}
+                        className="mt-6 self-start inline-flex items-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-xs font-black text-white transition shadow-sm"
                       >
-                        {proc.status === 'ajustes_solicitados' ? 'Corregir y reenviar' : 'Editar'}
+                        Llenar caracterización
+                        <ChevronRight size={13} />
                       </button>
-                    )}
-                  </div>
-                ))}
-                {myProcesses.length === 0 && (
-                  <div className="py-12 text-center text-slate-400 text-sm">
-                    No ha registrado ningún proceso aún.
+                    </div>
+                  )}
+
+                  {characterizationStatus === 'aprobado' && potentialMatches.length === 0 && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/20 p-6 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-600" />
+                          <h3 className="text-sm font-bold text-emerald-800">Ficha Técnica Aprobada</h3>
+                        </div>
+                        <p className="text-xs text-emerald-700 leading-relaxed">
+                          Su caracterización ha sido validada con éxito. Ya puede registrar nuevos procesos ecosistémicos de su región de manera ilimitada en el Mapa.
+                        </p>
+                      </div>
+                      <div className="text-[0.62rem] font-bold text-emerald-600 uppercase tracking-wider">Escaneo del territorio finalizado sin duplicados pendientes.</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* historical claims inbox */}
+                {potentialMatches.length > 0 && (
+                  <div className="rounded-2xl border border-[#00DA5E]/30 bg-[#291242]/5 backdrop-blur p-6 space-y-4 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-[#00DA5E]/15 flex items-center justify-center shrink-0 border border-[#00DA5E]/30">
+                        <Sparkles size={16} className="text-[#00DA5E] animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-900">Bandeja de Coincidencias y Reclamaciones Históricas</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Encontramos estos registros preexistentes en la base de datos nacional que coinciden con su ubicación geográfica ({charForm.municipality}, {charForm.department}). ¿Alguno le pertenece a su organización para reclamar su autoría?
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {potentialMatches.map((match) => (
+                        <div key={match.id} className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between hover:shadow-md hover:border-violet-300 transition duration-300">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="rounded-full bg-violet-50 border border-violet-100 px-2 py-0.5 text-[0.6rem] font-bold text-violet-700 uppercase tracking-wider">
+                                {match.type === 'musicSchools' ? 'Escuela de Música' : 'Festival'}
+                              </span>
+                              <span className="text-[0.6rem] text-slate-400 font-mono">{match.source}</span>
+                            </div>
+                            <h4 className="font-alternate text-sm font-bold text-slate-900 leading-snug">{match.title}</h4>
+                            <p className="text-[0.7rem] text-slate-500 leading-relaxed line-clamp-2">{match.description}</p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMatch(match)}
+                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[0.68rem] font-bold text-slate-600 hover:border-[#291242] hover:text-[#291242] transition"
+                            >
+                              Previsualizar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleClaimMatch(match)}
+                              className="rounded-lg bg-[#00DA5E] hover:bg-[#00c454] px-2.5 py-1.5 text-[0.68rem] font-black text-slate-950 transition"
+                            >
+                              Reclamar / Vincular
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeclineMatch(match.id)}
+                              className="rounded-lg border border-slate-100 hover:bg-slate-50 px-2 py-1.5 text-[0.68rem] font-bold text-slate-400 hover:text-slate-600 transition"
+                            >
+                              Ignorar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                  <div className="border-b border-slate-100 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">Mis Procesos Culturales</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">Listado de escuelas, festivales o luterías registradas por usted</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowProcessForm(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#291242] hover:bg-[#3d1a63] px-4 py-2.5 text-xs font-black text-white transition shadow-md"
+                    >
+                      <Plus size={13} className="text-[#00DA5E]" />
+                      Registrar Proceso
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-slate-100">
+                    {myProcesses.map((proc) => (
+                      <div key={proc.id} className="px-5 py-4 flex flex-wrap items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-slate-900">{proc.title}</p>
+                            <StatusPill status={proc.status} />
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {proc.type === 'festivals' && 'Festival'}
+                            {proc.type === 'musicSchools' && 'Escuela de Música'}
+                            {proc.type === 'spacesInfrastructure' && 'Lutier'} · {proc.department} / {proc.municipality} · Actualizado: {proc.updatedAt}
+                          </p>
+                        </div>
+                        {proc.status === 'en_evaluacion' ? (
+                          <span className="text-[0.68rem] text-slate-400 italic">En evaluación. Esperando respuesta del equipo.</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedProcessType(proc.type);
+                              setEditingProcessId(proc.id);
+                              setProcForm({
+                                name: proc.title,
+                                description: proc.description || '',
+                                department: proc.department,
+                                municipality: proc.municipality,
+                                organizer: session.fullName,
+                                contactEmail: session.email,
+                                contactPhone: proc.contactPhone || '',
+                              });
+                              setShowProcessForm(true);
+                            }}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-[#291242] hover:text-[#291242] transition"
+                          >
+                            {proc.status === 'ajustes_solicitados' ? 'Corregir y reenviar' : 'Editar'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {myProcesses.length === 0 && (
+                      <div className="py-12 text-center text-slate-400 text-sm">
+                        No ha registrado ningún proceso aún.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -4941,6 +5166,113 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
           onPasswordChange={onPasswordChange}
         />
       )}
+
+      {previewMatch && (
+        <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="bg-[#291242] text-white px-6 py-5 flex items-center justify-between border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-[#00DA5E]/20 border border-[#00DA5E]/30 px-2.5 py-0.5 text-[0.62rem] font-bold text-[#00DA5E] uppercase tracking-wider">
+                  {previewMatch.type === 'musicSchools' ? 'Escuela de Música' : 'Festival'}
+                </span>
+                <h3 className="font-alternate text-xs uppercase tracking-widest font-black text-[#00DA5E]">Previsualizar Registro Histórico</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewMatch(null)}
+                className="text-white/60 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-slate-700">
+              <div className="space-y-2">
+                <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Nombre del Proceso</p>
+                <h2 className="text-xl font-black text-slate-900 leading-snug">{previewMatch.title}</h2>
+                <div className="flex items-center gap-4 text-[0.68rem] text-slate-500 font-bold uppercase tracking-wider">
+                  <span>📍 {previewMatch.municipality}, {previewMatch.department}</span>
+                  <span>📁 Fuente: {previewMatch.source}</span>
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2">
+                <p className="text-[0.62rem] font-black uppercase tracking-widest text-[#291242]">Descripción Original</p>
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">{previewMatch.description}</p>
+              </div>
+              
+              <div className="grid sm:grid-cols-2 gap-4">
+                {previewMatch.type === 'musicSchools' ? (
+                  <>
+                    <div className="space-y-1">
+                      <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Director / Responsable</p>
+                      <p className="text-xs font-bold text-slate-700">{previewMatch.directorName || 'No registrado'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Estudiantes Activos</p>
+                      <p className="text-xs font-bold text-slate-700">{previewMatch.students || '0'} jóvenes</p>
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Procesos Formativos</p>
+                      <p className="text-xs font-bold text-slate-700">{previewMatch.trainingProcesses || 'No especificado'}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Organizador</p>
+                      <p className="text-xs font-bold text-slate-700">{previewMatch.organizer || 'No registrado'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Ediciones Realizadas</p>
+                      <p className="text-xs font-bold text-slate-700">{previewMatch.versionsCount || '0'} versiones</p>
+                    </div>
+                  </>
+                )}
+                
+                <div className="space-y-1">
+                  <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Correo Histórico</p>
+                  <p className="text-xs font-bold text-slate-700">{previewMatch.contactEmail || 'No registrado'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Teléfono Histórico</p>
+                  <p className="text-xs font-bold text-slate-700">{previewMatch.contactPhone || 'No registrado'}</p>
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-1.5 border-l-4 border-l-amber-500">
+                <p className="text-[0.68rem] font-black uppercase tracking-widest text-amber-700 flex items-center gap-1.5">
+                  <AlertCircle size={12} />
+                  Aviso Importante
+                </p>
+                <p className="text-xs text-amber-800 leading-relaxed font-semibold">
+                  Al reclamar este registro, se le asignará la propiedad del mismo y se creará como un <strong>Borrador</strong> en su panel personal. Esto le permitirá editar y enriquecer toda su información histórica (fotos, enlaces, coordenadas y programación vigente) antes de enviarlo para su publicación definitiva en el Mapa.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewMatch(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-300 transition"
+              >
+                Cerrar Previsualización
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleClaimMatch(previewMatch);
+                  setPreviewMatch(null);
+                }}
+                className="rounded-xl bg-[#00DA5E] hover:bg-[#00c454] px-5 py-2.5 text-xs font-black text-slate-950 transition uppercase tracking-wider shadow-md"
+              >
+                Vincular y Reclamar Proceso
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -5101,6 +5433,1423 @@ const AdminSystemPanel = ({ schemaOnline, stats, divipola }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN GOVERNANCE PANEL (Gestión de solicitudes y vinculaciones)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const AdminGovernancePanel = ({ enabled }) => {
+  const [requests, setRequests] = useState([
+    {
+      id: 'req_1',
+      requester: 'Fundación Vientos del Sur',
+      requesterRole: 'aliado_admin',
+      targetName: 'Escuela de Música Tradicional Paz',
+      targetType: 'Escuela de música',
+      date: '2026-05-25',
+      reason: 'Somos la entidad responsable del acompañamiento pedagógico e institucional de esta escuela.',
+      status: 'pendiente',
+    },
+    {
+      id: 'req_2',
+      requester: 'Asociación Sonidos de mi Tierra',
+      requesterRole: 'aliado_editor',
+      targetName: 'Luthier Diego Rosero',
+      targetType: 'Lutier',
+      date: '2026-05-24',
+      reason: 'El maestro Diego Rosero forma parte de nuestro colectivo de lutería tradicional y solicitamos vincular su perfil.',
+      status: 'pendiente',
+    },
+    {
+      id: 'req_3',
+      requester: 'Colectivo Tambores de San Basilio',
+      requesterRole: 'externo',
+      targetName: 'Festival de Tambores de Palenque',
+      targetType: 'Festival',
+      date: '2026-05-23',
+      reason: 'Reclamación del festival para actualización de programación del año vigente.',
+      status: 'pendiente',
+    }
+  ]);
+
+  const [duplicates, setDuplicates] = useState([
+    {
+      id: 'dup_1',
+      nameA: 'Taller de Lutería Rosero',
+      nameB: 'Maestro Diego Rosero - Lutier',
+      type: 'Lutier',
+      department: 'Nariño',
+      municipality: 'Pasto',
+      similarity: '92%',
+      status: 'pendiente',
+    },
+    {
+      id: 'dup_2',
+      nameA: 'Festival de la Guacharaca',
+      nameB: 'Festival Nacional de la Guacharaca de Oro',
+      type: 'Festival',
+      department: 'Cesar',
+      municipality: 'Valledupar',
+      similarity: '89%',
+      status: 'pendiente',
+    }
+  ]);
+
+  const [alerts, setAlerts] = useState([
+    {
+      id: 'alt_1',
+      recordName: 'Fundación Chirimías del Atrato',
+      type: 'Red de documentación',
+      issue: 'Falta campo obligatorio de correo electrónico o teléfono del representante.',
+      severity: 'alta',
+      status: 'pendiente',
+    },
+    {
+      id: 'alt_2',
+      recordName: 'Escuela de Música y Paz Chocó',
+      type: 'Escuela de música',
+      issue: 'Coordenadas geográficas (latitud/longitud) fuera del límite territorial del municipio.',
+      severity: 'media',
+      status: 'pendiente',
+    },
+    {
+      id: 'alt_3',
+      recordName: 'Mercado de Sonidos y Cantos del Pacífico',
+      type: 'Mercado musical',
+      issue: 'Falta de fecha de fin de edición para el año actual.',
+      severity: 'baja',
+      status: 'pendiente',
+    }
+  ]);
+
+  const [activeTab, setActiveTab] = useState('links');
+  const [actionStatus, setActionStatus] = useState(null);
+
+  const handleRequestAction = (id, action) => {
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: action === 'approve' ? 'aprobado' : 'rechazado' } : r));
+    setActionStatus({
+      type: 'success',
+      message: `La solicitud de vinculación ha sido ${action === 'approve' ? 'aprobada y vinculada exitosamente' : 'rechazada'}.`
+    });
+    setTimeout(() => setActionStatus(null), 4000);
+  };
+
+  const handleDuplicateAction = (id, action) => {
+    setDuplicates(prev => prev.map(d => d.id === id ? { ...d, status: action === 'merge' ? 'fusionado' : 'descartado' } : d));
+    setActionStatus({
+      type: 'success',
+      message: `El registro duplicado ha sido ${action === 'merge' ? 'fusionado correctamente en base de datos' : 'descartado de la lista de alertas'}.`
+    });
+    setTimeout(() => setActionStatus(null), 4000);
+  };
+
+  const handleAlertAction = (id) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'resuelto' } : a));
+    setActionStatus({
+      type: 'success',
+      message: 'La alerta de calidad de datos ha sido marcada como resuelta.'
+    });
+    setTimeout(() => setActionStatus(null), 4000);
+  };
+
+  if (!enabled) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center">
+        <AlertCircle className="mx-auto text-rose-500 mb-3" size={24} />
+        <h3 className="text-sm font-black text-rose-950">Acceso Denegado</h3>
+        <p className="text-xs text-rose-700 mt-1 max-w-md mx-auto">Su perfil no cuenta con permisos suficientes para gestionar solicitudes, vinculaciones y calidad de datos del sistema.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">Gestión de solicitudes y vinculaciones</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Administra registros huérfanos pre-cargados, reclamaciones de organizaciones del sector, coincidencias y alertas territoriales.</p>
+        </div>
+      </div>
+
+      {actionStatus && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 animate-fade-in ${
+          actionStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          <CheckCircle2 size={16} className={actionStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'} />
+          <p className="text-xs font-bold">{actionStatus.message}</p>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200 flex gap-2">
+        <button
+          onClick={() => setActiveTab('links')}
+          className={`px-4 py-2.5 font-alternate text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
+            activeTab === 'links'
+              ? 'border-[#291242] text-[#291242]'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Vinculaciones ({requests.filter(r => r.status === 'pendiente').length})
+        </button>
+        <button
+          onClick={() => setActiveTab('duplicates')}
+          className={`px-4 py-2.5 font-alternate text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
+            activeTab === 'duplicates'
+              ? 'border-[#291242] text-[#291242]'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Duplicados ({duplicates.filter(d => d.status === 'pendiente').length})
+        </button>
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-4 py-2.5 font-alternate text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
+            activeTab === 'alerts'
+              ? 'border-[#291242] text-[#291242]'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Alertas de Calidad ({alerts.filter(a => a.status === 'pendiente').length})
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        {activeTab === 'links' && (
+          <div className="divide-y divide-slate-100">
+            {requests.length === 0 ? (
+              <p className="p-8 text-center text-xs text-slate-400">No hay solicitudes de vinculación pendientes.</p>
+            ) : (
+              requests.map(req => (
+                <div key={req.id} className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-4 hover:bg-slate-50/50 transition">
+                  <div className="space-y-2 max-w-2xl">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="rounded-full bg-violet-50 border border-violet-100 px-2 py-0.5 text-[0.58rem] font-bold text-violet-700 uppercase tracking-wide">
+                        {req.requesterRole}
+                      </span>
+                      <span className="text-[0.68rem] text-slate-400 font-medium">{req.date}</span>
+                      {req.status !== 'pendiente' && (
+                        <span className={`rounded-full px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide border ${
+                          req.status === 'aprobado' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'
+                        }`}>
+                          {req.status}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800">
+                        {req.requester} <span className="text-slate-400 font-normal">solicita la vinculación de</span> {req.targetName}
+                      </h4>
+                      <p className="text-[0.68rem] text-slate-400 mt-0.5">{req.targetType} en el ecosistema territorial</p>
+                    </div>
+                    <p className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-xl p-3 leading-relaxed italic">
+                      "{req.reason}"
+                    </p>
+                  </div>
+                  {req.status === 'pendiente' && (
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-start">
+                      <button
+                        onClick={() => handleRequestAction(req.id, 'reject')}
+                        className="rounded-xl border border-slate-200 hover:border-rose-200 text-xs font-bold text-slate-600 hover:text-rose-600 px-3.5 py-2 transition"
+                      >
+                        Rechazar
+                      </button>
+                      <button
+                        onClick={() => handleRequestAction(req.id, 'approve')}
+                        className="rounded-xl bg-[#00DA5E] hover:bg-[#00c454] text-xs font-black text-slate-950 px-4 py-2 uppercase font-alternate tracking-wide transition shadow-sm"
+                      >
+                        Aceptar Vinculación
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'duplicates' && (
+          <div className="overflow-x-auto">
+            {duplicates.length === 0 ? (
+              <p className="p-8 text-center text-xs text-slate-400">No hay posibles duplicados detectados.</p>
+            ) : (
+              <table className="w-full text-xs font-nunito">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50 text-left font-black uppercase tracking-widest text-slate-400">
+                    <th className="px-5 py-3">Registro A</th>
+                    <th className="px-3 py-3">Registro B</th>
+                    <th className="px-3 py-3">Ubicación</th>
+                    <th className="px-3 py-3 text-center">Coincidencia</th>
+                    <th className="px-5 py-3 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {duplicates.map(dup => (
+                    <tr key={dup.id} className="hover:bg-slate-50/50 transition">
+                      <td className="px-5 py-4 font-bold text-slate-800">{dup.nameA}</td>
+                      <td className="px-3 py-4 font-bold text-slate-800">{dup.nameB}</td>
+                      <td className="px-3 py-4 text-slate-500">{dup.municipality}, {dup.department}</td>
+                      <td className="px-3 py-4 text-center">
+                        <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[0.6rem] font-bold text-amber-700">
+                          {dup.similarity}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        {dup.status === 'pendiente' ? (
+                          <div className="inline-flex gap-2">
+                            <button
+                              onClick={() => handleDuplicateAction(dup.id, 'discard')}
+                              className="rounded-xl border border-slate-200 hover:border-slate-300 text-[0.68rem] font-bold text-slate-600 px-3 py-1.5 transition"
+                            >
+                              Ignorar
+                            </button>
+                            <button
+                              onClick={() => handleDuplicateAction(dup.id, 'merge')}
+                              className="rounded-xl bg-[#291242] hover:bg-[#1d0b30] text-[0.68rem] font-bold text-white px-3.5 py-1.5 transition uppercase font-alternate tracking-wide"
+                            >
+                              Fusionar Registros
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`rounded-full px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide border ${
+                            dup.status === 'fusionado' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400'
+                          }`}>
+                            {dup.status}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'alerts' && (
+          <div className="divide-y divide-slate-100">
+            {alerts.length === 0 ? (
+              <p className="p-8 text-center text-xs text-slate-400">No hay alertas de calidad de datos pendientes.</p>
+            ) : (
+              alerts.map(alt => (
+                <div key={alt.id} className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-wider border ${
+                        alt.severity === 'alta' ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                        alt.severity === 'media' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                        'bg-blue-50 border-blue-200 text-blue-700'
+                      }`}>
+                        Prioridad {alt.severity}
+                      </span>
+                      <span className="text-[0.68rem] text-slate-400 font-bold uppercase tracking-wide">{alt.type}</span>
+                    </div>
+                    <h4 className="text-xs font-bold text-slate-800">{alt.recordName}</h4>
+                    <p className="text-xs text-slate-500 max-w-xl leading-relaxed">{alt.issue}</p>
+                  </div>
+                  <div>
+                    {alt.status === 'pendiente' ? (
+                      <button
+                        onClick={() => handleAlertAction(alt.id)}
+                        className="rounded-xl border border-slate-200 hover:border-[#00DA5E] text-xs font-bold text-slate-600 hover:text-slate-950 hover:bg-[#00DA5E]/5 px-4 py-2 transition"
+                      >
+                        Resolver Alerta
+                      </button>
+                    ) : (
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide text-emerald-700">
+                        Resuelto
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN WEB TEXTS PANEL (Stand-Alone Grouped CMS with Live Previews)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const AdminWebTextsPanel = ({ enabled, session }) => {
+  const [selectedPill, setSelectedPill] = useState('Home');
+  const [selectedGroup, setSelectedGroup] = useState('home_hero');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [formData, setFormData] = useState({});
+  const [originalDetails, setOriginalDetails] = useState({});
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [activeEjeSubTab, setActiveEjeSubTab] = useState('general');
+
+  // Reset Eje sub-tab on group change
+  useEffect(() => {
+    setActiveEjeSubTab('general');
+  }, [selectedGroup]);
+
+  // Group definitions
+  const GROUPS = [
+    {
+      id: 'home_hero',
+      label: 'Home - Encabezado Principal (Hero)',
+      section: 'Home',
+      keys: ['home_tag', 'home_title', 'home_title_accent', 'home_description']
+    },
+    {
+      id: 'home_ctas',
+      label: 'Home - Botones de Llamado a la Acción',
+      section: 'Home',
+      keys: ['home_btn_about', 'home_btn_ejes']
+    },
+    {
+      id: 'home_about',
+      label: 'Home - Sección Identidad',
+      section: 'Home',
+      keys: ['home_about_bg_word', 'home_about_title', 'home_about_quote', 'home_about_desc']
+    },
+    {
+      id: 'home_ejes',
+      label: 'Home - Estructura Ejes Base',
+      section: 'Home',
+      keys: ['home_ejes_tag', 'home_ejes_title']
+    },
+    {
+      id: 'home_bulletin',
+      label: 'Home - Boletín y Redes',
+      section: 'Home',
+      keys: ['home_bulletin_title', 'home_bulletin_desc', 'home_bulletin_placeholder', 'home_bulletin_btn', 'home_social_title', 'home_social_desc']
+    },
+    {
+      id: 'home_strategies_title',
+      label: 'Home - Cabecera del Carrusel de Rutas',
+      section: 'Home',
+      keys: ['home_strat_tag', 'home_strat_title', 'home_strat_desc']
+    },
+    {
+      id: 'home_strategies_cards',
+      label: 'Home - Tarjetas del Carrusel de Rutas',
+      section: 'Home',
+      keys: [
+        'strat_celebra_tag', 'strat_celebra_title', 'strat_celebra_desc',
+        'strat_territorios_tag', 'strat_territorios_title', 'strat_territorios_desc',
+        'strat_congreso_tag', 'strat_congreso_title', 'strat_congreso_desc',
+        'strat_tempos_tag', 'strat_tempos_title', 'strat_tempos_desc',
+        'strat_voces_tag', 'strat_voces_title', 'strat_voces_desc',
+        'strat_jazz_tag', 'strat_jazz_title', 'strat_jazz_desc',
+        'strat_mercados_tag', 'strat_mercados_title', 'strat_mercados_desc',
+        'strat_mesas_tag', 'strat_mesas_title', 'strat_mesas_desc'
+      ]
+    },
+    {
+      id: 'agenda_hero',
+      label: 'Agenda - Introducción de Sección',
+      section: 'Agenda',
+      keys: ['agenda_description']
+    },
+    {
+      id: 'agenda_ui',
+      label: 'Agenda - Interfaz y Filtros (UI)',
+      section: 'Agenda',
+      keys: [
+        'agenda_filter_title', 'agenda_filter_fixed', 'agenda_filter_fixed_note', 'agenda_filter_date_exact', 'agenda_filter_date_month',
+        'agenda_filter_day_label', 'agenda_filter_month_label', 'agenda_filter_all_months', 'agenda_filter_activity_type',
+        'agenda_filter_department_label', 'agenda_filter_all_departments', 'agenda_filter_city_label', 'agenda_filter_city_select_dept',
+        'agenda_filter_city_all_mun', 'agenda_filter_city_no_mun', 'agenda_filter_clear_btn', 'agenda_loading_title',
+        'agenda_loading_desc', 'agenda_empty_title', 'agenda_empty_desc'
+      ]
+    },
+    {
+      id: 'news_hero',
+      label: 'Noticias - Introducción de Sección',
+      section: 'Noticias',
+      keys: ['news_description']
+    },
+    {
+      id: 'gallery_hero',
+      label: 'Galería - Introducción de Sección',
+      section: 'Galería',
+      keys: ['gallery_description']
+    },
+    {
+      id: 'gallery_ui',
+      label: 'Galería - Interfaz y Buscador (UI)',
+      section: 'Galería',
+      keys: [
+        'gallery_hero_title', 'gallery_search_placeholder', 'gallery_filter_category', 'gallery_filter_all_cats',
+        'gallery_collection_title', 'gallery_explore_all', 'gallery_loading_title', 'gallery_loading_desc'
+      ]
+    },
+    {
+      id: 'editorial_hero',
+      label: 'Editorial - Introducción de Sección',
+      section: 'Editorial',
+      keys: ['editorial_description']
+    },
+    {
+      id: 'map_hero',
+      label: 'Mapa Ecosistémico - Introducción del Geovisor',
+      section: 'Mapa Ecosistémico',
+      keys: ['map_description']
+    },
+    {
+      id: 'eje1_details',
+      label: 'Eje 1 - Música para la Vida',
+      section: 'Ejes',
+      keys: ['eje01_title', 'eje01_desc1', 'eje01_desc2', 'eje01_purpose', 'eje01_c1_title', 'eje01_c1_desc', 'eje01_c2_title', 'eje01_c2_desc']
+    },
+    {
+      id: 'eje2_details',
+      label: 'Eje 2 - Prácticas y Oficios',
+      section: 'Ejes',
+      keys: ['eje02_title', 'eje02_desc1', 'eje02_desc2', 'eje02_purpose', 'eje02_c1_title', 'eje02_c1_desc', 'eje02_c2_title', 'eje02_c2_desc', 'eje02_c3_title', 'eje02_c3_desc', 'eje02_c4_title', 'eje02_c4_desc', 'eje02_c5_title', 'eje02_c5_desc', 'eje02_c6_title', 'eje02_c6_desc']
+    },
+    {
+      id: 'eje3_details',
+      label: 'Eje 3 - Gobernanza',
+      section: 'Ejes',
+      keys: ['eje03_title', 'eje03_desc1', 'eje03_desc2', 'eje03_purpose', 'eje03_c1_title', 'eje03_c1_desc', 'eje03_c2_title', 'eje03_c2_desc']
+    },
+    {
+      id: 'strategy_celebra_details',
+      label: 'Estrategia - Celebra la Música',
+      section: 'Estrategias',
+      keys: ['strategy_celebra_hero_desc', 'strategy_celebra_section_title', 'strategy_celebra_intro', 'strategy_celebra_mission', 'strategy_celebra_edition_intro', 'strategy_celebra_edition_vision', 'strategy_celebra_edition_closing']
+    },
+    {
+      id: 'general_nav_footer',
+      label: 'Navegación y Footer - Enlaces y Contacto',
+      section: 'Navegación y Footer',
+      keys: [
+        'nav_pnmc', 'nav_ejes', 'nav_editorial', 'nav_galeria', 'nav_noticias', 'nav_agenda', 'nav_mapa', 'nav_components_title',
+        'footer_col2_title', 'footer_col2_address', 'footer_col2_schedule', 'footer_col2_phone', 'footer_col2_free_line',
+        'footer_col3_title', 'footer_col3_address', 'footer_col3_schedule', 'footer_col3_email_label', 'footer_col3_email',
+        'footer_col3_email_note', 'footer_col3_corruption_title', 'footer_col3_corruption_email', 'footer_col3_legal_title',
+        'footer_col3_legal_email', 'footer_col4_services_title', 'footer_col4_about_title', 'footer_credits_text', 'footer_credits_tagline'
+      ]
+    }
+  ];
+
+  const keysList = useMemo(() => getWebTextsKeysList(), []);
+
+  // Initialize form data from localStorage or fallback
+  useEffect(() => {
+    const data = {};
+    const details = {};
+    keysList.forEach(k => {
+      const detail = getWebTextDetails(k.key);
+      data[k.key] = detail.content;
+      details[k.key] = detail;
+    });
+    setFormData(data);
+    setOriginalDetails(details);
+  }, [keysList, saveStatus]);
+
+  const handleInputChange = (key, val) => {
+    setFormData(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleRestoreVersion = (key, content) => {
+    handleInputChange(key, content);
+    setSaveStatus({
+      type: 'info',
+      message: 'Versión del historial restaurada en el editor. Recuerde hacer clic en Guardar para conservar los cambios.'
+    });
+    setTimeout(() => setSaveStatus(null), 4000);
+  };
+
+  const handleSaveAllGroup = (publish = true) => {
+    const author = session?.fullName || 'Webmaster';
+    const group = GROUPS.find(g => g.id === selectedGroup);
+    if (!group) return;
+    
+    let hasError = false;
+    group.keys.forEach(key => {
+      const limit = keysList.find(k => k.key === key)?.limit || 999;
+      if ((formData[key] || '').length > limit) {
+        hasError = true;
+      }
+    });
+
+    if (hasError) {
+      setSaveStatus({
+        type: 'error',
+        message: 'No se puede guardar el grupo de textos porque uno o más campos exceden el límite de caracteres.'
+      });
+      setTimeout(() => setSaveStatus(null), 4000);
+      return;
+    }
+
+    group.keys.forEach(key => {
+      const status = publish ? 'publicado' : 'borrador';
+      saveWebText(key, formData[key] || '', status, author);
+    });
+
+    setSaveStatus({
+      type: 'success',
+      message: `El grupo de textos "${group.label}" ha sido ${publish ? 'guardado y publicado con éxito' : 'guardado en borrador'}.`
+    });
+    setTimeout(() => setSaveStatus(null), 4000);
+  };
+
+  // Filter groups according to active horizontal pill and search query
+  const filteredGroups = useMemo(() => {
+    return GROUPS.filter(g => {
+      const matchesPill = g.section === (selectedPill === 'Mapa' ? 'Mapa Ecosistémico' : selectedPill);
+      const matchesSearch = g.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            g.keys.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesPill && matchesSearch;
+    });
+  }, [selectedPill, searchQuery]);
+
+  const activeGroupObj = GROUPS.find(g => g.id === selectedGroup);
+
+  const ejeSubTabsList = useMemo(() => {
+    if (!activeGroupObj || activeGroupObj.section !== 'Ejes') return [];
+    
+    let ejeId = '01';
+    if (activeGroupObj.id === 'eje2_details') ejeId = '02';
+    if (activeGroupObj.id === 'eje3_details') ejeId = '03';
+    
+    const tabs = [{ id: 'general', label: 'Información General' }];
+    
+    activeGroupObj.keys.forEach(k => {
+      const match = k.match(new RegExp(`eje${ejeId}_c(\\d+)_title`));
+      if (match) {
+        const compNum = match[1];
+        const compTitle = formData[k] || `Componente ${compNum}`;
+        tabs.push({
+          id: `c${compNum}`,
+          label: compTitle.length > 25 ? compTitle.slice(0, 23) + '...' : compTitle
+        });
+      }
+    });
+    
+    return tabs;
+  }, [activeGroupObj, formData]);
+
+  const filteredEjeKeys = useMemo(() => {
+    if (!activeGroupObj || activeGroupObj.section !== 'Ejes') return [];
+    
+    let ejeId = '01';
+    if (activeGroupObj.id === 'eje2_details') ejeId = '02';
+    if (activeGroupObj.id === 'eje3_details') ejeId = '03';
+    
+    if (activeEjeSubTab === 'general') {
+      return activeGroupObj.keys.filter(k => k.endsWith('_title') ? k === `eje${ejeId}_title` : !k.includes('_c'));
+    } else {
+      const compNum = activeEjeSubTab.replace('c', '');
+      return activeGroupObj.keys.filter(k => k.includes(`_c${compNum}_`));
+    }
+  }, [activeGroupObj, activeEjeSubTab]);
+
+  const keysToRender = activeGroupObj && activeGroupObj.section === 'Ejes' ? filteredEjeKeys : (activeGroupObj?.keys || []);
+
+  if (!enabled) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center">
+        <AlertCircle className="mx-auto text-rose-500 mb-3" size={24} />
+        <h3 className="text-sm font-black text-rose-950">Acceso Denegado</h3>
+        <p className="text-xs text-rose-700 mt-1 max-w-md mx-auto">Su perfil no cuenta con permisos para administrar los textos editables de la web pública.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-black text-slate-900">Administración de textos</h2>
+        <p className="text-xs text-slate-400 mt-0.5">Controla y edita los textos explicativos, descripciones e introducciones en toda la plataforma pública con previsualización en vivo.</p>
+      </div>
+
+      {saveStatus && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 animate-fade-in ${
+          saveStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+          saveStatus.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+          'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          {saveStatus.type === 'success' && <CheckCircle2 size={16} className="text-emerald-600" />}
+          {saveStatus.type === 'info' && <AlertCircle size={16} className="text-blue-600" />}
+          {saveStatus.type === 'error' && <AlertCircle size={16} className="text-rose-600" />}
+          <p className="text-xs font-bold">{saveStatus.message}</p>
+        </div>
+      )}
+
+      {/* Horizontal pill navigation */}
+      <div className="flex flex-wrap gap-1.5 pb-2 border-b border-slate-200">
+        {['Home', 'Agenda', 'Noticias', 'Galería', 'Editorial', 'Mapa', 'Ejes', 'Estrategias', 'Navegación y Footer'].map(pill => (
+          <button
+            key={pill}
+            type="button"
+            onClick={() => {
+              setSelectedPill(pill);
+              // auto-select first group in that filter
+              const firstGroup = GROUPS.find(g => g.section === (pill === 'Mapa' ? 'Mapa Ecosistémico' : pill));
+              if (firstGroup) setSelectedGroup(firstGroup.id);
+            }}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              selectedPill === pill
+                ? 'bg-[#291242] text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'
+            }`}
+          >
+            {pill}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* COL 1: Group Selector List */}
+        <div className="lg:col-span-3 space-y-4">
+          <div className="relative">
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar sección o clave..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#291242] focus:outline-none transition"
+            />
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-2.5 space-y-1 shadow-sm">
+            <p className="px-2.5 pb-2 text-[0.62rem] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Grupos de Contenido</p>
+            <div className="space-y-0.5 max-h-[22rem] overflow-y-auto pt-1.5">
+              {filteredGroups.length === 0 ? (
+                <p className="text-center py-4 text-xs text-slate-400">No se encontraron resultados.</p>
+              ) : (
+                filteredGroups.map(group => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => setSelectedGroup(group.id)}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-2.5 py-2.5 text-left text-xs font-bold transition-all ${
+                      selectedGroup === group.id
+                        ? 'bg-[#291242]/5 text-[#291242] border border-[#291242]/10'
+                        : 'text-slate-600 hover:bg-slate-50/60 border border-transparent'
+                    }`}
+                  >
+                    <span className="truncate">{group.label}</span>
+                    <span className="shrink-0 text-[0.58rem] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-500 font-bold uppercase">{group.section === 'Mapa Ecosistémico' ? 'Mapa' : group.section}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* COL 2: Editor form area */}
+        <div className="lg:col-span-5 space-y-4">
+          {activeGroupObj ? (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="border-b border-slate-100 pb-3 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">{activeGroupObj.label}</h3>
+                    <p className="text-[0.65rem] text-slate-400 font-medium">Sección: {activeGroupObj.section}</p>
+                  </div>
+                </div>
+
+                {/* Sub-tabs selector for Axis feature */}
+                {activeGroupObj.section === 'Ejes' && (
+                  <div className="flex flex-wrap gap-1 border-b border-slate-100 pb-2 mb-4">
+                    {ejeSubTabsList.map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveEjeSubTab(tab.id)}
+                        className={`rounded-lg px-3 py-1.5 text-[0.68rem] font-bold transition-all ${
+                          activeEjeSubTab === tab.id
+                            ? 'bg-[#291242]/10 text-[#291242]'
+                            : 'bg-transparent text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Subdivided / coupled visually connected texts */}
+                {activeGroupObj.id === 'home_hero' ? (
+                  <div className="space-y-4">
+                    {/* Visual card for home_tag */}
+                    <div className="space-y-1 bg-slate-50/50 border border-slate-100 rounded-xl p-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">Etiqueta superior</label>
+                        <span className={`text-[0.58rem] font-bold ${(formData.home_tag || '').length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {(formData.home_tag || '').length}/100
+                        </span>
+                      </div>
+                      <TextInput
+                        value={formData.home_tag || ''}
+                        onChange={(e) => handleInputChange('home_tag', e.target.value)}
+                        placeholder="Ej. PLAN NACIONAL DE MÚSICA..."
+                      />
+                      {/* Version history */}
+                      <CollapsibleHistory keyName="home_tag" details={originalDetails.home_tag} onRestore={handleRestoreVersion} />
+                    </div>
+
+                    {/* Coupled heading visual box */}
+                    <div className="border-2 border-dashed border-[#00DA5E]/40 rounded-xl p-4 bg-emerald-50/10 space-y-4 relative">
+                      <div className="absolute top-0 right-4 -translate-y-1/2 bg-[#00DA5E] text-slate-950 rounded-full px-2.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wider shadow-sm">
+                        Título Combinado (Un solo elemento visual)
+                      </div>
+                      <p className="text-[0.68rem] text-[#00DA5E] font-bold leading-normal">
+                        El encabezado principal del Home se divide en dos campos para permitir la inserción del acento destacado verde en el portal público.
+                      </p>
+
+                      <div className="space-y-3">
+                        {/* Title field */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">1. Título principal (Estándar - Blanco/Gris)</label>
+                            <span className={`text-[0.58rem] font-bold ${(formData.home_title || '').length > 120 ? 'text-rose-500' : 'text-slate-400'}`}>
+                              {(formData.home_title || '').length}/120
+                            </span>
+                          </div>
+                          <TextInput
+                            value={formData.home_title || ''}
+                            onChange={(e) => handleInputChange('home_title', e.target.value)}
+                            placeholder="Ej. Huellas y Apuestas de la..."
+                          />
+                          <CollapsibleHistory keyName="home_title" details={originalDetails.home_title} onRestore={handleRestoreVersion} />
+                        </div>
+
+                        {/* Visual connection */}
+                        <div className="flex items-center justify-center -my-1">
+                          <div className="w-0.5 h-3 border-l-2 border-dotted border-slate-300"></div>
+                        </div>
+
+                        {/* Title accent field */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">2. Acento en cursiva destacados (Verde)</label>
+                            <span className={`text-[0.58rem] font-bold ${(formData.home_title_accent || '').length > 80 ? 'text-rose-500' : 'text-slate-400'}`}>
+                              {(formData.home_title_accent || '').length}/80
+                            </span>
+                          </div>
+                          <TextInput
+                            value={formData.home_title_accent || ''}
+                            onChange={(e) => handleInputChange('home_title_accent', e.target.value)}
+                            placeholder="Ej. Diversidad Sonora..."
+                          />
+                          <CollapsibleHistory keyName="home_title_accent" details={originalDetails.home_title_accent} onRestore={handleRestoreVersion} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Visual card for description */}
+                    <div className="space-y-1 bg-slate-50/50 border border-slate-100 rounded-xl p-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">Descripción del Hero</label>
+                        <span className={`text-[0.58rem] font-bold ${(formData.home_description || '').length > 400 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {(formData.home_description || '').length}/400
+                        </span>
+                      </div>
+                      <TextAreaInput
+                        rows={3}
+                        value={formData.home_description || ''}
+                        onChange={(e) => handleInputChange('home_description', e.target.value)}
+                        placeholder="Descripción introductoria del Hero del Home..."
+                      />
+                      <CollapsibleHistory keyName="home_description" details={originalDetails.home_description} onRestore={handleRestoreVersion} />
+                    </div>
+                  </div>
+                ) : activeGroupObj.id === 'home_ctas' ? (
+                  <div className="border border-slate-100 bg-slate-50/30 rounded-xl p-4 space-y-4">
+                    <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-wider">Botones principales del Hero (CTAs)</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">Botón Primario</label>
+                          <span className={`text-[0.58rem] font-bold ${(formData.home_btn_about || '').length > 30 ? 'text-rose-500' : 'text-slate-400'}`}>
+                            {(formData.home_btn_about || '').length}/30
+                          </span>
+                        </div>
+                        <TextInput
+                          value={formData.home_btn_about || ''}
+                          onChange={(e) => handleInputChange('home_btn_about', e.target.value)}
+                          placeholder="Ej. Sobre el PNMC"
+                        />
+                        <CollapsibleHistory keyName="home_btn_about" details={originalDetails.home_btn_about} onRestore={handleRestoreVersion} />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">Botón Secundario</label>
+                          <span className={`text-[0.58rem] font-bold ${(formData.home_btn_ejes || '').length > 30 ? 'text-rose-500' : 'text-slate-400'}`}>
+                            {(formData.home_btn_ejes || '').length}/30
+                          </span>
+                        </div>
+                        <TextInput
+                          value={formData.home_btn_ejes || ''}
+                          onChange={(e) => handleInputChange('home_btn_ejes', e.target.value)}
+                          placeholder="Ej. Explorar Ejes"
+                        />
+                        <CollapsibleHistory keyName="home_btn_ejes" details={originalDetails.home_btn_ejes} onRestore={handleRestoreVersion} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Dynamic keys rendering (Standard or Axis filtered sub-tab)
+                  <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-1">
+                    {keysToRender.map(key => {
+                      const limit = keysList.find(k => k.key === key)?.limit || 300;
+                      const textVal = formData[key] || '';
+                      const fieldLabel = keysList.find(k => k.key === key)?.label || key;
+                      return (
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">{fieldLabel}</label>
+                            <span className={`text-[0.58rem] font-bold ${textVal.length > limit ? 'text-rose-500' : 'text-slate-400'}`}>
+                              {textVal.length}/{limit}
+                            </span>
+                          </div>
+                          <TextAreaInput
+                            rows={key.includes('desc') || key.includes('intro') || key.includes('mission') || key.includes('vision') || key.includes('closing') || key.includes('address') || key.includes('schedule') ? 3 : 2}
+                            value={textVal}
+                            onChange={(e) => handleInputChange(key, e.target.value)}
+                            placeholder={`Ingrese el valor para: ${fieldLabel}...`}
+                          />
+                          <CollapsibleHistory keyName={key} details={originalDetails[key]} onRestore={handleRestoreVersion} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveAllGroup(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-300 transition"
+                  >
+                    Guardar Borrador
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveAllGroup(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#00DA5E] hover:bg-[#00c454] px-5 py-2.5 text-xs font-black text-slate-950 transition font-alternate uppercase tracking-wide shadow-sm"
+                  >
+                    <Save size={12} />
+                    Guardar y Publicar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-xs text-slate-400 bg-white border border-slate-200 rounded-2xl">
+              Seleccione un grupo de textos para comenzar a editar.
+            </div>
+          )}
+        </div>
+
+        {/* COL 3: High Fidelity Live Preview Area */}
+        <div className="lg:col-span-4 space-y-4">
+          <div className="bg-slate-100 border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-3 min-h-[30rem]">
+            <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+              <span className="text-[0.62rem] font-black uppercase tracking-widest text-slate-400">Previsualización Real en Vivo</span>
+              <span className="h-2 w-2 rounded-full bg-[#00DA5E] animate-pulse" />
+            </div>
+
+            {/* LIVE PREVIEW BOX */}
+            <div className="flex-1 rounded-xl bg-slate-950 flex flex-col overflow-hidden shadow-inner border border-white/5 relative justify-center">
+              {activeGroupObj && (activeGroupObj.id === 'home_hero' || activeGroupObj.id === 'home_ctas') ? (
+                // 1. HOME HERO PREVIEW
+                <div className="bg-[#291242] p-6 text-white text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none">
+                  {/* Glowing blobs */}
+                  <div className="absolute top-0 right-0 h-40 w-40 bg-[#00DA5E]/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 h-40 w-40 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
+                  
+                  <span className="uppercase tracking-[0.2em] font-alternate text-[0.58rem] font-black text-[#00DA5E] mb-2 z-10">
+                    {formData.home_tag || 'PLAN NACIONAL DE MÚSICA PARA LA CONVIVENCIA 2025—2035'}
+                  </span>
+
+                  <h1 className="font-alternate text-lg md:text-xl font-black leading-tight mb-3 z-10 text-white">
+                    {formData.home_title || 'Huellas y Apuestas de la'}
+                    <span className="italic text-[#00DA5E] font-normal ml-1.5 block sm:inline">
+                      {formData.home_title_accent || 'Diversidad Sonora'}
+                    </span>
+                  </h1>
+
+                  <p className="text-[0.68rem] text-white/70 leading-relaxed font-medium mb-5 z-10 max-w-sm">
+                    {formData.home_description || 'Un pacto colectivo que reconoce la música como un derecho cultural y un bien común en todo el territorio nacional.'}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2.5 z-10">
+                    <span className="bg-[#00DA5E] text-slate-950 font-black rounded-xl text-[0.58rem] px-3.5 py-2 uppercase tracking-wide border border-transparent shadow-sm">
+                      {formData.home_btn_about || 'Sobre el PNMC'}
+                    </span>
+                    <span className="bg-transparent border border-white/20 text-white font-bold rounded-xl text-[0.58rem] px-3.5 py-2 uppercase tracking-wide hover:bg-white/5 transition">
+                      {formData.home_btn_ejes || 'Explorar Ejes'}
+                    </span>
+                  </div>
+                </div>
+              ) : activeGroupObj && activeGroupObj.id === 'home_about' ? (
+                // HOME ABOUT (IDENTIDAD) PREVIEW
+                <div className="bg-white p-5 text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none border border-slate-100">
+                  <div className="relative group mb-3">
+                    <div className="font-gregor text-5xl opacity-40 font-bold leading-none tracking-tight text-[#E6DAE5] uppercase">
+                      {formData.home_about_bg_word || 'IDENTIDAD'}
+                    </div>
+                    <div className="absolute bottom-0 left-0 z-10 flex items-end gap-2 whitespace-nowrap">
+                      <h4 className="font-gregor text-base text-[#291242] font-bold uppercase leading-none">
+                        {formData.home_about_title || 'HUELLA Y EVOLUCIÓN'}
+                      </h4>
+                      <div className="w-6 h-1 bg-[#8BF784] rounded-full mb-0.5" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-xs text-[#291242] font-light leading-snug">
+                      {formData.home_about_quote || 'El PNMC 2025-2035 es una herramienta para que la música sea motor de vida, paz y justicia social.'}
+                    </p>
+                    <div className="border-l border-slate-200 pl-3 py-0.5">
+                      <p className="text-[0.62rem] text-slate-500 leading-relaxed font-medium">
+                        {formData.home_about_desc || 'Desde hace más de dos décadas, el Plan Nacional de Música para la Convivencia (PNMC) promueve la diversidad cultural de Colombia.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj && activeGroupObj.id === 'home_ejes' ? (
+                // HOME EJES PREVIEW
+                <div className="bg-slate-50 p-5 text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none border border-slate-100">
+                  <div className="mb-4">
+                    <span className="text-slate-400 font-bold text-[0.45rem] uppercase tracking-[0.25em] font-alternate block mb-1">
+                      {formData.home_ejes_tag || 'EL PNMC TIENE UNA ESTRUCTURA ESTRATÉGICA'}
+                    </span>
+                    <h4 className="text-[#291242] font-alternate text-xs font-bold uppercase leading-tight tracking-tight">
+                      {formData.home_ejes_title || 'PLANTEADA EN TRES EJES BASE'}
+                    </h4>
+                  </div>
+                  <div className="space-y-1.5 text-[0.55rem] text-[#291242]">
+                    <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-center gap-2">
+                      <span className="font-gregor text-sm font-bold text-slate-200">01</span>
+                      <span className="font-alternate font-bold uppercase text-[0.48rem] tracking-wide leading-tight">Música para la Vida</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-center gap-2">
+                      <span className="font-gregor text-sm font-bold text-slate-200">02</span>
+                      <span className="font-alternate font-bold uppercase text-[0.48rem] tracking-wide leading-tight">Prácticas y Oficios</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-center gap-2">
+                      <span className="font-gregor text-sm font-bold text-slate-200">03</span>
+                      <span className="font-alternate font-bold uppercase text-[0.48rem] tracking-wide leading-tight">Gobernanza Musical</span>
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj && activeGroupObj.id === 'home_bulletin' ? (
+                // HOME BULLETIN & SOCIAL PREVIEW
+                <div className="bg-[#291242] p-5 text-white text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none">
+                  <div className="space-y-3">
+                    <span className="rounded bg-white/10 px-1.5 py-0.5 text-[0.45rem] font-bold text-[#00DA5E] uppercase tracking-widest w-fit">BOLETÍN</span>
+                    <div>
+                      <h4 className="font-gregor text-sm font-bold uppercase leading-none tracking-tight">
+                        {formData.home_bulletin_title || 'Recibe las Novedades'}
+                      </h4>
+                      <p className="text-[0.58rem] text-white/50 leading-relaxed font-light mt-0.5">
+                        {formData.home_bulletin_desc || 'Convocatorias y lanzamientos semanales del PNMC.'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-[0.58rem] text-white/40 flex-1 leading-none">
+                        {formData.home_bulletin_placeholder || 'Ingresa tu correo'}
+                      </div>
+                      <span className="bg-[#00DA5E] text-slate-950 font-black rounded-lg text-[0.5rem] px-3 py-2 uppercase tracking-wide">
+                        {formData.home_bulletin_btn || 'Registrarme'}
+                      </span>
+                    </div>
+                    <div className="border-t border-white/5 pt-3 mt-1 flex items-center justify-between gap-3">
+                      <div>
+                        <h5 className="font-alternate text-[0.52rem] font-bold uppercase tracking-[0.15em] text-[#00DA5E]">
+                          {formData.home_social_title || 'Conéctate con el Plan'}
+                        </h5>
+                        <p className="text-[0.48rem] text-white/30 font-nunito leading-tight">
+                          {formData.home_social_desc || 'Síguenos en nuestras redes oficiales'}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-[0.48rem] text-white/60">IG</span>
+                        <span className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-[0.48rem] text-white/60">FB</span>
+                        <span className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-[0.48rem] text-white/60">YT</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj && activeGroupObj.id === 'general_nav_footer' ? (
+                // NAVEGACIÓN Y FOOTER PREVIEW
+                <div className="bg-[#f8f7fb] text-slate-800 text-left font-nunito flex flex-col justify-between min-h-[22rem] relative overflow-hidden select-none border border-slate-200">
+                  {/* Mock Navigation Header */}
+                  <div className="bg-[#291242] p-2.5 px-4 flex items-center justify-between text-white border-b border-white/5">
+                    <span className="text-[0.45rem] font-black uppercase text-[#00DA5E] tracking-widest">MINCULTURAS</span>
+                    <div className="flex gap-2 text-[0.42rem] font-bold text-white/70">
+                      <span className="hover:text-white transition">{formData.nav_pnmc || 'Sobre el PNMC'}</span>
+                      <span className="hover:text-white transition">{formData.nav_ejes || 'Ejes'}</span>
+                      <span className="hover:text-white transition text-white border-b border-[#00DA5E] pb-0.5">{formData.nav_galeria || 'Galería'}</span>
+                    </div>
+                  </div>
+
+                  {/* Mock Dropdown / Component Title inside Nav */}
+                  <div className="bg-white p-3 border-b border-slate-200 shadow-sm mx-4 mt-2 rounded-xl text-[0.45rem]">
+                    <span className="text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                      {formData.nav_components_title || 'Componentes del eje'}
+                    </span>
+                    <div className="grid grid-cols-2 gap-1 text-[0.42rem] text-[#291242] font-semibold">
+                      <span>• Formación</span>
+                      <span>• Circulación</span>
+                    </div>
+                  </div>
+
+                  {/* Mock Footer contact details */}
+                  <div className="bg-[#150724] p-3 text-white/80 text-[0.42rem] mt-auto border-t border-white/5 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-0.5">
+                        <h5 className="font-bold text-[#00DA5E] text-[0.38rem] uppercase leading-tight">
+                          {formData.footer_col2_title || 'Ministerio de las Culturas'}
+                        </h5>
+                        <p className="text-white/40 leading-tight text-[0.35rem]">
+                          {formData.footer_col2_address || 'Dirección: Calle 9 No. 8 - 31'}
+                        </p>
+                        <p className="text-white/40 leading-tight text-[0.35rem]">
+                          {formData.footer_col2_phone || 'Tel: +57 601 3424100'}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <h5 className="font-bold text-[#8BF784] text-[0.38rem] uppercase leading-tight">
+                          {formData.footer_col3_title || 'Correspondencia'}
+                        </h5>
+                        <p className="text-white/40 leading-tight text-[0.35rem] truncate">
+                          {formData.footer_col3_email || 'servicioalciudadano@mincultura.gov.co'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-t border-white/5 pt-1.5 flex items-center justify-between text-[0.35rem] text-white/35">
+                      <span>{formData.footer_credits_text || 'Copyright © 2026'}</span>
+                      <span className="font-bold text-[#00DA5E]">{formData.footer_credits_tagline || 'Colombia'}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj && (activeGroupObj.id === 'home_strategies_title' || activeGroupObj.id === 'home_strategies_cards') ? (
+                // HOME STRATEGIES CAROUSEL PREVIEW
+                <div className="bg-[#291242] p-5 text-white text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none">
+                  <div className="absolute top-0 right-0 h-32 w-32 bg-[#00DA5E]/5 rounded-full blur-2xl pointer-events-none" />
+                  
+                  {/* Header */}
+                  <div className="mb-4">
+                    <span className="text-[#00DA5E] font-bold text-[0.45rem] uppercase tracking-[0.25em] font-alternate block mb-1">
+                      {formData.home_strat_tag || 'Procesos destacados'}
+                    </span>
+                    <h4 className="text-white font-alternate text-xs font-black uppercase leading-tight tracking-tight">
+                      {formData.home_strat_title || 'Rutas de Acción Territorial'}
+                    </h4>
+                    <p className="text-[0.48rem] text-white/55 leading-normal mt-1 line-clamp-2">
+                      {formData.home_strat_desc || 'Conoce los marcos operativos y pedagógicos...'}
+                    </p>
+                  </div>
+
+                  {/* Active strategy card mockup */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="inline-block bg-[#00DA5E]/20 text-[#00DA5E] text-[0.42rem] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
+                        {formData.strat_celebra_tag || 'Estrategia de Circulación'}
+                      </span>
+                    </div>
+                    <h5 className="font-alternate text-[0.68rem] font-black uppercase text-white tracking-wide">
+                      {formData.strat_celebra_title || 'Celebra la Música'}
+                    </h5>
+                    <p className="text-white/60 text-[0.52rem] leading-relaxed mt-1 line-clamp-3">
+                      {formData.strat_celebra_desc || 'Activa escenarios, programación y redes...'}
+                    </p>
+                    
+                    {/* Carousel indicator dots */}
+                    <div className="flex gap-1 items-center justify-center mt-3 pt-2 border-t border-white/5">
+                      <span className="h-1 w-3 rounded-full bg-[#00DA5E]" />
+                      <span className="h-1 w-1 rounded-full bg-white/20" />
+                      <span className="h-1 w-1 rounded-full bg-white/20" />
+                      <span className="h-1 w-1 rounded-full bg-white/20" />
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj && (activeGroupObj.id === 'agenda_ui' || activeGroupObj.id === 'gallery_ui') ? (
+                // AGENDA & GALLERY UI FILTER PREVIEW
+                <div className="bg-[#f8f7fb] p-4 text-slate-800 text-left font-nunito flex flex-col justify-between min-h-[22rem] relative overflow-hidden select-none border border-slate-200">
+                  {activeGroupObj.id === 'agenda_ui' ? (
+                    // AGENDA FILTER SIDEBAR MOCK
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <span className="text-[0.52rem] font-black uppercase tracking-wider text-[#291242]">{formData.agenda_filter_title || 'Filtros'}</span>
+                        <span className="text-[0.45rem] text-[#00c454] font-bold">{formData.agenda_filter_clear_btn || 'Limpiar'}</span>
+                      </div>
+                      
+                      <div className="space-y-2 flex-1 pt-1">
+                        {/* Dates Tabs */}
+                        <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-lg text-[0.42rem] font-bold text-center">
+                          <span className="bg-white shadow-sm py-1 rounded text-[#291242]">{formData.agenda_filter_date_exact || 'Fecha Exacta'}</span>
+                          <span className="py-1 text-slate-400">{formData.agenda_filter_date_month || 'Por Mes'}</span>
+                        </div>
+
+                        {/* Select label department */}
+                        <div className="space-y-1">
+                          <label className="text-[0.42rem] font-black uppercase tracking-wider text-slate-400">{formData.agenda_filter_department_label || 'Departamento'}</label>
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[0.48rem] text-slate-600 flex justify-between items-center">
+                            <span>{formData.agenda_filter_all_departments || 'Todos los departamentos'}</span>
+                            <span>▼</span>
+                          </div>
+                        </div>
+
+                        {/* Loading Mock Status Area */}
+                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-2 mt-auto text-center">
+                          <h6 className="text-[0.48rem] font-black text-emerald-800 leading-none">
+                            {formData.agenda_loading_title || 'Cargando agenda...'}
+                          </h6>
+                          <p className="text-[0.42rem] text-emerald-600 mt-0.5 leading-tight line-clamp-1">
+                            {formData.agenda_loading_desc || 'Sincronizando eventos...'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // GALLERY EXPLORER MOCK
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-3 flex-1 flex flex-col justify-between">
+                      {/* Search Bar & Header */}
+                      <div className="space-y-2">
+                        <span className="text-[#291242] font-alternate text-xs font-black uppercase tracking-wide block">
+                          {formData.gallery_hero_title || 'Álbumes y Memorias'}
+                        </span>
+                        
+                        {/* Search Input */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-full px-2.5 py-1 text-[0.48rem] text-slate-400 flex items-center gap-1.5">
+                          <span>🔍</span>
+                          <span>{formData.gallery_search_placeholder || 'Buscar por título...'}</span>
+                        </div>
+                      </div>
+
+                      {/* Collection filter */}
+                      <div className="flex gap-1.5 text-[0.42rem] font-bold">
+                        <span className="bg-[#291242] text-white px-2.5 py-1 rounded-full shadow-sm">
+                          {formData.gallery_filter_all_cats || 'Todos los álbumes'}
+                        </span>
+                      </div>
+
+                      {/* Mock Collection Loading Status */}
+                      <div className="bg-violet-50 border border-violet-100 rounded-xl p-2 text-center mt-auto">
+                        <h6 className="text-[0.48rem] font-black text-violet-800 leading-none">
+                          {formData.gallery_loading_title || 'Cargando galería...'}
+                        </h6>
+                        <p className="text-[0.42rem] text-violet-600 mt-0.5 leading-tight line-clamp-1">
+                          {formData.gallery_loading_desc || 'Estamos sincronizando álbumes...'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : activeGroupObj && activeGroupObj.id === 'map_hero' ? (
+                // 2. GEOVISOR WELCOME STEP 0 PREVIEW
+                <div className="bg-[#e4ebf5] p-4 text-slate-800 text-center font-nunito flex flex-col items-center justify-center min-h-[22rem] relative overflow-hidden select-none font-sans">
+                  {/* Grid Lines backdrop */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
+                  
+                  {/* Mock pins */}
+                  <div className="absolute top-1/4 left-1/3 h-2 w-2 rounded-full bg-violet-600 border border-white shadow animate-pulse pointer-events-none" />
+                  <div className="absolute bottom-1/4 right-1/4 h-2 w-2 rounded-full bg-violet-600 border border-white shadow pointer-events-none" />
+
+                  {/* Geovisor Overlaid Welcome Card */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xl max-w-[15rem] w-full text-center relative z-10 animate-fade-in flex flex-col items-center gap-2.5">
+                    {/* Circle globe icon */}
+                    <div className="h-9 w-9 rounded-full bg-[#00DA5E]/10 flex items-center justify-center text-[#00c454] relative">
+                      <div className="absolute inset-0 rounded-full bg-[#00DA5E]/20 animate-ping opacity-60 pointer-events-none" />
+                      <Globe size={18} />
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-[0.72rem] font-black text-slate-900 leading-tight">Bienvenido al Geovisor</h4>
+                      <p className="text-[0.52rem] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Mapa Ecosistémico</p>
+                    </div>
+
+                    <p className="text-[0.62rem] text-slate-500 leading-relaxed font-medium text-center">
+                      {formData.map_description || 'Mapeo interactivo georreferenciado de actores, lutieres, escuelas y festivales a nivel nacional, departamental y municipal.'}
+                    </p>
+
+                    {/* Step dots */}
+                    <div className="flex items-center gap-1 my-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-violet-600" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="bg-[#00DA5E] text-slate-950 font-black rounded-xl text-[0.58rem] py-2 w-full uppercase tracking-wide shadow-sm"
+                    >
+                      Iniciar Recorrido
+                    </button>
+                  </div>
+                </div>
+              ) : activeGroupObj && activeGroupObj.section === 'Ejes' ? (
+                // 3. EJES DETAIL PREVIEW
+                (() => {
+                  let axisId = '01';
+                  if (activeGroupObj.id === 'eje2_details') axisId = '02';
+                  if (activeGroupObj.id === 'eje3_details') axisId = '03';
+                  
+                  const activeTitle = formData[`eje${axisId}_title`] || '';
+                  const activePurpose = formData[`eje${axisId}_purpose`] || '';
+                  const activeDesc1 = formData[`eje${axisId}_desc1`] || '';
+
+                  return (
+                    <div className="bg-white p-5 text-left font-nunito flex flex-col justify-between min-h-[22rem] relative overflow-hidden select-none border border-slate-100">
+                      <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-gregor text-3xl text-[#8BF784] font-bold leading-none">{axisId}</span>
+                          <div className="h-px flex-1 bg-slate-100" />
+                        </div>
+                        <h4 className="font-alternate text-xs font-bold uppercase tracking-wide leading-tight text-[#291242] line-clamp-2">
+                          {activeTitle}
+                        </h4>
+                        <p className="text-[0.58rem] text-slate-600 leading-normal font-light line-clamp-3">
+                          {activeDesc1}
+                        </p>
+                        
+                        {activePurpose && (
+                          <div className="bg-[#291242] p-2.5 rounded-xl border border-white/5">
+                            <span className="text-[0.45rem] font-bold text-[#00DA5E] uppercase tracking-widest">Propósito</span>
+                            <p className="text-white/80 text-[0.52rem] font-medium leading-relaxed italic line-clamp-2 mt-0.5">
+                              "{activePurpose}"
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-slate-100 space-y-1">
+                          <span className="text-[0.45rem] font-black text-slate-400 uppercase tracking-widest block">Componente destacado</span>
+                          <div className="bg-slate-50 border border-slate-200/60 p-2 rounded-lg text-[0.5rem]">
+                            <h5 className="font-bold text-[#291242] uppercase tracking-wide">
+                              {formData[`eje${axisId}_c1_title`] || 'Componente 01'}
+                            </h5>
+                            <p className="text-slate-500 font-medium line-clamp-1 mt-0.5">
+                              {formData[`eje${axisId}_c1_desc`] || 'Detalle descriptivo...'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : activeGroupObj && activeGroupObj.section === 'Estrategias' ? (
+                // 4. STRATEGY DETAIL PREVIEW
+                <div className="bg-white p-5 text-left font-nunito flex flex-col justify-between min-h-[22rem] relative overflow-hidden select-none border border-slate-100">
+                  <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                    <span className="rounded bg-[#291242]/10 border border-[#291242]/20 px-1.5 py-0.5 text-[0.45rem] font-black text-[#291242] uppercase tracking-widest w-fit">
+                      ESTRATEGIA PNMC
+                    </span>
+                    <h4 className="font-alternate text-sm font-bold uppercase tracking-tight text-[#291242] leading-none">
+                      Celebra la Música
+                    </h4>
+                    <p className="text-[0.52rem] text-slate-400 leading-tight font-medium">
+                      {formData.strategy_celebra_hero_desc || 'Descripción superior...'}
+                    </p>
+
+                    <div className="bg-[#291242] text-white p-3 rounded-xl flex items-center justify-between gap-3 shadow-sm border border-white/5">
+                      <div className="space-y-1">
+                        <span className="text-[0.42rem] font-bold text-[#8BF784] uppercase tracking-wider block">14ª Edición</span>
+                        <h5 className="font-gregor text-lg font-bold leading-none">2025</h5>
+                        <p className="text-slate-300 text-[0.48rem] leading-normal font-light line-clamp-2">
+                          {formData.strategy_celebra_edition_intro || 'En 2025 Celebra la Música se renueva...'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[0.42rem] font-bold text-[#00DA5E] uppercase tracking-wider block">La Celebración</span>
+                      <p className="text-[#291242] font-semibold text-[0.55rem] leading-snug line-clamp-2">
+                        {formData.strategy_celebra_intro || 'La música llega a todos los rincones...'}
+                      </p>
+                      <p className="text-slate-500 font-medium text-[0.52rem] leading-normal line-clamp-2">
+                        {formData.strategy_celebra_mission || 'Propósito y conexión de artistas...'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : activeGroupObj ? (
+                // 5. STANDARD PAGE HERO PREVIEW
+                <div className="bg-gradient-to-br from-[#291242] to-[#150724] p-5 text-white text-left font-nunito flex flex-col justify-center min-h-[22rem] relative overflow-hidden select-none border border-white/5">
+                  <div className="absolute top-0 right-0 h-40 w-40 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
+                  
+                  {/* Back button mock */}
+                  <div className="inline-flex items-center gap-1 text-[0.55rem] font-bold text-white/50 mb-3 uppercase tracking-wider">
+                    <span>←</span> Volver
+                  </div>
+
+                  <span className="rounded bg-[#00DA5E]/10 border border-[#00DA5E]/20 px-1.5 py-0.5 text-[0.5rem] font-black text-[#00DA5E] uppercase tracking-widest w-fit mb-2">
+                    {activeGroupObj.section} PNMC
+                  </span>
+
+                  <h2 className="font-alternate text-sm md:text-base font-black uppercase tracking-wide leading-tight mb-2.5 text-white">
+                    {activeGroupObj.section === 'Agenda' ? 'Agenda de Eventos' :
+                     activeGroupObj.section === 'Noticias' ? 'Sala de Prensa' :
+                     activeGroupObj.section === 'Galería' ? 'Galería Fotográfica' :
+                     'Publicaciones Editoriales'}
+                  </h2>
+
+                  <p className="text-[0.65rem] text-white/70 leading-relaxed font-medium max-w-sm">
+                    {formData[activeGroupObj.keys[0]] || 'Texto introductorio de la sección...'}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-center text-xs text-slate-400">Sin previsualización activa.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Collapsible Version History Helper Component */
+const CollapsibleHistory = ({ keyName, details, onRestore }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const historyList = details?.history || [];
+
+  if (historyList.length === 0) return null;
+
+  return (
+    <div className="mt-1.5 pt-1.5 border-t border-slate-100">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 text-[0.6rem] font-bold text-slate-400 hover:text-slate-600 select-none"
+      >
+        <span className="text-[0.45rem]">{isOpen ? '▼' : '▶'}</span>
+        Ver historial de cambios ({historyList.length})
+      </button>
+      
+      {isOpen && (
+        <div className="mt-2 space-y-1.5 max-h-[10rem] overflow-y-auto pr-1">
+          {historyList.slice().reverse().map((item, idx) => (
+            <div key={idx} className="bg-slate-100/60 hover:bg-slate-100 rounded-lg p-2 text-[0.62rem] border border-slate-200 transition flex items-start justify-between gap-3">
+              <div className="space-y-0.5 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-slate-700">{item.updatedBy}</span>
+                  <span className="text-slate-400">{item.updatedAt}</span>
+                  <span className="text-[0.52rem] rounded px-1.5 bg-slate-200 text-slate-500 font-bold uppercase">{item.status}</span>
+                </div>
+                <p className="text-slate-600 line-clamp-2 leading-relaxed">"{item.content}"</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRestore(keyName, item.content)}
+                className="rounded bg-[#291242] hover:bg-[#1d0b30] text-white px-2 py-1 text-[0.52rem] font-black uppercase tracking-wider self-center shrink-0 transition"
+              >
+                Restaurar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SIDEBAR NAV SECTIONS
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -5113,6 +6862,8 @@ const NAV_SECTIONS = [
       { id: 'communications', label: 'Comunicaciones', icon: Newspaper },
       { id: 'entities', label: 'Entidades base', icon: Building2 },
       { id: 'review', label: 'Revisión', icon: ClipboardList },
+      { id: 'governance', label: 'Gestión de solicitudes y vinculaciones', icon: Cpu, allowedRoles: ['webmaster', 'gestor_interno'] },
+      { id: 'web_texts', label: 'Administración de textos', icon: FileText, allowedRoles: ['webmaster', 'gestor_interno'] },
     ],
   },
   {
@@ -5182,6 +6933,19 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
   ]);
 
   const [reviewToast, setReviewToast] = useState({ show: false, type: 'success', message: '' });
+
+  const [showWelcomeTour, setShowWelcomeTour] = useState(false);
+  const [tourStep, setTourStep] = useState(1);
+
+  useEffect(() => {
+    if (session) {
+      const tourSeen = localStorage.getItem('pnmc_tour_seen_' + session.email);
+      if (!tourSeen) {
+        setShowWelcomeTour(true);
+        setTourStep(1);
+      }
+    }
+  }, [session]);
 
   const roleId = session?.role || 'gestor';
   const modules = useMemo(() => getModulesForRole(roleId), [roleId]);
@@ -5460,7 +7224,11 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
 
   const visibleNavSections = NAV_SECTIONS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.webmasterOnly || roleId === 'webmaster'),
+    items: group.items.filter((item) => {
+      if (item.allowedRoles) return item.allowedRoles.includes(roleId);
+      if (item.webmasterOnly) return roleId === 'webmaster';
+      return true;
+    }),
   })).filter((group) => group.items.length > 0);
 
   const roleColors = { webmaster: 'text-violet-400', editor: 'text-blue-400', lider: 'text-amber-400', gestor: 'text-slate-400' };
@@ -5630,6 +7398,12 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
           {activeSection === 'system' && (
             <AdminSystemPanel schemaOnline={schemaOnline} stats={stats} divipola={divipola} />
           )}
+          {activeSection === 'governance' && (
+            <AdminGovernancePanel enabled={roleId === 'webmaster' || roleId === 'gestor_interno'} />
+          )}
+          {activeSection === 'web_texts' && (
+            <AdminWebTextsPanel enabled={roleId === 'webmaster' || roleId === 'gestor_interno'} session={session} />
+          )}
         </div>
       </main>
 
@@ -5652,7 +7426,7 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
       )}
 
       {reviewToast.show && (
-        <div className={`fixed bottom-6 right-6 z-[6000] max-w-md bg-slate-950/95 backdrop-blur-md text-white rounded-2xl border shadow-2xl p-4 flex items-start gap-3 animate-fade-in ${
+        <div className={`fixed bottom-24 right-6 z-[6000] max-w-md bg-slate-950/95 backdrop-blur-md text-white rounded-2xl border shadow-2xl p-4 flex items-start gap-3 animate-fade-in ${
           reviewToast.type === 'success' ? 'border-emerald-500/30' :
           reviewToast.type === 'warning' ? 'border-amber-500/30' : 'border-red-500/30'
         }`}>
@@ -5676,6 +7450,310 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
           </button>
         </div>
       )}
+
+      {showWelcomeTour && (
+        <WelcomeTourModal
+          roleId={roleId}
+          step={tourStep}
+          setStep={setTourStep}
+          onClose={() => {
+            setShowWelcomeTour(false);
+            localStorage.setItem('pnmc_tour_seen_' + session.email, 'true');
+          }}
+        />
+      )}
+
+      {/* Floating Tutorial Button */}
+      {session && (
+        <button
+          type="button"
+          onClick={() => {
+            setTourStep(1);
+            setShowWelcomeTour(true);
+          }}
+          className="fixed bottom-6 right-6 z-[5000] group flex items-center gap-2 rounded-full bg-[#00DA5E] hover:bg-[#00c454] px-3.5 py-3.5 text-xs font-black text-[#1a0a2c] shadow-2xl transition-all duration-300 hover:scale-105"
+          title="Ver tutorial de bienvenida"
+          style={{
+            boxShadow: '0 10px 25px -5px rgba(0, 218, 94, 0.4), 0 0 15px rgba(0, 218, 94, 0.2)'
+          }}
+        >
+          <Sparkles size={16} className="animate-pulse" />
+          <span className="max-w-0 overflow-hidden font-alternate uppercase tracking-wider transition-all duration-500 group-hover:max-w-[120px] whitespace-nowrap text-[0.68rem] font-bold">
+            Tutorial
+          </span>
+        </button>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ONBOARDING WELCOME TOUR WIZARD
+═══════════════════════════════════════════════════════════════════════════ */
+
+const TOUR_STEPS = {
+  webmaster: [
+    {
+      title: "Consola de Webmaster",
+      description: "¡Bienvenido! Tienes control total y acceso privilegiado a todos los rincones del Plan Nacional de Música para la Convivencia.",
+      badge: "Rol: Webmaster",
+      icon: ShieldCheck,
+      details: [
+        "Monitoreo técnico de latencia de base de datos y logs de auditoría en vivo.",
+        "Mantenimiento maestro de usuarios globales y asignación rápida de roles.",
+        "Importaciones masivas de datos mediante hojas de cálculo Excel y CSV."
+      ]
+    },
+    {
+      title: "Administración Central de Textos",
+      description: "Edita y actualiza cualquier copy o etiqueta que no venga de la base de datos.",
+      badge: "CMS de Textos",
+      icon: FileText,
+      details: [
+        "Clasificación estricta por páginas: Home, Agenda, Galería, Noticias, Ejes, etc.",
+        "Sub-selector interactivo de Ejes Estratégicos para aislar componentes de edición.",
+        "Previsualizadores Hifi interactivos que reproducen el render real en vivo."
+      ]
+    },
+    {
+      title: "Gestión de Solicitudes y Vinculaciones",
+      description: "Verifica vinculaciones y reclamaciones hechas por colaboradores externos.",
+      badge: "Gobernanza",
+      icon: Cpu,
+      details: [
+        "Aprobación o rechazo directo de solicitudes de vinculación territorial.",
+        "Resolución inteligente de duplicados basados en porcentajes de similitud.",
+        "Evaluación de alertas automáticas de calidad en el mapa ecosistémico."
+      ]
+    }
+  ],
+  gestor_interno: [
+    {
+      title: "Moderador de Componentes",
+      description: "¡Bienvenido! Tu rol es primordial para acompañar y curar la información de tu componente territorial.",
+      badge: "Rol: Gestor Interno",
+      icon: ClipboardList,
+      details: [
+        "Revisar y verificar escuelas de música, lutieres y festivales reportados.",
+        "Solicitar ajustes específicos con comentarios dirigidos por cada campo.",
+        "Verificar y mantener la consistencia geográfica del mapa nacional."
+      ]
+    },
+    {
+      title: "Bandeja de Gobernanza y Solicitudes",
+      description: "Acompaña las vinculaciones institucionales en tiempo real.",
+      badge: "Solicitudes de Redes",
+      icon: Cpu,
+      details: [
+        "Aprobar vinculaciones territoriales para dar control editorial a colaboradores.",
+        "Resolver alertas de coordenadas geográficas fuera de los límites DIVIPOLA.",
+        "Administrar textos y copys de los contenidos de comunicación de tu área."
+      ]
+    }
+  ],
+  lider: [
+    {
+      title: "Portal de Aliados Institucionales",
+      description: "¡Bienvenido! Aquí coordinas las escuelas, luterías y festivales asociados a tu entidad.",
+      badge: "Rol: Aliado Coordinador",
+      icon: Building2,
+      details: [
+        "Acceso exclusivo al panel de KPI y estadísticas de tu componente.",
+        "Monitorear la distribución de tus registros geolocalizados por departamento.",
+        "Administrar usuarios editores y lectores de tu propia red aliada."
+      ]
+    },
+    {
+      title: "Vinculaciones y Cargas Colaborativas",
+      description: "Conecta a tus redes locales al mapa ecosistémico nacional.",
+      badge: "Registros de Red",
+      icon: Network,
+      details: [
+        "Carga individual y masiva de procesos formativos y artísticos.",
+        "Monitorear solicitudes de reclamación de registros preexistentes.",
+        "Colaboración bidireccional directa con los gestores internos del Ministerio."
+      ]
+    }
+  ],
+  gestor: [
+    {
+      title: "¡Bienvenido al Portal de Colaboradores!",
+      description: "Tu participación es fundamental para enriquecer el Mapa Ecosistémico del Plan Nacional de Música para la Convivencia (PNMC).",
+      badge: "Mapeo Colectivo",
+      icon: Sparkles,
+      details: [
+        "Buscamos mapear y visibilizar escuelas de música, lutieres y festivales de todo el país.",
+        "Una vez registrado, podrás reclamar registros existentes o crear nuevos.",
+        "¡Tu labor preserva y fomenta la memoria musical territorial de Colombia!"
+      ]
+    },
+    {
+      title: "Paso 1: Confirmación de Correo y Cuenta",
+      description: "Has realizado un registro básico de usuario para ingresar al portal.",
+      badge: "Activación Exitosa",
+      icon: Mail,
+      details: [
+        "Confirmación de tu correo electrónico mediante el código temporal.",
+        "Acceso directo y seguro a tu panel personal de colaborador.",
+        "Preparación para vincular tu organización cultural."
+      ]
+    },
+    {
+      title: "Paso 2: Caracterización de tu Entidad",
+      description: "El primer paso indispensable es completar la ficha de caracterización en el panel.",
+      badge: "Wizard en 3 Pasos",
+      icon: Building2,
+      details: [
+        "Paso 1: Identidad (Razón social, NIT o documento, descripción cultural).",
+        "Paso 2: Datos de Contacto (Teléfono, correo electrónico, redes sociales).",
+        "Paso 3: Ubicación (Departamento y Municipio de la DIVIPOLA)."
+      ]
+    },
+    {
+      title: "Paso 3: Escaneo Histórico Automático",
+      description: "Al enviar tu caracterización, el sistema iniciará una búsqueda inteligente en segundo plano.",
+      badge: "DIVIPOLA Smart Scan",
+      icon: Search,
+      details: [
+        "El Plan Nacional posee miles de registros históricos mapeados por el Ministerio de las Culturas.",
+        "Buscamos automáticamente coincidencias de escuelas, lutieres y festivales en tu municipio.",
+        "Te enviaremos una notificación cuando finalice el escaneo (en unos segundos)."
+      ]
+    },
+    {
+      title: "Paso 4: Reclamar Coincidencias en Borrador",
+      description: "Tu panel habilitará una 'Bandeja de Reclamaciones Históricas' con los posibles aciertos.",
+      badge: "Previsualizar, Reclamar y Editar",
+      icon: ClipboardList,
+      details: [
+        "Podrás previsualizar los detalles del registro encontrado.",
+        "Si confirmas que te pertenece, reclámalo y se moverá a tus procesos como un Borrador (Draft).",
+        "Podrás actualizar su descripción, teléfonos o fotos y reenviarlo a revisión para su publicación final."
+      ]
+    }
+  ]
+};
+
+const WelcomeTourModal = ({ roleId, step, setStep, onClose }) => {
+  const steps = TOUR_STEPS[roleId] || TOUR_STEPS['gestor'];
+  const currentStepIndex = Math.min(step - 1, steps.length - 1);
+  const currentStep = steps[currentStepIndex];
+  
+  if (!currentStep) return null;
+  
+  const IconComponent = currentStep.icon;
+  const totalSteps = steps.length;
+  
+  const handleNext = () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    } else {
+      onClose();
+    }
+  };
+  
+  const handlePrev = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+  
+  return (
+    <div className="fixed inset-0 z-[8000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div 
+        className="w-full max-w-lg bg-gradient-to-br from-[#291242] to-[#1a0a2c] text-white rounded-3xl shadow-2xl border border-white/10 overflow-hidden animate-fade-in flex flex-col relative"
+        style={{
+          boxShadow: '0 0 50px rgba(0, 218, 94, 0.15), inset 0 0 20px rgba(255, 255, 255, 0.05)'
+        }}
+      >
+        {/* Decorative Top Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#00DA5E]/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Header */}
+        <div className="px-6 pt-6 flex items-center justify-between relative z-10">
+          <span className="rounded-full bg-[#00DA5E]/15 border border-[#00DA5E]/30 px-3 py-1 text-[0.62rem] font-bold text-[#00DA5E] uppercase tracking-widest">
+            {currentStep.badge}
+          </span>
+          <button 
+            type="button"
+            onClick={onClose}
+            className="text-white/40 hover:text-white/80 transition p-1.5 rounded-lg bg-white/5 border border-[#00DA5E]/20 hover:border-[#00DA5E]/30"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        
+        {/* Core Content */}
+        <div className="px-6 py-8 flex flex-col items-center text-center relative z-10 flex-1 space-y-6">
+          <div className="h-16 w-16 bg-[#00DA5E]/10 border border-[#00DA5E]/20 text-[#00DA5E] rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            <IconComponent size={30} className="animate-bounce animate-pulse" />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="font-alternate text-lg font-black uppercase tracking-wider text-white">
+              {currentStep.title}
+            </h2>
+            <p className="text-xs text-white/70 leading-relaxed max-w-sm">
+              {currentStep.description}
+            </p>
+          </div>
+          
+          {/* Details Bullet Points Card */}
+          <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-left space-y-2.5 backdrop-blur-sm">
+            {currentStep.details.map((detail, idx) => (
+              <div key={idx} className="flex items-start gap-2.5">
+                <span className="h-4 w-4 rounded-full bg-[#00DA5E]/25 text-[#00DA5E] flex items-center justify-center text-[0.55rem] font-black shrink-0 mt-0.5 border border-[#00DA5E]/35">
+                  ✓
+                </span>
+                <p className="text-[0.7rem] font-medium text-white/85 leading-relaxed">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Footer Actions */}
+        <div className="bg-black/20 border-t border-white/10 px-6 py-5 flex items-center justify-between relative z-10 font-nunito">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-white/40 hover:text-white/80 transition text-xs font-bold uppercase tracking-wider"
+          >
+            Omitir
+          </button>
+          
+          {/* Step Indicator dots */}
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: totalSteps }).map((_, idx) => (
+              <span 
+                key={idx} 
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === currentStepIndex ? 'w-4 bg-[#00DA5E]' : 'w-1.5 bg-white/20'
+                }`}
+              />
+            ))}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="rounded-xl border border-white/10 hover:bg-white/5 px-3 py-2 text-xs font-bold text-white transition flex items-center justify-center"
+              >
+                Atrás
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleNext}
+              className="rounded-xl bg-[#00DA5E] hover:bg-[#00c454] px-4 py-2 text-xs font-black text-[#1a0a2c] transition flex items-center justify-center gap-1 uppercase tracking-wider shadow-md"
+            >
+              {step === totalSteps ? 'Comenzar' : 'Siguiente'}
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getWebText } from '../../../lib/webTexts.js';
 import {
   ArrowRight,
   BarChart3,
@@ -18,6 +19,7 @@ import {
   Search,
   X,
   Globe,
+  Plus,
 } from 'lucide-react';
 import L from 'leaflet';
 import { GeoJSON, MapContainer, Marker, TileLayer, CircleMarker, Tooltip, Circle, useMap } from 'react-leaflet';
@@ -82,6 +84,7 @@ const TOOLBAR_ITEMS = [
   { id: MAP_PANEL_IDS.layers, label: 'Capas', Icon: Layers3 },
   { id: MAP_PANEL_IDS.filters, label: 'Filtros', Icon: Filter },
   { id: MAP_PANEL_IDS.insights, label: 'Modos', Icon: Eye },
+  { id: MAP_PANEL_IDS.registration, label: 'Registrar', Icon: Plus },
   { id: MAP_PANEL_IDS.export, label: 'Exportar', Icon: Download },
   { id: MAP_PANEL_IDS.tutorial, label: 'Ayuda', Icon: CircleHelp },
 ];
@@ -296,6 +299,7 @@ const MapEdgeToolbar = ({ activePanel, onTogglePanel, onPrint }) => (
       <div className="flex flex-col gap-1.5">
         {TOOLBAR_ITEMS.map(({ id, label, Icon: IconComponent }) => {
           const isActive = activePanel === id;
+          const isRegistration = id === MAP_PANEL_IDS.registration;
 
           return (
             <button
@@ -304,13 +308,24 @@ const MapEdgeToolbar = ({ activePanel, onTogglePanel, onPrint }) => (
               onClick={() => onTogglePanel(id)}
               className={`group relative flex h-11 w-11 items-center justify-center rounded-xl border transition-all ${
                 isActive
-                  ? 'border-[#291242] bg-[#291242] text-white'
+                  ? 'border-[#291242] bg-[#291242] text-white shadow-md'
+                  : isRegistration
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
                   : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-[#291242]'
               }`}
               title={label}
               aria-label={label}
             >
               {React.createElement(IconComponent, { size: 17 })}
+              
+              {/* Pulsing indicator for registration to invite clicks */}
+              {isRegistration && !isActive && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                </span>
+              )}
+
               <span className="pointer-events-none absolute right-[calc(100%+10px)] hidden whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 text-[0.52rem] font-bold uppercase tracking-[0.12em] text-slate-500 shadow-sm group-hover:block">
                 {label}
               </span>
@@ -2324,9 +2339,7 @@ const MapaEcosistemicoPage = ({ navigationRequest, onOpenParticipation }) => {
                   influenceDisplayType={influenceDisplayType}
                   activeCategory={activeCategory}
                 />
-                {onOpenParticipation ? (
-                  <MapaRegistrationCallout onRegister={onOpenParticipation} />
-                ) : null}
+
                 <MapZoomControls initialBounds={paddedColombiaBounds} />
                 <GeoJSON
                   key={`base-layer-${activeCategory}-${visualizationMode}-${influenceDisplayType}-${activeAnalytics.totalRecords}-${activeAnalytics.activeDepartments}`}
@@ -2801,6 +2814,41 @@ const MapaEcosistemicoPage = ({ navigationRequest, onOpenParticipation }) => {
             </MapEdgeOverlayPanel>
           )}
 
+          {activePanel === MAP_PANEL_IDS.registration && (
+            <MapEdgeOverlayPanel
+              title="Registrar procesos"
+              subtitle="Participa en la construcción de la cartografía interactiva de la música colombiana."
+              onClose={() => setActivePanel(null)}
+            >
+              <div className="space-y-4 text-left">
+                <div className="flex items-center justify-center rounded-2xl bg-emerald-50 p-6 text-emerald-600 border border-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.06)] animate-in zoom-in duration-300">
+                  <Mail size={32} className="animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">¿Cómo funciona?</p>
+                  <p className="text-[11px] leading-relaxed text-slate-500">
+                    El Plan Nacional de Música para la Convivencia (PNMC) invita a todos los agentes musicales del país (festivales, escuelas de música, mercados, redes y lutieres) a ser visibles.
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-slate-500">
+                    Inscribe tu proceso en el sistema oficial para enriquecer este mapeo ecosistémico y fortalecer la circulación y gobernanza musical.
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActivePanel(null);
+                    onOpenParticipation();
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-emerald-700 shadow-md focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                >
+                  Registrar procesos
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </MapEdgeOverlayPanel>
+          )}
+
           {isTutorialOpen && (
             <div
               className={
@@ -2842,7 +2890,7 @@ const MapaEcosistemicoPage = ({ navigationRequest, onOpenParticipation }) => {
                     </h3>
                   </div>
                   <p className="text-[11.5px] leading-relaxed text-slate-600">
-                    {TUTORIAL_STEPS[tutorialStep].description}
+                    {tutorialStep === 0 ? getWebText('map_description') : TUTORIAL_STEPS[tutorialStep].description}
                   </p>
                 </div>
 

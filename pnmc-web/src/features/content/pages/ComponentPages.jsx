@@ -7,6 +7,7 @@ import {
   SectionHeader,
 } from '../../shared/components/PagePrimitives.jsx';
 import { Button } from '../../../components/ui/index.js';
+import { getWebText } from '../../../lib/webTexts.js';
 
 const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorialResource }) => {
   const relatedEditorialResources = component.id === 'c2-3'
@@ -31,7 +32,7 @@ const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorial
     : 'Incremento en la participación ciudadana y profesionalización de los actores vinculados a esta área específica.';
 
   return (
-    <div className="bg-white min-h-screen text-left pb-20">
+    <div className="bg-white min-h-screen text-left pb-20 font-nunito">
       <PageHero 
         title={component.name}
         titleTone="split-lines"
@@ -61,8 +62,8 @@ const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorial
                 <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
                   <h4 className="font-alternate text-[#291242] text-xl uppercase font-bold mb-4">Impacto Esperado</h4>
                   <div className="flex items-start gap-3 text-sm text-slate-500 font-nunito leading-relaxed">
-                    <CheckCircle2 size={16} className="text-[#00DA5E] mt-0.5 shrink-0" />
-                    <p>{expectedImpact}</p>
+                     <CheckCircle2 size={16} className="text-[#00DA5E] mt-0.5 shrink-0" />
+                     <p>{expectedImpact}</p>
                   </div>
                 </div>
               </div>
@@ -125,7 +126,7 @@ const ComponentSubPage = ({ component, onBack, onNavigate, onNavigateToEditorial
                   <div className="absolute inset-0 bg-[#291242]/50"></div>
                   <div className="absolute inset-0 bg-gradient-to-t from-[#291242]/94 via-[#291242]/76 to-[#291242]/24"></div>
                   <div className="relative z-10 h-full min-h-[280px] p-8 flex flex-col justify-center">
-                    <span className="text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[#8BF784]">Estrategia relacionada</span>
+                    <span className="text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[#8BF784]">estrategia relacionada</span>
                     <h3 className="font-gregor text-3xl text-white font-bold uppercase leading-none tracking-tighter mt-4">Mercados Musicales</h3>
                     <p className="mt-5 text-[0.9rem] text-slate-200 font-nunito leading-relaxed">
                       Espacios de intercambio, conexión profesional y visibilización que fortalecen las redes del ecosistema musical y abren oportunidades de circulación para artistas, gestores y proyectos.
@@ -186,14 +187,32 @@ const ComponentRoutePage = ({
   ejesData = [],
 }) => {
   const { componentId = '' } = useParams();
-  const foundComponent = useMemo(
-    () => findEjeComponentById(ejesData, componentId),
-    [componentId, ejesData],
+  const cmsComponent = useMemo(
+    () => {
+      const baseComp = findEjeComponentById(ejesData, componentId);
+      if (!baseComp) return null;
+      // comp.id is like 'c1-1', 'c2-3', 'c3-2'
+      const match = baseComp.id.match(/^c(\d+)-(\d+)$/);
+      if (match) {
+        const ejeNum = match[1].padStart(2, '0');
+        const compNum = match[2];
+        const cmsTitle = getWebText(`eje${ejeNum}_c${compNum}_title`);
+        const cmsDesc = getWebText(`eje${ejeNum}_c${compNum}_desc`);
+        return {
+          ...baseComp,
+          name: cmsTitle || baseComp.name,
+          details: cmsDesc || baseComp.details,
+          fullText: cmsDesc ? [cmsDesc] : baseComp.fullText,
+        };
+      }
+      return baseComp;
+    },
+    [componentId, ejesData]
   );
 
-  if (!foundComponent) {
+  if (!cmsComponent) {
     return (
-      <div className="bg-white min-h-screen pt-32 px-8 text-left">
+      <div className="bg-white min-h-screen pt-32 px-8 text-left font-nunito">
         <div className="relative mb-4 lg:mb-6 w-full text-left">
           <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-[1.1] text-3xl lg:text-5xl text-balance">Componente no encontrado</h2>
         </div>
@@ -207,7 +226,7 @@ const ComponentRoutePage = ({
 
   return (
     <ComponentSubPage
-      component={foundComponent}
+      component={cmsComponent}
       onBack={onBack}
       onNavigate={onNavigate}
       onNavigateToEditorialResource={onNavigateToEditorialResource}
@@ -216,7 +235,7 @@ const ComponentRoutePage = ({
 };
 
 const UnknownRoutePage = ({ onGoHome }) => (
-  <div className="bg-white min-h-screen pt-32 px-8 text-left">
+  <div className="bg-white min-h-screen pt-32 px-8 text-left font-nunito">
     <div className="relative mb-4 lg:mb-6 w-full text-left">
       <h2 className="font-gregor text-[#291242] uppercase tracking-tighter leading-[1.1] text-3xl lg:text-5xl text-balance">En Desarrollo</h2>
     </div>

@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 echo "[pnmc] Iniciando backend (.NET) en nueva terminal..."
 osascript <<APPLESCRIPT
  tell application "Terminal"
-   do script "cd '$ROOT_DIR/pnmc-api' && dotnet run --project src/PNMC.Api/PNMC.Api.csproj"
+   do script "cd '$ROOT_DIR' && ./scripts/local-db-up.sh && ./scripts/api-local.sh"
    activate
  end tell
 APPLESCRIPT

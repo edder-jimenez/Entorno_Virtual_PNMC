@@ -131,9 +131,9 @@ export const MapaEcosistemicoPreview = ({ onNavigateToMapLayer, onOpenParticipat
               <img
                 src={cat.img}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
+                className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 grayscale-[40%] brightness-95 opacity-80 group-hover:grayscale-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-[#8BF784]/15 group-hover:opacity-0 transition-opacity duration-700"></div>
+              <div className="absolute inset-0 bg-[#291242]/20 group-hover:opacity-0 transition-opacity duration-700"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#291242] via-transparent to-transparent group-hover:from-[#291242]/90 transition-all"></div>
               <div className="relative h-full p-6 flex flex-col justify-end text-left">
                 <span className="text-[0.55rem] font-bold text-[#8BF784] uppercase font-alternate tracking-[0.18em] mb-1 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500">

@@ -29,10 +29,18 @@ const AdminShellPage = lazy(() => ADMIN_SHELL_PAGE_IMPORT().then((module) => ({ 
 
 const ROUTE_FALLBACK = (
   <div
-    className="min-h-[40vh]"
+    className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-[#291242] animate-fade-in"
     aria-live="polite"
     aria-busy="true"
-  />
+  >
+    <div className="relative flex h-12 w-12 items-center justify-center">
+      <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
+      <div className="absolute inset-0 rounded-full border-4 border-t-[#291242] border-r-[#00DA5E] animate-spin" />
+    </div>
+    <span className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-[#291242]/70 font-alternate">
+      Consolidando contenidos...
+    </span>
+  </div>
 );
 
 const withSuspense = (element) => (

@@ -1,0 +1,33 @@
+export const ADMIN_ACTIONS = {
+  read: 'read',
+  readPrivileged: 'read_privileged',
+  create: 'create',
+  edit: 'edit',
+  editOwn: 'edit_own',
+  editEntityRecords: 'edit_entity_records',
+  submitReview: 'submit_review',
+  review: 'review',
+  requestChanges: 'request_changes',
+  reject: 'reject',
+  approve: 'approve',
+  publish: 'publish',
+  archive: 'archive',
+  import: 'import',
+  export: 'export',
+  useAssistant: 'use_assistant',
+  extractFromDocument: 'extract_from_document',
+  manageGlobalUsers: 'manage_global_users',
+  manageEntityUsers: 'manage_entity_users',
+  manageSiteTexts: 'manage_site_texts',
+  manageSystem: 'manage_system',
+  viewAudit: 'view_audit',
+};
+
+export const RECORD_CREATION_OPTIONS = {
+  manual: 'manual',
+  guided: 'guided',
+  importTemplate: 'import_template',
+  extractDocument: 'extract_document',
+  pasteBaseText: 'paste_base_text',
+  uploadMedia: 'upload_media',
+};

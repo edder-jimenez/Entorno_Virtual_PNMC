@@ -104,8 +104,9 @@ export const NoticiasAgendaPreview = ({ onNavigate, onNavigateToArticle, onNavig
 
                     {featuredGroup.slice(1, 3).map((item, idx) => (
                       <article key={idx} onClick={() => onNavigateToArticle(item)} className="col-span-12 md:col-span-6 group cursor-pointer bg-white rounded-3xl overflow-hidden border border-slate-100 flex min-h-[170px] h-auto transition-all duration-500 hover:shadow-lg">
-                        <div className="w-1/3 min-h-[170px] overflow-hidden shrink-0">
-                          <img src={item.img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt="" />
+                        <div className="w-1/3 min-h-[170px] overflow-hidden shrink-0 relative">
+                          <img src={item.img} className="w-full h-full object-cover grayscale-[40%] brightness-95 opacity-80 group-hover:grayscale-0 group-hover:brightness-100 group-hover:opacity-100 transition-all duration-700" alt="" />
+                          <div className="absolute inset-0 bg-[#291242]/20 group-hover:opacity-0 transition-opacity duration-700"></div>
                         </div>
                         <div className="w-2/3 p-5 text-left flex flex-col justify-center relative bg-white">
                           <span className="text-[0.45rem] font-bold text-[#00DA5E] uppercase tracking-widest">{item.date}</span>

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const APP_GLOBAL_STYLES = `
-        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700&family=Oswald:wght@400;600;700&display=swap'); 
+        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700&family=Oswald:wght@400;600;700&family=Outfit:wght@400;600;800;900&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap'); 
         :root {
           --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
           --type-step-1: 0.75rem;
@@ -17,6 +17,8 @@ const APP_GLOBAL_STYLES = `
         }
         .font-gregor { font-family: 'Impact', 'Oswald', sans-serif; } 
         .font-alternate { font-family: 'Oswald', sans-serif; letter-spacing: 0.04em !important; } 
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-nunito { font-family: 'Nunito Sans', sans-serif; } 
         html { scroll-behavior: smooth; } 
         body {
@@ -41,8 +43,8 @@ const APP_GLOBAL_STYLES = `
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.02); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #291242; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(41, 18, 66, 0.15); border-radius: 10px; border: 1.5px solid transparent; background-clip: padding-box; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #00DA5E; }
         .thin-horizontal-scrollbar::-webkit-scrollbar { height: 3px; }
         .thin-horizontal-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -181,6 +183,46 @@ const APP_GLOBAL_STYLES = `
           font-weight: 700 !important;
           text-transform: uppercase !important;
           letter-spacing: 0.04em !important;
+        }
+
+        /* High-Performance Page Entrance & Loading Transitions */
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes pageSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-out forwards;
+        }
+        .animate-page-entrance {
+          animation: pageSlideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Premium Micro-Interactions: Push Feedback for Buttons */
+        button, a.btn, .btn-link {
+          transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        button:active, a.btn:active, .btn-link:active {
+          transform: scale(0.96) !important;
+        }
+
+        /* Webkit Input Autofill Premium Override for Dark Layouts */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #181126 inset !important;
+          -webkit-text-fill-color: white !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
 `;
 

@@ -386,6 +386,9 @@ public sealed class EditorialResourceUpsertRequest
 public sealed class AdminRecordStatusRequest
 {
     public string Status { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public string? RejectionReason { get; set; }
+    public string? ObservedFieldsJson { get; set; }
 }
 
 public sealed class ProcessEntityRelationUpsertRequest
@@ -423,7 +426,9 @@ public sealed record AdminUserDto(
     string Role,
     string RoleLabel,
     bool IsActive,
-    DateTime? LastLoginAt
+    DateTime? LastLoginAt,
+    string? AllyEntityId = null,
+    string? AllyEntityName = null
 );
 
 public sealed record AdminAuthResponse(AdminUserDto User);
@@ -534,6 +539,220 @@ public sealed class AdminEntitySourceRecordRequest
     public string EcosystemRecordId { get; set; } = string.Empty;
     public bool IsPrimary { get; set; } = true;
 }
+
+public sealed record AdminAllyRequestDto(
+    string Id,
+    string EntityName,
+    string EntityType,
+    string Nit,
+    string DepartmentCode,
+    string MunicipalityCode,
+    string InstitutionalEmail,
+    string InstitutionalPhone,
+    string AdminName,
+    string AdminEmail,
+    string Status,
+    string ReviewComment,
+    string? AllyEntityId,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+public sealed class AdminAllyRequestCreateRequest
+{
+    public string EntityName { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public string Nit { get; set; } = string.Empty;
+    public string DepartmentCode { get; set; } = string.Empty;
+    public string MunicipalityCode { get; set; } = string.Empty;
+    public string InstitutionalEmail { get; set; } = string.Empty;
+    public string InstitutionalPhone { get; set; } = string.Empty;
+    public string AdminName { get; set; } = string.Empty;
+    public string AdminEmail { get; set; } = string.Empty;
+}
+
+public sealed class AdminAllyRequestStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public sealed record NotificationDto(
+    string Id,
+    string? RecipientUserId,
+    string RecipientEmail,
+    string EventType,
+    string Channel,
+    string Title,
+    string Body,
+    string Status,
+    string ModuleId,
+    string RecordId,
+    DateTime CreatedAt,
+    DateTime? SentAt,
+    DateTime? ReadAt
+);
+
+public sealed class NotificationCreateRequest
+{
+    public string RecipientEmail { get; set; } = string.Empty;
+    public string EventType { get; set; } = string.Empty;
+    public string Channel { get; set; } = "internal";
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string ModuleId { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public string MetadataJson { get; set; } = string.Empty;
+}
+
+public sealed record RecordLinkRequestDto(
+    string Id,
+    string ModuleId,
+    string RecordId,
+    string RequestingUserId,
+    string? AllyEntityId,
+    string RequestedScope,
+    string Reason,
+    string EvidenceText,
+    string Status,
+    string ReviewComment,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+public sealed class RecordLinkRequestCreateRequest
+{
+    public string ModuleId { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public string RequestedScope { get; set; } = "responsable";
+    public string Reason { get; set; } = string.Empty;
+    public string EvidenceText { get; set; } = string.Empty;
+}
+
+public sealed class RecordLinkRequestStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public sealed record RecordDuplicateCandidateDto(
+    string Id,
+    string ModuleId,
+    string SourceRecordId,
+    string CandidateRecordId,
+    string SimilarityLevel,
+    decimal? SimilarityScore,
+    string EvidenceJson,
+    string Status,
+    string Decision,
+    string DecisionComment,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+public sealed class RecordDuplicateCandidateCreateRequest
+{
+    public string ModuleId { get; set; } = string.Empty;
+    public string SourceRecordId { get; set; } = string.Empty;
+    public string CandidateRecordId { get; set; } = string.Empty;
+    public string SimilarityLevel { get; set; } = "media";
+    public decimal? SimilarityScore { get; set; }
+    public string EvidenceJson { get; set; } = "{}";
+}
+
+public sealed class RecordDuplicateDecisionRequest
+{
+    public string Decision { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public sealed record RecordQualityFlagDto(
+    string Id,
+    string ModuleId,
+    string RecordId,
+    string FlagType,
+    string Severity,
+    string Status,
+    string Detail,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+public sealed class RecordQualityFlagCreateRequest
+{
+    public string ModuleId { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public string FlagType { get; set; } = string.Empty;
+    public string Severity { get; set; } = "media";
+    public string Detail { get; set; } = string.Empty;
+}
+
+public sealed class RecordQualityFlagStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+}
+
+public sealed record AllyPortalUserDto(
+    string Id,
+    string FullName,
+    string Email,
+    string Role,
+    string AllyEntityId,
+    string AllyEntityName,
+    bool IsActive,
+    DateTime LinkedAt
+);
+
+public sealed class AllyPortalUserCreateRequest
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public sealed class AllyPortalUserStatusRequest
+{
+    public bool IsActive { get; set; }
+}
+
+public sealed record ExternalRegisterResponse(
+    string UserId,
+    string Email,
+    string AccountStatus,
+    string VerificationStatus,
+    DateTime CodeExpiresAt,
+    string DebugVerificationCode
+);
+
+public sealed class ExternalRegisterRequest
+{
+    public string ProfileType { get; set; } = string.Empty;
+    public string ActorType { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string OrganizationName { get; set; } = string.Empty;
+    public string ContactName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string DepartmentCode { get; set; } = string.Empty;
+    public string MunicipalityCode { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public bool AcceptTerms { get; set; }
+    public bool AcceptDataPolicy { get; set; }
+    public bool AuthorizePublicData { get; set; }
+}
+
+public sealed class ExternalVerifyEmailRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+}
+
+public sealed record ExternalVerifyEmailResponse(
+    string UserId,
+    string Email,
+    string AccountStatus
+);
 
 public sealed record FestivalDto(
     string Id,

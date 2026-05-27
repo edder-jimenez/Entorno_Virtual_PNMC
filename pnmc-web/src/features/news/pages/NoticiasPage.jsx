@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { getWebText } from '../../../lib/webTexts.js';
 import {
   ArrowLeft,
   ArrowRight,
@@ -358,7 +359,7 @@ const NoticiasPage = ({ onBack, initialSelectedArticle = null }) => {
         tag="NOTICIAS"
         title="Portal Editorial y"
         titleAccent="Novedades"
-        description="Explora crónicas enriquecidas, convocatorias públicas y las narrativas de la música tradicional en los territorios."
+        description={getWebText('news_description')}
         bgImage="https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop"
         onBack={onBack}
         compactNews={true}
@@ -412,9 +413,10 @@ const NoticiasPage = ({ onBack, initialSelectedArticle = null }) => {
                     >
                       <img
                         src={featuredPrimary.img}
-                        className="absolute inset-0 w-full h-full object-cover grayscale opacity-55 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[1000ms] ease-out"
+                        className="absolute inset-0 w-full h-full object-cover grayscale-[40%] brightness-95 opacity-80 group-hover:grayscale-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1000ms] ease-out"
                         alt=""
                       />
+                      <div className="absolute inset-0 bg-[#291242]/20 group-hover:opacity-0 transition-opacity duration-1000" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#291242] via-[#291242]/35 to-transparent" />
                       <div className="relative z-10 p-6 lg:p-8 space-y-4">
                         <div className="flex items-center gap-3">

@@ -143,7 +143,7 @@ export default function App() {
           />
         )}
 
-        <main className="min-h-screen">
+        <main key={activePage} className="min-h-screen animate-page-entrance">
           <AppRoutes
             setActivePage={setActivePage}
             handlePageChange={handlePageChange}

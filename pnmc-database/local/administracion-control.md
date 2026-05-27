@@ -9,8 +9,13 @@ Define perfiles basicos de acceso.
 Valores iniciales:
 
 - `webmaster`: control tecnico general.
-- `editor`: gestion editorial de contenidos.
-- `gestor`: carga y actualizacion de informacion operativa.
+- `gestor_interno`: gestion institucional y revision operativa.
+- `aliado_admin`: administracion delegada de una entidad aliada aprobada.
+- `aliado_editor`: creacion y edicion de registros de una entidad aliada.
+- `aliado_lector`: consulta de informacion permitida de una entidad aliada.
+- `externo`: usuario externo comun sin permisos administrativos.
+
+Los nombres historicos se migran con `V20260525_02__roles_finales_y_aliados.sql` y no se usan como roles activos.
 
 Reglas:
 

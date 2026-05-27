@@ -34,6 +34,39 @@ import {
 import { Button } from '../../../components/ui/index.js';
 import { ParticipationSpecificSection } from '../components/ParticipationSpecificSection.jsx';
 
+const OPTIONAL_URL_FIELDS = ['website', 'facebookUrl', 'instagramUrl'];
+
+const normalizeTextValue = (value) => (
+  typeof value === 'string'
+    ? [...value]
+        .filter((character) => {
+          const code = character.charCodeAt(0);
+          return code > 31 || character === '\n' || character === '\r' || character === '\t';
+        })
+        .filter((character) => character.charCodeAt(0) !== 127)
+        .join('')
+        .trim()
+    : value
+);
+
+const normalizeParticipationPayload = (payload) => Object.fromEntries(
+  Object.entries(payload).map(([key, value]) => [key, normalizeTextValue(value)])
+);
+
+const isValidHttpUrl = (value = '') => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return true;
+
+  try {
+    const url = new URL(trimmedValue);
+    return ['http:', 'https:'].includes(url.protocol);
+  } catch {
+    return false;
+  }
+};
+
+const isValidPhone = (value = '') => /^[0-9+()\-\s]{7,25}$/.test(value.trim());
+
 const MapaParticipaPage = ({ onBack }) => {
   const participationSectionRef = useRef(null);
   const [participationForm, setParticipationForm] = useState(() => {
@@ -465,7 +498,14 @@ const MapaParticipaPage = ({ onBack }) => {
     }
     if (!participationForm.phone.trim()) {
       nextErrors.phone = 'Escribe un teléfono o celular.';
+    } else if (!isValidPhone(participationForm.phone)) {
+      nextErrors.phone = 'Usa solo números, espacios, +, paréntesis o guiones.';
     }
+    OPTIONAL_URL_FIELDS.forEach((fieldKey) => {
+      if (!isValidHttpUrl(participationForm[fieldKey] || '')) {
+        nextErrors[fieldKey] = 'Escribe una URL válida que inicie con http:// o https://.';
+      }
+    });
     if (!participationForm.department) nextErrors.department = 'Selecciona un departamento.';
     if (!participationForm.municipality) nextErrors.municipality = 'Selecciona un municipio o ciudad.';
     if (activeParticipationIdentity.showTerritoryScope && !participationForm.territoryScope) {
@@ -536,13 +576,13 @@ const MapaParticipaPage = ({ onBack }) => {
     }
 
     const reference = buildMapParticipationReference();
-    const submissionPayload = {
+    const submissionPayload = normalizeParticipationPayload({
       ...participationForm,
       actorName: resolvedParticipationActorName,
       reference,
       submittedAt: new Date().toISOString(),
       actorTypeLabel: activeParticipationActor.label,
-    };
+    });
     let nextQueue = [submissionPayload];
 
     if (typeof window !== 'undefined') {

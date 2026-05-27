@@ -457,6 +457,125 @@ public sealed class UserVerificationCodeRow
     public DateTime CreatedAt { get; set; }
 }
 
+public sealed class AllyEntityRow
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? EntityType { get; set; }
+    public string? Nit { get; set; }
+    public string? DepartmentCode { get; set; }
+    public string? MunicipalityCode { get; set; }
+    public string? InstitutionalEmail { get; set; }
+    public string? InstitutionalPhone { get; set; }
+    public string? WebsiteUrl { get; set; }
+    public string? LogoUrl { get; set; }
+    public string Status { get; set; } = "pendiente";
+    public int? CreatedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class AllyUserLinkRow
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int AllyEntityId { get; set; }
+    public string AllyRole { get; set; } = string.Empty;
+    public int? AllyAdminId { get; set; }
+    public string Status { get; set; } = "activo";
+    public bool IsActive { get; set; } = true;
+    public DateTime LinkedAt { get; set; }
+    public int? CreatedByUserId { get; set; }
+}
+
+public sealed class AllyRequestRow
+{
+    public long Id { get; set; }
+    public string EntityName { get; set; } = string.Empty;
+    public string? EntityType { get; set; }
+    public string? Nit { get; set; }
+    public string? DepartmentCode { get; set; }
+    public string? MunicipalityCode { get; set; }
+    public string InstitutionalEmail { get; set; } = string.Empty;
+    public string? InstitutionalPhone { get; set; }
+    public string AdminName { get; set; } = string.Empty;
+    public string AdminEmail { get; set; } = string.Empty;
+    public string Status { get; set; } = "pendiente";
+    public string? ReviewComment { get; set; }
+    public int? ReviewerUserId { get; set; }
+    public int? AllyEntityId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class NotificationRow
+{
+    public long Id { get; set; }
+    public int? RecipientUserId { get; set; }
+    public string? RecipientEmail { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string Channel { get; set; } = "internal";
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string Status { get; set; } = "pendiente";
+    public string? ModuleId { get; set; }
+    public string? RecordId { get; set; }
+    public string? MetadataJson { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? SentAt { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public int Attempts { get; set; }
+    public string? Error { get; set; }
+}
+
+public sealed class RecordLinkRequestRow
+{
+    public long Id { get; set; }
+    public string ModuleId { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public int RequestingUserId { get; set; }
+    public int? AllyEntityId { get; set; }
+    public string RequestedScope { get; set; } = "responsable";
+    public string Reason { get; set; } = string.Empty;
+    public string? EvidenceText { get; set; }
+    public string Status { get; set; } = "pendiente";
+    public int? ReviewerUserId { get; set; }
+    public string? ReviewComment { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class RecordDuplicateCandidateRow
+{
+    public long Id { get; set; }
+    public string ModuleId { get; set; } = string.Empty;
+    public string SourceRecordId { get; set; } = string.Empty;
+    public string CandidateRecordId { get; set; } = string.Empty;
+    public string SimilarityLevel { get; set; } = "media";
+    public decimal? SimilarityScore { get; set; }
+    public string EvidenceJson { get; set; } = "{}";
+    public string Status { get; set; } = "pendiente";
+    public string? Decision { get; set; }
+    public string? DecisionComment { get; set; }
+    public int? ReviewerUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class RecordQualityFlagRow
+{
+    public long Id { get; set; }
+    public string ModuleId { get; set; } = string.Empty;
+    public string RecordId { get; set; } = string.Empty;
+    public string FlagType { get; set; } = string.Empty;
+    public string Severity { get; set; } = "media";
+    public string Status { get; set; } = "abierta";
+    public string? Detail { get; set; }
+    public int? CreatedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 public sealed class EntityProfileRow
 {
     public int Id { get; set; }

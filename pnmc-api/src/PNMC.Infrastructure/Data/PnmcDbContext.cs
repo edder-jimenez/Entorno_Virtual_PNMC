@@ -36,6 +36,13 @@ public sealed class PnmcDbContext : DbContext
     public DbSet<RoleRow> Roles => Set<RoleRow>();
     public DbSet<AuditLogRow> AuditLogs => Set<AuditLogRow>();
     public DbSet<UserVerificationCodeRow> UserVerificationCodes => Set<UserVerificationCodeRow>();
+    public DbSet<AllyEntityRow> AllyEntities => Set<AllyEntityRow>();
+    public DbSet<AllyUserLinkRow> AllyUserLinks => Set<AllyUserLinkRow>();
+    public DbSet<AllyRequestRow> AllyRequests => Set<AllyRequestRow>();
+    public DbSet<NotificationRow> Notifications => Set<NotificationRow>();
+    public DbSet<RecordLinkRequestRow> RecordLinkRequests => Set<RecordLinkRequestRow>();
+    public DbSet<RecordDuplicateCandidateRow> RecordDuplicateCandidates => Set<RecordDuplicateCandidateRow>();
+    public DbSet<RecordQualityFlagRow> RecordQualityFlags => Set<RecordQualityFlagRow>();
     public DbSet<EntityProfileRow> EntityProfiles => Set<EntityProfileRow>();
     public DbSet<UserEntityRow> UserEntities => Set<UserEntityRow>();
     public DbSet<EntityRelationRow> EntityRelations => Set<EntityRelationRow>();
@@ -552,6 +559,139 @@ public sealed class PnmcDbContext : DbContext
             entity.Property(x => x.ExpiresAt).HasColumnName("FechaExpiracion");
             entity.Property(x => x.ConsumedAt).HasColumnName("FechaConsumo");
             entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+        });
+
+        modelBuilder.Entity<AllyEntityRow>(entity =>
+        {
+            entity.ToTable("EntidadesAliadas");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdEntidadAliada");
+            entity.Property(x => x.Name).HasColumnName("Nombre");
+            entity.Property(x => x.EntityType).HasColumnName("TipoEntidad");
+            entity.Property(x => x.Nit).HasColumnName("Nit");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.InstitutionalEmail).HasColumnName("CorreoInstitucional");
+            entity.Property(x => x.InstitutionalPhone).HasColumnName("TelefonoInstitucional");
+            entity.Property(x => x.WebsiteUrl).HasColumnName("SitioWeb");
+            entity.Property(x => x.LogoUrl).HasColumnName("LogoUrl");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("CreadaPorUsuarioId");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+        });
+
+        modelBuilder.Entity<AllyUserLinkRow>(entity =>
+        {
+            entity.ToTable("UsuariosEntidadesAliadas");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdUsuarioEntidadAliada");
+            entity.Property(x => x.UserId).HasColumnName("UsuarioId");
+            entity.Property(x => x.AllyEntityId).HasColumnName("EntidadAliadaId");
+            entity.Property(x => x.AllyRole).HasColumnName("RolAliado");
+            entity.Property(x => x.AllyAdminId).HasColumnName("AliadoAdminId");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.IsActive).HasColumnName("Activo");
+            entity.Property(x => x.LinkedAt).HasColumnName("FechaVinculacion");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("CreadoPorUsuarioId");
+        });
+
+        modelBuilder.Entity<AllyRequestRow>(entity =>
+        {
+            entity.ToTable("SolicitudesAliado");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdSolicitudAliado");
+            entity.Property(x => x.EntityName).HasColumnName("NombreEntidad");
+            entity.Property(x => x.EntityType).HasColumnName("TipoEntidad");
+            entity.Property(x => x.Nit).HasColumnName("Nit");
+            entity.Property(x => x.DepartmentCode).HasColumnName("CodigoDepartamento");
+            entity.Property(x => x.MunicipalityCode).HasColumnName("CodigoMunicipio");
+            entity.Property(x => x.InstitutionalEmail).HasColumnName("CorreoInstitucional");
+            entity.Property(x => x.InstitutionalPhone).HasColumnName("TelefonoInstitucional");
+            entity.Property(x => x.AdminName).HasColumnName("NombreAdministrador");
+            entity.Property(x => x.AdminEmail).HasColumnName("CorreoAdministrador");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.ReviewComment).HasColumnName("ComentarioRevision");
+            entity.Property(x => x.ReviewerUserId).HasColumnName("UsuarioRevisorId");
+            entity.Property(x => x.AllyEntityId).HasColumnName("EntidadAliadaId");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+        });
+
+        modelBuilder.Entity<NotificationRow>(entity =>
+        {
+            entity.ToTable("Notificaciones");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdNotificacion");
+            entity.Property(x => x.RecipientUserId).HasColumnName("UsuarioDestinatarioId");
+            entity.Property(x => x.RecipientEmail).HasColumnName("CorreoDestinatario");
+            entity.Property(x => x.EventType).HasColumnName("TipoEvento");
+            entity.Property(x => x.Channel).HasColumnName("Canal");
+            entity.Property(x => x.Title).HasColumnName("Titulo");
+            entity.Property(x => x.Body).HasColumnName("Cuerpo");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.ModuleId).HasColumnName("ModuloId");
+            entity.Property(x => x.RecordId).HasColumnName("RegistroId");
+            entity.Property(x => x.MetadataJson).HasColumnName("MetadataJson");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.SentAt).HasColumnName("FechaEnvio");
+            entity.Property(x => x.ReadAt).HasColumnName("FechaLectura");
+            entity.Property(x => x.Attempts).HasColumnName("Intentos");
+            entity.Property(x => x.Error).HasColumnName("Error");
+        });
+
+        modelBuilder.Entity<RecordLinkRequestRow>(entity =>
+        {
+            entity.ToTable("SolicitudesVinculacionRegistros");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdSolicitudVinculacionRegistro");
+            entity.Property(x => x.ModuleId).HasColumnName("ModuloId");
+            entity.Property(x => x.RecordId).HasColumnName("RegistroId");
+            entity.Property(x => x.RequestingUserId).HasColumnName("UsuarioSolicitanteId");
+            entity.Property(x => x.AllyEntityId).HasColumnName("EntidadAliadaId");
+            entity.Property(x => x.RequestedScope).HasColumnName("AlcanceSolicitado");
+            entity.Property(x => x.Reason).HasColumnName("Justificacion");
+            entity.Property(x => x.EvidenceText).HasColumnName("EvidenciaTexto");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.ReviewerUserId).HasColumnName("UsuarioRevisorId");
+            entity.Property(x => x.ReviewComment).HasColumnName("ComentarioRevision");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+        });
+
+        modelBuilder.Entity<RecordDuplicateCandidateRow>(entity =>
+        {
+            entity.ToTable("RegistrosDuplicadosCandidatos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdDuplicadoCandidato");
+            entity.Property(x => x.ModuleId).HasColumnName("ModuloId");
+            entity.Property(x => x.SourceRecordId).HasColumnName("RegistroOrigenId");
+            entity.Property(x => x.CandidateRecordId).HasColumnName("RegistroCandidatoId");
+            entity.Property(x => x.SimilarityLevel).HasColumnName("NivelCoincidencia");
+            entity.Property(x => x.SimilarityScore).HasColumnName("PuntajeCoincidencia").HasPrecision(5, 2);
+            entity.Property(x => x.EvidenceJson).HasColumnName("EvidenciaJson");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.Decision).HasColumnName("Decision");
+            entity.Property(x => x.DecisionComment).HasColumnName("ComentarioDecision");
+            entity.Property(x => x.ReviewerUserId).HasColumnName("UsuarioRevisorId");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
+        });
+
+        modelBuilder.Entity<RecordQualityFlagRow>(entity =>
+        {
+            entity.ToTable("RegistrosCalidadDatos");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("IdRegistroCalidadDatos");
+            entity.Property(x => x.ModuleId).HasColumnName("ModuloId");
+            entity.Property(x => x.RecordId).HasColumnName("RegistroId");
+            entity.Property(x => x.FlagType).HasColumnName("TipoBandera");
+            entity.Property(x => x.Severity).HasColumnName("Severidad");
+            entity.Property(x => x.Status).HasColumnName("Estado");
+            entity.Property(x => x.Detail).HasColumnName("Detalle");
+            entity.Property(x => x.CreatedByUserId).HasColumnName("CreadoPorUsuarioId");
+            entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");
+            entity.Property(x => x.UpdatedAt).HasColumnName("FechaActualizacion");
         });
 
         modelBuilder.Entity<EntityProfileRow>(entity =>

@@ -523,6 +523,7 @@ public static class AdminEntityEndpoints
         return status switch
         {
             "en_revision" => "enviar_revision",
+            "ajustes_solicitados" => "solicitar_ajustes",
             "aprobado" => "aprobar",
             "publicado" => "publicar",
             "archivado" => "archivar",
@@ -533,7 +534,8 @@ public static class AdminEntityEndpoints
 
     private static bool UserIsWebmasterOrEditor(ClaimsPrincipal principal)
     {
-        return principal.IsInRole("webmaster") || principal.IsInRole("editor");
+        return principal.IsInRole("webmaster")
+            || principal.IsInRole("gestor_interno");
     }
 
     private static int GetCurrentUserId(ClaimsPrincipal principal)

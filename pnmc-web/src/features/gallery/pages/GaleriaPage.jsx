@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getWebText } from '../../../lib/webTexts.js';
 import {
   ArrowLeft,
   ArrowRight,
@@ -85,7 +86,7 @@ const AlbumCard = ({ album, onClick, featured = false, cover }) => {
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-[0.58rem] font-bold uppercase tracking-widest text-white backdrop-blur-md">
           <FolderOpen size={13} />
-          Explorar álbum
+          {getWebText('gallery_explore_all') || "Explorar álbum"}
         </span>
       </div>
 
@@ -153,7 +154,7 @@ const GaleriaPage = ({ onBack }) => {
   const [visiblePhotosCount, setVisiblePhotosCount] = useState(24);
   const thumbnailStripRef = useRef(null);
 
-  const { albums, isLoading, isError, retry } = useGalleryAlbums();
+  const { albums, error, isLoading, isError, retry } = useGalleryAlbums();
 
   // ── Derived data ─────────────────────────────────────────────────────────
 
@@ -291,10 +292,10 @@ const GaleriaPage = ({ onBack }) => {
   return (
     <div className="bg-[#f8f7fb] min-h-screen text-left">
       <PageHero
-        tag="Galería"
-        title="Archivo"
-        titleAccent="Fotográfico"
-        description="Colecciones visuales de los procesos, eventos y territorios que dan vida al Plan Nacional de Música para la Convivencia."
+        tag={getWebText('nav_galeria') || "Galería"}
+        title={getWebText('gallery_hero_title') || "Álbumes y Memorias"}
+        titleAccent=""
+        description={getWebText('gallery_description')}
         bgImage={heroImage}
         onBack={onBack}
       />
@@ -303,10 +304,17 @@ const GaleriaPage = ({ onBack }) => {
 
         {/* ── Loading / Error / Empty ─────────────────────────────────────── */}
         {isLoading && albums.length === 0 && (
-          <LoadingState title="Cargando galería…" description="Preparando álbumes e imágenes." />
+          <LoadingState 
+            title={getWebText('gallery_loading_title') || "Cargando galería…"} 
+            description={getWebText('gallery_loading_desc') || "Preparando álbumes e imágenes."} 
+          />
         )}
         {isError && albums.length === 0 && (
-          <ErrorState title="No pudimos cargar la galería" description="Intenta de nuevo en unos segundos." onRetry={retry} />
+          <ErrorState
+            title="No pudimos cargar la galería"
+            description={error?.message || 'Intenta de nuevo en unos segundos.'}
+            onRetry={retry}
+          />
         )}
         {!isLoading && !isError && albums.length === 0 && (
           <EmptyState title="No hay álbumes disponibles" description="Aún no se ha cargado contenido visual para esta sección." />
@@ -373,7 +381,9 @@ const GaleriaPage = ({ onBack }) => {
             {/* ── Divider ───────────────────────────────────────────────── */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-[0.52rem] font-bold uppercase tracking-[0.24em] text-slate-400">Todas las colecciones</span>
+              <span className="text-[0.52rem] font-bold uppercase tracking-[0.24em] text-slate-400">
+                {getWebText('gallery_collection_title') || "Todas las colecciones"}
+              </span>
               <div className="flex-1 h-px bg-slate-200" />
             </div>
 
@@ -387,7 +397,7 @@ const GaleriaPage = ({ onBack }) => {
                     onClick={() => setCategoryFilter('all')}
                     className={`rounded-full px-4 py-2 text-[0.56rem] font-bold uppercase tracking-[0.18em] transition-all ${categoryFilter === 'all' ? 'bg-[#291242] text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-500 hover:border-[#291242]/30 hover:text-[#291242]'}`}
                   >
-                    Todos ({sortedAlbums.length})
+                    {getWebText('gallery_filter_all_cats') || "Todos los álbumes"} ({sortedAlbums.length})
                   </button>
                   {categories.map((cat) => {
                     const count = sortedAlbums.filter((a) => a.category === cat).length;
@@ -410,7 +420,7 @@ const GaleriaPage = ({ onBack }) => {
                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Buscar álbum…"
+                      placeholder={getWebText('gallery_search_placeholder') || "Buscar álbum…"}
                       value={albumSearch}
                       onChange={(e) => setAlbumSearch(e.target.value)}
                       className="rounded-full border border-slate-200 bg-white pl-8 pr-4 py-2 text-[0.62rem] font-nunito text-slate-700 outline-none w-44 focus:border-[#00DA5E] focus:w-52 transition-all placeholder:text-slate-400"
@@ -1075,7 +1085,10 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
           <div className="flex flex-col lg:flex-row h-auto lg:h-[400px] gap-2.5 w-full"> 
             {timelineEvents.map((stage) => ( 
               <div key={stage.id} onClick={() => setActiveStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border min-h-[150px] lg:min-h-0 ${activeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl border-transparent' : 'flex-1 bg-white border-[#E6DAE5] hover:border-[#00DA5E]/50 hover:bg-[#00DA5E]/5 hover:shadow-sm'}`}> 
-                <div className={`absolute inset-0 transition-opacity duration-1000 ${activeStage === stage.id ? 'opacity-20' : 'opacity-0'}`}><img src={stage.img} className="w-full h-full object-cover" alt="" /></div> 
+                <div className={`absolute inset-0 transition-all duration-1000 ${activeStage === stage.id ? 'opacity-[0.22]' : 'opacity-10 group-hover:opacity-25'}`}>
+                  <img src={stage.img} className="w-full h-full object-cover grayscale-[40%] brightness-95" alt="" />
+                  <div className={`absolute inset-0 bg-[#291242]/30 transition-opacity duration-1000 ${activeStage === stage.id ? 'opacity-0' : 'opacity-100'}`} />
+                </div> 
                 <div className={`absolute inset-0 p-6 flex flex-col justify-end transition-all duration-700 ${activeStage === stage.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}> 
                   <span className="text-[#8BF784] font-alternate text-sm font-bold mb-1 tracking-widest">{stage.year}</span> 
                   <h3 className="font-alternate text-2xl lg:text-3xl font-extrabold text-white uppercase leading-none mb-3 drop-shadow-md">{stage.title}</h3> 
@@ -1107,7 +1120,10 @@ const SobreElPnmcPage = ({ onBack, onNavigate }) => {
         <div className="flex flex-col lg:flex-row h-auto lg:h-[400px] gap-2.5 w-full mt-6">
           {normativeStages.map((stage) => (
             <div key={stage.id} onClick={() => setActiveNormativeStage(stage.id)} className={`relative overflow-hidden transition-all duration-700 cursor-pointer group rounded-[1.5rem] border min-h-[150px] lg:min-h-0 ${activeNormativeStage === stage.id ? 'flex-[6] bg-slate-900 shadow-xl border-transparent' : 'flex-1 bg-white border-[#E6DAE5] hover:border-[#00DA5E]/50 hover:bg-[#00DA5E]/5 hover:shadow-sm'}`}>
-              <div className={`absolute inset-0 transition-opacity duration-1000 ${activeNormativeStage === stage.id ? 'opacity-20' : 'opacity-0'}`}><img src={stage.img} className="w-full h-full object-cover" alt="" /></div>
+              <div className={`absolute inset-0 transition-all duration-1000 ${activeNormativeStage === stage.id ? 'opacity-[0.22]' : 'opacity-10 group-hover:opacity-25'}`}>
+                <img src={stage.img} className="w-full h-full object-cover grayscale-[40%] brightness-95" alt="" />
+                <div className={`absolute inset-0 bg-[#291242]/30 transition-opacity duration-1000 ${activeNormativeStage === stage.id ? 'opacity-0' : 'opacity-100'}`} />
+              </div>
               <div className={`absolute inset-0 p-6 flex flex-col justify-end transition-all duration-700 ${activeNormativeStage === stage.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}>
                 <span className="text-[#8BF784] font-alternate text-sm font-bold mb-1 tracking-widest">{stage.year}</span>
                 <h3 className="font-alternate text-2xl lg:text-3xl font-extrabold text-white uppercase leading-none mb-3 drop-shadow-md">{stage.title}</h3>

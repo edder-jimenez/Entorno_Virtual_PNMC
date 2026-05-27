@@ -13,12 +13,24 @@ export const LoadingState = ({ title = 'Cargando información…', description =
 export const ErrorState = ({
   title = 'No pudimos cargar esta sección',
   description = 'Intenta nuevamente en unos segundos.',
+  code = '',
+  details = '',
   onRetry,
 }) => (
   <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
     <AlertCircle className="mx-auto mb-3 text-rose-700" size={22} />
+    {code && (
+      <p className="mb-2 inline-flex rounded-full border border-rose-200 bg-white px-2.5 py-1 font-mono text-[0.65rem] font-bold uppercase tracking-[0.08em] text-rose-800">
+        {code}
+      </p>
+    )}
     <h3 className="font-alternate text-[0.8rem] font-bold uppercase tracking-[0.12em] text-rose-900">{title}</h3>
-    <p className="mt-2 text-sm text-rose-700">{description}</p>
+    <p className="mt-2 whitespace-pre-line text-sm text-rose-700">{description}</p>
+    {details && (
+      <p className="mt-3 rounded-xl border border-rose-100 bg-white px-3 py-2 text-left font-mono text-xs leading-relaxed text-rose-800">
+        {details}
+      </p>
+    )}
     {onRetry && (
       <Button variant="soft" className="mt-4" onClick={onRetry} icon={RefreshCw}>
         Reintentar

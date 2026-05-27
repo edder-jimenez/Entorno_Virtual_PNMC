@@ -18,4 +18,18 @@ describe('sanitizeHtml', () => {
     expect(output).not.toContain('javascript:');
     expect(output).toContain('<p>safe</p>');
   });
+
+  it('blocks unsafe URL protocols and preserves safe links', () => {
+    const output = sanitizeHtml(`
+      <a href="java
+      script:alert(1)">bad</a>
+      <a href="data:text/html,alert(1)">data</a>
+      <a href="https://example.org" target="_blank">safe</a>
+    `);
+
+    expect(output).not.toContain('javascript:');
+    expect(output).not.toContain('data:text/html');
+    expect(output).toContain('href="https://example.org"');
+    expect(output).toContain('rel="noopener noreferrer"');
+  });
 });

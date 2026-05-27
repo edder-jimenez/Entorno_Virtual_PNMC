@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -63,7 +64,7 @@ public static class AdminAuthEndpoints
                     AllowRefresh = true
                 });
 
-            return Results.Ok(new AdminAuthResponse(ToDto(user, role)));
+            return Results.Ok(new AdminAuthResponse(await ToDtoAsync(user, role, dbContext, cancellationToken)));
         });
 
         auth.MapGet("/me", async (
@@ -74,7 +75,7 @@ public static class AdminAuthEndpoints
             var current = await ResolveCurrentUserAsync(principal, dbContext, cancellationToken);
             return current is null
                 ? Results.Unauthorized()
-                : Results.Ok(new AdminAuthResponse(ToDto(current.Value.User, current.Value.Role)));
+                : Results.Ok(new AdminAuthResponse(await ToDtoAsync(current.Value.User, current.Value.Role, dbContext, cancellationToken)));
         });
 
         auth.MapPost("/logout", async (
@@ -109,9 +110,14 @@ public static class AdminAuthEndpoints
                     user => user.RoleId,
                     role => role.Id,
                     (user, role) => new { User = user, Role = role })
-                .OrderBy(item => item.User.FullName)
+                .OrderByDescending(item => item.User.IsActive)
+                .ThenBy(item => item.User.FullName)
                 .ToListAsync(cancellationToken);
-            var users = userRows.Select(item => ToDto(item.User, item.Role)).ToList();
+            var users = new List<AdminUserDto>(userRows.Count);
+            foreach (var item in userRows)
+            {
+                users.Add(await ToDtoAsync(item.User, item.Role, dbContext, cancellationToken));
+            }
 
             return Results.Ok(users);
         }).RequireAuthorization();
@@ -137,7 +143,15 @@ public static class AdminAuthEndpoints
                 });
             }
 
-            var normalizedRole = NormalizeRole(request.Role);
+            var normalizedRole = CleanRoleName(request.Role);
+            if (!IsAssignableGlobalRole(normalizedRole))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["role"] = ["El rol indicado no puede asignarse desde usuarios globales."]
+                });
+            }
+
             var role = await dbContext.Roles.FirstOrDefaultAsync(
                 item => item.Name.ToLower() == normalizedRole,
                 cancellationToken);
@@ -212,7 +226,70 @@ public static class AdminAuthEndpoints
                 cancellationToken,
                 JsonSerializer.Serialize(new { user.FullName, user.Email, role = role.Name, user.IsActive }));
 
-            return Results.Ok(new AdminAuthResponse(ToDto(user, role)));
+            return Results.Ok(new AdminAuthResponse(await ToDtoAsync(user, role, dbContext, cancellationToken)));
+        }).RequireAuthorization();
+
+        auth.MapDelete("/users/{id:int}", async (
+            int id,
+            ClaimsPrincipal principal,
+            PnmcDbContext dbContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (!UserHasRole(principal, "webmaster"))
+            {
+                return Results.Forbid();
+            }
+
+            var currentUserId = GetCurrentUserId(principal);
+            if (currentUserId == id)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["user"] = ["No puedes eliminar tu propia cuenta activa."]
+                });
+            }
+
+            var user = await dbContext.Users.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            if (user is null)
+            {
+                return Results.NotFound();
+            }
+
+            var userRole = await dbContext.Roles.AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == user.RoleId, cancellationToken);
+
+            if (CleanRoleName(userRole?.Name ?? string.Empty) == "webmaster" && user.IsActive)
+            {
+                var activeWebmasters = await dbContext.Users
+                    .Join(
+                        dbContext.Roles,
+                        activeUser => activeUser.RoleId,
+                        role => role.Id,
+                        (activeUser, role) => new { User = activeUser, Role = role })
+                    .CountAsync(item => item.User.IsActive && item.Role.Name.ToLower() == "webmaster", cancellationToken);
+
+                if (activeWebmasters <= 1)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["user"] = ["Debe existir al menos un webmaster activo."]
+                    });
+                }
+            }
+
+            user.IsActive = false;
+            user.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await WriteAuditAsync(
+                dbContext,
+                currentUserId,
+                "Usuarios",
+                user.Id.ToString(),
+                "eliminar",
+                cancellationToken,
+                JsonSerializer.Serialize(new { user.FullName, user.Email, user.IsActive }));
+
+            return Results.NoContent();
         }).RequireAuthorization();
 
         return group;
@@ -230,7 +307,7 @@ public static class AdminAuthEndpoints
 
     private static ClaimsPrincipal BuildPrincipal(UserRow user, RoleRow role)
     {
-        var normalizedRole = NormalizeRole(role.Name);
+        var normalizedRole = CleanRoleName(role.Name);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -289,7 +366,7 @@ public static class AdminAuthEndpoints
 
     private static AdminUserDto ToDto(UserRow user, RoleRow role)
     {
-        var normalizedRole = NormalizeRole(role.Name);
+        var normalizedRole = CleanRoleName(role.Name);
         return new AdminUserDto(
             user.Id.ToString(),
             user.FullName,
@@ -300,27 +377,56 @@ public static class AdminAuthEndpoints
             user.LastLoginAt);
     }
 
+    private static async Task<AdminUserDto> ToDtoAsync(
+        UserRow user,
+        RoleRow role,
+        PnmcDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var dto = ToDto(user, role);
+        if (dto.Role is not "aliado_admin" and not "aliado_editor" and not "aliado_lector")
+        {
+            return dto;
+        }
+
+        var ally = await dbContext.AllyUserLinks.AsNoTracking()
+            .Where(link => link.UserId == user.Id && link.IsActive)
+            .Join(
+                dbContext.AllyEntities.AsNoTracking(),
+                link => link.AllyEntityId,
+                entity => entity.Id,
+                (link, entity) => new { Entity = entity })
+            .OrderBy(item => item.Entity.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return ally is null
+            ? dto
+            : dto with
+            {
+                AllyEntityId = ally.Entity.Id.ToString(CultureInfo.InvariantCulture),
+                AllyEntityName = ally.Entity.Name
+            };
+    }
+
     private static string NormalizeEmail(string value)
     {
         return (value ?? string.Empty).Trim().ToLowerInvariant();
     }
 
-    private static string NormalizeRole(string value)
+    private static string CleanRoleName(string value)
     {
-        var normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
-        return normalized switch
-        {
-            "administrador" or "admin" => "webmaster",
-            "lider_de_componente" or "lider-componente" => "lider",
-            "cargador" or "contributor" or "usuario_externo" => "gestor",
-            _ => normalized
-        };
+        return (value ?? string.Empty).Trim().ToLowerInvariant();
+    }
+
+    private static bool IsAssignableGlobalRole(string role)
+    {
+        return role is "webmaster" or "gestor_interno" or "externo";
     }
 
     private static bool UserHasRole(ClaimsPrincipal principal, string role)
     {
         return principal.Identity?.IsAuthenticated == true
-            && principal.IsInRole(NormalizeRole(role));
+            && principal.IsInRole(role);
     }
 
     private static int? GetCurrentUserId(ClaimsPrincipal principal)

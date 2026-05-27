@@ -62,4 +62,5 @@ export const MAP_PANEL_IDS = {
   insights: 'insights',
   tutorial: 'tutorial',
   export: 'export',
+  registration: 'registration',
 };

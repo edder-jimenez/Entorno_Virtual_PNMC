@@ -4,9 +4,12 @@
 
 MERGE dbo.Roles AS destino
 USING (VALUES
-    (N'webmaster', N'Rol tecnico con control general de configuracion, usuarios y mantenimiento.'),
-    (N'editor', N'Rol editorial para crear, editar, revisar y publicar contenidos.'),
-    (N'gestor', N'Rol de gestion territorial o funcional para cargar y actualizar informacion operativa.')
+    (N'webmaster', N'Control total de usuarios, modulos, datos, configuracion, revision, publicacion y mantenimiento.'),
+    (N'gestor_interno', N'Segundo nivel general de administracion institucional.'),
+    (N'aliado_admin', N'Administrador de una entidad aliada aprobada.'),
+    (N'aliado_editor', N'Usuario operativo de una entidad aliada aprobada.'),
+    (N'aliado_lector', N'Usuario de consulta de una entidad aliada aprobada.'),
+    (N'externo', N'Participante publico sin acceso administrativo privilegiado.')
 ) AS origen (NombreRol, DescripcionRol)
 ON destino.NombreRol = origen.NombreRol
 WHEN MATCHED THEN
@@ -19,6 +22,7 @@ MERGE dbo.EstadosContenido AS destino
 USING (VALUES
     (N'borrador', N'Borrador', N'Contenido en elaboracion interna.'),
     (N'en_revision', N'En revision', N'Contenido enviado a revision editorial o tecnica.'),
+    (N'ajustes_solicitados', N'Ajustes solicitados', N'Contenido devuelto al responsable para corregir campos u observaciones.'),
     (N'aprobado', N'Aprobado', N'Contenido aprobado, pendiente de publicacion o activacion.'),
     (N'publicado', N'Publicado', N'Contenido visible para usuarios finales.'),
     (N'archivado', N'Archivado', N'Contenido retirado de la vista publica sin eliminarlo.'),

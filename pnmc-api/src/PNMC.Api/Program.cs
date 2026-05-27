@@ -46,6 +46,14 @@ builder.Services.AddRateLimiter(options =>
         limiter.QueueLimit = 0;
         limiter.AutoReplenishment = true;
     });
+    options.AddFixedWindowLimiter("external-register", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+        limiter.AutoReplenishment = true;
+    });
 });
 builder.Services.AddCors(options =>
 {
@@ -102,7 +110,12 @@ api.MapEditorialEndpoints();
 api.MapGalleryEndpoints();
 api.MapCatalogModuleEndpoints();
 api.MapParticipationEndpoints();
+api.MapExternalAuthEndpoints();
+api.MapNotificationEndpoints();
+api.MapRecordGovernanceEndpoints();
 api.MapAdminAuthEndpoints();
+api.MapAdminAllyEndpoints();
+api.MapAllyPortalEndpoints();
 api.MapAdminEntityEndpoints();
 api.MapAdminDataEndpoints();
 app.MapLegacyParticipationCompatibilityEndpoint();

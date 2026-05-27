@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getWebText } from '../../../lib/webTexts.js';
 import { createPortal } from 'react-dom';
 import {
   AlertCircle,
@@ -459,9 +460,7 @@ const EditorialPage = ({ onBack, initialExpandedResourceId = null }) => {
       <PageHero
         tag="Editorial"
         title="Editorial"
-        description={resources.length
-          ? `Catálogo bibliográfico del PNMC con ${resources.length} registros, miniaturas y metadatos listos para consulta pública.`
-          : 'Catálogo bibliográfico del PNMC con metadatos, miniaturas y rutas de consulta para investigadores, formadores y agentes del sector musical.'}
+        description={getWebText('editorial_description')}
         bgImage="https://images.unsplash.com/photo-1774558396253-be05d7a37d82?q=80&w=1470&auto=format&fit=crop"
         onBack={onBack}
       />

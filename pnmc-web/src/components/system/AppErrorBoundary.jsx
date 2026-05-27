@@ -3,11 +3,11 @@ import React from 'react';
 class AppErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
@@ -24,7 +24,7 @@ class AppErrorBoundary extends React.Component {
               No pudimos cargar esta sección
             </h1>
             <p className="mt-4 font-nunito text-sm leading-relaxed text-slate-600">
-              Ocurrió un error inesperado. Puedes recargar la página y volver a intentarlo.
+              Ocurrió un error inesperado. Puedes recargar la página y volver a intentarlo. Código: UI_UNHANDLED.
             </p>
             <button
               type="button"

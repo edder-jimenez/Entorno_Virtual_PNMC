@@ -27,6 +27,8 @@ BEGIN
         CorreoElectronico nvarchar(180) NOT NULL,
         HashContrasena nvarchar(500) NOT NULL,
         IdRol int NOT NULL,
+        CanalAcceso nvarchar(40) NOT NULL CONSTRAINT DF_Usuarios_CanalAcceso DEFAULT (N'interno'),
+        TipoPerfil nvarchar(80) NULL,
         Activo bit NOT NULL CONSTRAINT DF_Usuarios_Activo DEFAULT (1),
         FechaCreacion datetime2(0) NOT NULL CONSTRAINT DF_Usuarios_FechaCreacion DEFAULT (SYSUTCDATETIME()),
         FechaActualizacion datetime2(0) NULL,
@@ -36,6 +38,19 @@ BEGIN
         CONSTRAINT FK_Usuarios_Roles FOREIGN KEY (IdRol) REFERENCES dbo.Roles (IdRol),
         CONSTRAINT CK_Usuarios_CorreoElectronico_Formato CHECK (CorreoElectronico LIKE '%_@_%._%')
     );
+END;
+
+IF COL_LENGTH(N'dbo.Usuarios', N'CanalAcceso') IS NULL
+BEGIN
+    ALTER TABLE dbo.Usuarios
+    ADD CanalAcceso nvarchar(40) NOT NULL
+        CONSTRAINT DF_Usuarios_CanalAcceso DEFAULT (N'interno') WITH VALUES;
+END;
+
+IF COL_LENGTH(N'dbo.Usuarios', N'TipoPerfil') IS NULL
+BEGIN
+    ALTER TABLE dbo.Usuarios
+    ADD TipoPerfil nvarchar(80) NULL;
 END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Usuarios_IdRol' AND object_id = OBJECT_ID(N'dbo.Usuarios'))

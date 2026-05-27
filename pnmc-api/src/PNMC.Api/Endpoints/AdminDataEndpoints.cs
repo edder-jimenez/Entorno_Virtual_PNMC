@@ -69,7 +69,7 @@ public static class AdminDataEndpoints
                         "editionsCount", "associatedFestivalDisplayName", "averageProjects", "averageBuyers"
                     }
                 },
-                editorial = new
+                gallery = new
                 {
                     table = "AlbumesGaleria",
                     required = new[] { "title" },
@@ -487,7 +487,7 @@ public static class AdminDataEndpoints
                             ["coverageLevel"] = item.CoverageLevel,
                             ["coverageLevelLabel"] = DisplayCoverageLevel(item.CoverageLevel)
                         })),
-                "editorial" => (await dbContext.GalleryAlbums.AsNoTracking()
+                "gallery" => (await dbContext.GalleryAlbums.AsNoTracking()
                     .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
                     .Take(500)
                     .ToListAsync(cancellationToken))
@@ -507,6 +507,36 @@ public static class AdminDataEndpoints
                             ["summary"] = item.Description,
                             ["category"] = item.CategoryId.HasValue ? categoriesById.GetValueOrDefault(item.CategoryId.Value, string.Empty) : string.Empty,
                             ["sortOrder"] = item.SortOrder
+                        })),
+                "editorial" => (await dbContext.EditorialCatalogResources.AsNoTracking()
+                    .OrderBy(item => item.SourceOrder)
+                    .ThenByDescending(item => item.ImportedAt)
+                    .Take(500)
+                    .ToListAsync(cancellationToken))
+                    .Where(item => Matches(item.Title, item.Author, item.CorporateAuthor, item.Category, item.Summary, item.Keywords))
+                    .Select(item => ToAdminRecord(
+                        item.Id,
+                        item.Title,
+                        "CatalogoEditorial",
+                        string.Empty,
+                        string.Empty,
+                        item.IsActive ? "publicado" : "archivado",
+                        item.IsActive ? "Publicado" : "Archivado",
+                        item.ImportedAt,
+                        new Dictionary<string, object?>
+                        {
+                            ["title"] = item.Title,
+                            ["summary"] = item.Summary,
+                            ["year"] = item.Year,
+                            ["section"] = item.Section,
+                            ["sectionPath"] = item.SectionPath,
+                            ["publicationType"] = item.PublicationType,
+                            ["category"] = item.Category,
+                            ["author"] = item.Author,
+                            ["corporateAuthor"] = item.CorporateAuthor,
+                            ["url"] = item.Url,
+                            ["keywords"] = SplitKeywords(item.Keywords),
+                            ["sortOrder"] = item.SourceOrder
                         })),
                 _ => null
             };
@@ -528,10 +558,25 @@ public static class AdminDataEndpoints
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             if (!await dbContext.ContentStatuses.AsNoTracking().AnyAsync(status => status.Code == statusCode, cancellationToken))
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["status"] = ["El estado no existe en EstadosContenido."] });
+            }
+
+            var role = CleanRoleName(httpContext.User.FindFirstValue(ClaimTypes.Role));
+            var previousStatus = await ResolveCurrentRecordStatusAsync(dbContext, moduleId, id, cancellationToken);
+            if (previousStatus is null)
+            {
+                return Results.NotFound(new { message = "Registro no encontrado o modulo no reconocido." });
+            }
+
+            if (!CanSetRecordStatus(role, previousStatus, statusCode))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["permission"] = ["Tu rol no tiene permiso para aplicar ese cambio de estado."]
+                });
             }
 
             var actingUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
@@ -541,7 +586,8 @@ public static class AdminDataEndpoints
             {
                 "agenda" => await UpdateContentStatusAsync(dbContext.AgendaEvents, id, statusId, actingUserId, now, cancellationToken),
                 "news" => await UpdateContentStatusAsync(dbContext.NewsArticles, id, statusId, actingUserId, now, cancellationToken),
-                "editorial" => await UpdateContentStatusAsync(dbContext.GalleryAlbums, id, statusId, actingUserId, now, cancellationToken),
+                "gallery" => await UpdateContentStatusAsync(dbContext.GalleryAlbums, id, statusId, actingUserId, now, cancellationToken),
+                "editorial" => await UpdateEditorialCatalogStatusAsync(dbContext.EditorialCatalogResources, id, statusCode, now, cancellationToken),
                 "festivals" => await UpdateEcosystemStatusAsync(dbContext.FestivalRecords, id, statusCode, now, cancellationToken),
                 "musicSchools" => await UpdateEcosystemStatusAsync(dbContext.SchoolRecords, id, statusCode, now, cancellationToken),
                 "musicMarkets" => await UpdateEcosystemStatusAsync(dbContext.MarketRecords, id, statusCode, now, cancellationToken),
@@ -550,12 +596,20 @@ public static class AdminDataEndpoints
                 _ => null
             };
 
-            if (result is null)
-            {
-                return Results.NotFound(new { message = "Registro no encontrado o modulo no reconocido." });
-            }
-
             await dbContext.SaveChangesAsync(cancellationToken);
+            await WriteRevisionHistoryAsync(
+                dbContext,
+                moduleId,
+                id.ToString(CultureInfo.InvariantCulture),
+                previousStatus,
+                statusCode,
+                ActionForStatus(statusCode),
+                actingUserId,
+                request.Comment,
+                request.RejectionReason,
+                request.ObservedFieldsJson,
+                cancellationToken);
+
             return Results.Ok(result);
         });
 
@@ -680,7 +734,7 @@ public static class AdminDataEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Name is required."] });
             }
 
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             var createdByUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
             var departmentCode = await ResolveDepartmentCodeAsync(dbContext, request.Department, cancellationToken);
             if (string.IsNullOrWhiteSpace(departmentCode))
@@ -743,7 +797,7 @@ public static class AdminDataEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Name is required."] });
             }
 
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             var createdByUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
             var departmentCode = await ResolveDepartmentCodeAsync(dbContext, request.Department, cancellationToken);
             if (string.IsNullOrWhiteSpace(departmentCode))
@@ -809,7 +863,7 @@ public static class AdminDataEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Name is required."] });
             }
 
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             var createdByUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
             var departmentCode = await ResolveDepartmentCodeAsync(dbContext, request.Department, cancellationToken);
             if (string.IsNullOrWhiteSpace(departmentCode))
@@ -861,7 +915,7 @@ public static class AdminDataEndpoints
             return Results.Ok(new { id = row.Id });
         });
 
-        admin.MapPost("/editorial/resources", async (
+        admin.MapPost("/gallery/albums", async (
             EditorialResourceUpsertRequest request,
             PnmcDbContext dbContext,
             HttpContext httpContext,
@@ -904,6 +958,48 @@ public static class AdminDataEndpoints
             return Results.Ok(new { id = row.Id });
         });
 
+        admin.MapPost("/editorial/resources", async (
+            EditorialResourceUpsertRequest request,
+            PnmcDbContext dbContext,
+            CancellationToken cancellationToken) =>
+        {
+            if (ValidationHelpers.IsMissing(request.Title))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["title"] = ["El titulo es obligatorio."] });
+            }
+
+            var existing = await FindEditorialCatalogResourceAsync(dbContext, request.Id, cancellationToken);
+            var isNew = existing is null;
+            var row = existing ?? new EditorialCatalogResourceRow
+            {
+                ExternalId = $"admin-{Guid.NewGuid():N}",
+                ImportedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            row.Title = request.Title.Trim();
+            row.Summary = request.Summary?.Trim() ?? string.Empty;
+            row.Category = request.Category?.Trim() ?? string.Empty;
+            row.Section = request.Section?.Trim() ?? string.Empty;
+            row.SectionPath = request.SectionPath?.Trim() ?? string.Empty;
+            row.PublicationType = request.PublicationType?.Trim() ?? string.Empty;
+            row.Author = request.Author?.Trim() ?? string.Empty;
+            row.CorporateAuthor = request.CorporateAuthor?.Trim() ?? string.Empty;
+            row.Year = request.Year?.Trim() ?? string.Empty;
+            row.Url = request.Url?.Trim() ?? string.Empty;
+            row.Keywords = string.Join(", ", (request.Keywords ?? []).Select(item => item.Trim()).Where(item => !string.IsNullOrWhiteSpace(item)));
+            row.SourceOrder = ParseIntOrNull(request.SortOrder) ?? row.SourceOrder;
+            row.IsActive = CleanStatusCode(request.Status) != "archivado";
+
+            if (isNew)
+            {
+                dbContext.EditorialCatalogResources.Add(row);
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok(new { id = row.Id });
+        });
+
         admin.MapPost("/organizations", async (
             OrganizationUpsertRequest request,
             PnmcDbContext dbContext,
@@ -915,7 +1011,7 @@ public static class AdminDataEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Name is required."] });
             }
 
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             var createdByUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
             var departmentCode = await ResolveDepartmentCodeAsync(dbContext, request.Department, cancellationToken);
             if (string.IsNullOrWhiteSpace(departmentCode))
@@ -970,7 +1066,7 @@ public static class AdminDataEndpoints
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Name is required."] });
             }
 
-            var statusCode = NormalizeStatusCode(request.Status);
+            var statusCode = CleanStatusCode(request.Status);
             var createdByUserId = await ResolveActingUserIdAsync(httpContext, dbContext, cancellationToken);
             var departmentCode = await ResolveDepartmentCodeAsync(dbContext, request.Department, cancellationToken);
             if (string.IsNullOrWhiteSpace(departmentCode))
@@ -1262,6 +1358,7 @@ public static class AdminDataEndpoints
                               "- imageUrl: Enlace de más información.";
                     break;
                 case "editorial":
+                case "gallery":
                     prompt += "- title: Título del álbum o colección.\n" +
                               "- summary: Descripción del contenido del álbum.\n" +
                               "- category: Categoría sugerida.\n" +
@@ -1602,6 +1699,7 @@ public static class AdminDataEndpoints
                         break;
 
                     case "editorial":
+                    case "gallery":
                         {
                             var title = GetStringProp(element, "title");
                             if (string.IsNullOrWhiteSpace(title)) continue;
@@ -1721,7 +1819,7 @@ public static class AdminDataEndpoints
 
     private static async Task<int> ResolveStatusIdAsync(PnmcDbContext dbContext, string? statusCode, CancellationToken cancellationToken)
     {
-        var normalizedStatus = NormalizeStatusCode(statusCode);
+        var normalizedStatus = CleanStatusCode(statusCode);
         var requestedStatus = await dbContext.ContentStatuses.AsNoTracking()
             .FirstOrDefaultAsync(status => status.Code == normalizedStatus, cancellationToken);
 
@@ -1749,20 +1847,177 @@ public static class AdminDataEndpoints
         return firstStatus.Id;
     }
 
-    private static string NormalizeStatusCode(string? statusCode)
+    private static string CleanStatusCode(string? statusCode)
     {
-        var normalized = string.IsNullOrWhiteSpace(statusCode) ? "borrador" : statusCode.Trim();
-        return normalized switch
+        return string.IsNullOrWhiteSpace(statusCode) ? "borrador" : statusCode.Trim().ToLowerInvariant();
+    }
+
+    private static string CleanRoleName(string? value)
+    {
+        return (value ?? string.Empty).Trim().ToLowerInvariant();
+    }
+
+    private static bool CanSetRecordStatus(string role, string currentStatus, string targetStatus)
+    {
+        if (role == "webmaster")
         {
-            "draft" => "borrador",
-            "review" => "en_revision",
-            "in_review" => "en_revision",
-            "approved" => "aprobado",
-            "published" => "publicado",
-            "archived" => "archivado",
-            "rejected" => "rechazado",
-            _ => normalized
+            return IsKnownContentStatus(targetStatus);
+        }
+
+        if (!IsValidStatusTransition(currentStatus, targetStatus))
+        {
+            return false;
+        }
+
+        return role switch
+        {
+            "webmaster" => true,
+            "gestor_interno" => targetStatus is "ajustes_solicitados" or "aprobado" or "rechazado",
+            _ => false
         };
+    }
+
+    private static bool IsKnownContentStatus(string status)
+    {
+        return status is "borrador"
+            or "en_revision"
+            or "ajustes_solicitados"
+            or "aprobado"
+            or "publicado"
+            or "rechazado"
+            or "archivado";
+    }
+
+    private static bool IsValidStatusTransition(string currentStatus, string targetStatus)
+    {
+        return currentStatus switch
+        {
+            "borrador" => targetStatus == "en_revision",
+            "en_revision" => targetStatus is "ajustes_solicitados" or "aprobado" or "rechazado",
+            "ajustes_solicitados" => targetStatus == "en_revision",
+            "aprobado" => targetStatus == "publicado",
+            "publicado" => targetStatus == "archivado",
+            _ => false
+        };
+    }
+
+    private static string ActionForStatus(string status)
+    {
+        return status switch
+        {
+            "en_revision" => "enviar_revision",
+            "ajustes_solicitados" => "solicitar_ajustes",
+            "aprobado" => "aprobar",
+            "publicado" => "publicar",
+            "archivado" => "archivar",
+            "rechazado" => "rechazar",
+            _ => "actualizar"
+        };
+    }
+
+    private static async Task<string?> ResolveCurrentRecordStatusAsync(
+        PnmcDbContext dbContext,
+        string moduleId,
+        int recordId,
+        CancellationToken cancellationToken)
+    {
+        return moduleId switch
+        {
+            "agenda" => await ResolveContentStatusCodeAsync(
+                dbContext,
+                await dbContext.AgendaEvents.AsNoTracking()
+                    .Where(item => item.Id == recordId)
+                    .Select(item => (int?)item.StatusId)
+                    .FirstOrDefaultAsync(cancellationToken),
+                cancellationToken),
+            "news" => await ResolveContentStatusCodeAsync(
+                dbContext,
+                await dbContext.NewsArticles.AsNoTracking()
+                    .Where(item => item.Id == recordId)
+                    .Select(item => (int?)item.StatusId)
+                    .FirstOrDefaultAsync(cancellationToken),
+                cancellationToken),
+            "gallery" => await ResolveContentStatusCodeAsync(
+                dbContext,
+                await dbContext.GalleryAlbums.AsNoTracking()
+                    .Where(item => item.Id == recordId)
+                    .Select(item => (int?)item.StatusId)
+                    .FirstOrDefaultAsync(cancellationToken),
+                cancellationToken),
+            "editorial" => await dbContext.EditorialCatalogResources.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.IsActive ? "publicado" : "archivado")
+                .FirstOrDefaultAsync(cancellationToken),
+            "festivals" => await dbContext.FestivalRecords.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.StatusCode)
+                .FirstOrDefaultAsync(cancellationToken),
+            "musicSchools" => await dbContext.SchoolRecords.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.StatusCode)
+                .FirstOrDefaultAsync(cancellationToken),
+            "musicMarkets" => await dbContext.MarketRecords.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.StatusCode)
+                .FirstOrDefaultAsync(cancellationToken),
+            "organizations" => await dbContext.Organizations.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.StatusCode)
+                .FirstOrDefaultAsync(cancellationToken),
+            "spacesInfrastructure" => await dbContext.SpacesInfrastructure.AsNoTracking()
+                .Where(item => item.Id == recordId)
+                .Select(item => item.StatusCode)
+                .FirstOrDefaultAsync(cancellationToken),
+            _ => null
+        };
+    }
+
+    private static async Task<string?> ResolveContentStatusCodeAsync(
+        PnmcDbContext dbContext,
+        int? statusId,
+        CancellationToken cancellationToken)
+    {
+        if (statusId is null)
+        {
+            return null;
+        }
+
+        return await dbContext.ContentStatuses.AsNoTracking()
+            .Where(status => status.Id == statusId.Value)
+            .Select(status => status.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static async Task WriteRevisionHistoryAsync(
+        PnmcDbContext dbContext,
+        string moduleId,
+        string recordId,
+        string previousStatus,
+        string nextStatus,
+        string action,
+        int userId,
+        string? comment,
+        string? rejectionReason,
+        string? observedFieldsJson,
+        CancellationToken cancellationToken)
+    {
+        if ((dbContext.Database.ProviderName ?? string.Empty).Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO RegistrosRevisionHistorial
+                    (ModuloId, RegistroId, EstadoAnterior, EstadoNuevo, Accion, Comentario, MotivoRechazo, CamposObservados, IdUsuario, Fecha)
+                VALUES
+                    ({moduleId}, {recordId}, {previousStatus}, {nextStatus}, {action}, {comment}, {rejectionReason}, {observedFieldsJson}, {userId}, {DateTime.UtcNow})",
+                cancellationToken);
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO dbo.RegistrosRevisionHistorial
+                (ModuloId, RegistroId, EstadoAnterior, EstadoNuevo, Accion, Comentario, MotivoRechazo, CamposObservados, IdUsuario, Fecha)
+            VALUES
+                ({moduleId}, {recordId}, {previousStatus}, {nextStatus}, {action}, {comment}, {rejectionReason}, {observedFieldsJson}, {userId}, SYSUTCDATETIME())",
+            cancellationToken);
     }
 
     private static async Task<int> EnsureSystemUserAsync(PnmcDbContext dbContext, CancellationToken cancellationToken)
@@ -1876,6 +2131,16 @@ public static class AdminDataEndpoints
         if (int.TryParse(candidateId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) && id > 0)
         {
             return await dbContext.GalleryAlbums.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        }
+
+        return null;
+    }
+
+    private static async Task<EditorialCatalogResourceRow?> FindEditorialCatalogResourceAsync(PnmcDbContext dbContext, string candidateId, CancellationToken cancellationToken)
+    {
+        if (int.TryParse(candidateId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) && id > 0)
+        {
+            return await dbContext.EditorialCatalogResources.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         }
 
         return null;
@@ -2020,6 +2285,14 @@ public static class AdminDataEndpoints
         return int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : null;
+    }
+
+    private static List<string> SplitKeywords(string value)
+    {
+        return (value ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToList();
     }
 
     private static string ResolveCoverageLevel(string? requestedCoverage, string? municipalityCode, string? departmentCode)
@@ -2202,7 +2475,7 @@ public static class AdminDataEndpoints
         IReadOnlyDictionary<string, string> statusNames)
     {
         var grouped = statusCodes
-            .Select(NormalizeStatusCode)
+            .Select(CleanStatusCode)
             .GroupBy(statusCode => statusCode)
             .Select(group => (object)new
             {
@@ -2264,6 +2537,20 @@ public static class AdminDataEndpoints
         row.ReviewedByUserId = actingUserId;
         row.ApprovedByUserId = actingUserId;
         return new { id = row.Id, statusId };
+    }
+
+    private static async Task<object?> UpdateEditorialCatalogStatusAsync(
+        DbSet<EditorialCatalogResourceRow> rows,
+        int id,
+        string statusCode,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var row = await rows.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (row is null) return null;
+        row.IsActive = statusCode != "archivado" && statusCode != "rechazado";
+        row.ImportedAt = now;
+        return new { id = row.Id, status = statusCode };
     }
 
     private static void ApplyContentWorkflow(AgendaEventRow row, int actingUserId, DateTime now, int statusId)

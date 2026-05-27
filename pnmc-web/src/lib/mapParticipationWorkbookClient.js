@@ -1,5 +1,5 @@
 import { MAP_PARTICIPATION_WORKBOOK_FILE_NAME } from './mapParticipationWorkbookSchema.js';
-import { fetchApiJson } from '../services/http/apiClient.js';
+import { ApiError, fetchApiJson } from '../services/http/apiClient.js';
 
 
 export { MAP_PARTICIPATION_WORKBOOK_FILE_NAME };
@@ -21,19 +21,19 @@ export const persistMapParticipationWorkbook = async ({ submissionPayload }) => 
       timeoutMs: 20000,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('timeout')) {
-      throw new Error('No fue posible guardar la ficha automáticamente en el archivo Excel por tiempo de espera agotado.');
-    }
-
-    if (error instanceof TypeError) {
-      throw new Error('No fue posible conectar la web con el guardado automático del Excel. Verifica que estés ejecutando el proyecto desde el servidor local.');
-    }
-
-    if (error instanceof Error) {
+    if (error instanceof ApiError) {
       throw error;
     }
 
-    throw new Error('No fue posible guardar la ficha automáticamente en el archivo Excel.');
+    if (error instanceof TypeError) {
+      throw new Error('[NETWORK] No fue posible conectar la web con el guardado automatico del Excel. Verifica que la API local este activa.');
+    }
+
+    if (error instanceof Error) {
+      throw new Error(`[CLIENT_PARTICIPATION_SAVE] No fue posible guardar la ficha automaticamente en el archivo Excel. Detalle: ${error.message}`);
+    }
+
+    throw new Error('[CLIENT_PARTICIPATION_SAVE] No fue posible guardar la ficha automaticamente en el archivo Excel. Detalle: error desconocido.');
   }
 
   return {
