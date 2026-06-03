@@ -78,6 +78,97 @@ public static class AdminAuthEndpoints
                 : Results.Ok(new AdminAuthResponse(await ToDtoAsync(current.Value.User, current.Value.Role, dbContext, cancellationToken)));
         });
 
+        auth.MapPut("/profile", async (
+            UpdateProfileRequest request,
+            ClaimsPrincipal principal,
+            PnmcDbContext dbContext,
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = GetCurrentUserId(principal);
+            if (userId is null)
+            {
+                return Results.Unauthorized();
+            }
+
+            var user = await dbContext.Users.FirstOrDefaultAsync(item => item.Id == userId.Value, cancellationToken);
+            if (user is null)
+            {
+                return Results.NotFound();
+            }
+
+            if (ValidationHelpers.IsMissing(request.FullName) || ValidationHelpers.IsMissing(request.Email))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["profile"] = ["Nombre y correo son obligatorios."]
+                });
+            }
+
+            var email = request.Email.Trim().ToLowerInvariant();
+            if (!ValidationHelpers.IsValidEmail(email))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["email"] = ["El correo electronico no es valido."]
+                });
+            }
+
+            var existingUser = await dbContext.Users.FirstOrDefaultAsync(item => item.Email.ToLower() == email && item.Id != user.Id, cancellationToken);
+            if (existingUser is not null)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["email"] = ["El correo electronico ya esta en uso por otro usuario."]
+                });
+            }
+
+            user.FullName = request.FullName.Trim();
+            user.Email = email;
+            user.Telefono = request.Telefono?.Trim();
+            user.UpdatedAt = DateTime.UtcNow;
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                if (request.Password.Length < 10)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["password"] = ["La contrasena debe tener minimo 10 caracteres."]
+                    });
+                }
+                user.PasswordHash = PasswordHasher.HashPassword(user, request.Password);
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            var role = await dbContext.Roles.AsNoTracking().FirstOrDefaultAsync(item => item.Id == user.RoleId, cancellationToken);
+
+            var newPrincipal = BuildPrincipal(user, role!);
+            await httpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                newPrincipal,
+                new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    IssuedUtc = DateTimeOffset.UtcNow,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8),
+                    AllowRefresh = true
+                });
+
+            await WriteAuditAsync(
+                dbContext,
+                user.Id,
+                "Usuarios",
+                user.Id.ToString(),
+                "actualizar_perfil",
+                cancellationToken,
+                JsonSerializer.Serialize(new { user.FullName, user.Email, user.Telefono })
+            );
+
+            return Results.Ok(new AdminAuthResponse(await ToDtoAsync(user, role!, dbContext, cancellationToken)));
+        }).RequireAuthorization();
+
         auth.MapPost("/logout", async (
             ClaimsPrincipal principal,
             PnmcDbContext dbContext,
@@ -374,7 +465,8 @@ public static class AdminAuthEndpoints
             normalizedRole,
             role.Name,
             user.IsActive,
-            user.LastLoginAt);
+            user.LastLoginAt,
+            Telefono: user.Telefono);
     }
 
     private static async Task<AdminUserDto> ToDtoAsync(

@@ -428,10 +428,19 @@ public sealed record AdminUserDto(
     bool IsActive,
     DateTime? LastLoginAt,
     string? AllyEntityId = null,
-    string? AllyEntityName = null
+    string? AllyEntityName = null,
+    string? Telefono = null
 );
 
 public sealed record AdminAuthResponse(AdminUserDto User);
+
+public sealed class UpdateProfileRequest
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Telefono { get; set; }
+    public string? Password { get; set; }
+}
 
 public sealed class AdminUserUpsertRequest
 {

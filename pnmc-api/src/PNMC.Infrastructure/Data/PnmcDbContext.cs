@@ -519,6 +519,7 @@ public sealed class PnmcDbContext : DbContext
             entity.Property(x => x.RoleId).HasColumnName("IdRol");
             entity.Property(x => x.AccessChannel).HasColumnName("CanalAcceso");
             entity.Property(x => x.ProfileType).HasColumnName("TipoPerfil");
+            entity.Property(x => x.Telefono).HasColumnName("Telefono");
             entity.Property(x => x.IsActive).HasColumnName("Activo");
             entity.Property(x => x.LastLoginAt).HasColumnName("UltimoAcceso");
             entity.Property(x => x.CreatedAt).HasColumnName("FechaCreacion");

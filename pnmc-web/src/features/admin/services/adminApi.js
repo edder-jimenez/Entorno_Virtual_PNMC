@@ -358,3 +358,13 @@ export const importBulkRecords = ({ moduleId, records }) => fetchApiJson({
   }),
   errorFallback: 'No fue posible realizar la importación masiva de registros',
 });
+
+export const updateProfile = (payload) => fetchApiJson({
+  path: '/api/v1/admin/auth/profile',
+  init: buildAdminInit({
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+  errorFallback: 'No fue posible actualizar el perfil',
+});

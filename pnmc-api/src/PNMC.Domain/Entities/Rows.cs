@@ -421,6 +421,7 @@ public sealed class UserRow
     public int RoleId { get; set; }
     public string AccessChannel { get; set; } = "interno";
     public string? ProfileType { get; set; }
+    public string? Telefono { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }

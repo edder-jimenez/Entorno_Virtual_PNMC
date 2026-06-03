@@ -108,6 +108,12 @@ public static class DatabaseBootstrapper
                 ADD [TipoPerfil] nvarchar(80) NULL;
             END;
 
+            IF COL_LENGTH(N'[Usuarios]', N'Telefono') IS NULL
+            BEGIN
+                ALTER TABLE [Usuarios]
+                ADD [Telefono] nvarchar(80) NULL;
+            END;
+
             IF OBJECT_ID(N'[BitacoraAuditoria]', N'U') IS NULL
             BEGIN
                 CREATE TABLE [BitacoraAuditoria] (
@@ -255,6 +261,7 @@ public static class DatabaseBootstrapper
                 "admin@pnmc.local",
                 "webmaster",
                 "admin",
+                "3151234567",
                 cancellationToken);
 
             await EnsureBootstrapUserAsync(
@@ -263,6 +270,7 @@ public static class DatabaseBootstrapper
                 "gestor@pnmc.local",
                 "gestor_interno",
                 "admin",
+                "3207654321",
                 cancellationToken);
         }
     }
@@ -367,6 +375,7 @@ public static class DatabaseBootstrapper
         string email,
         string roleName,
         string password,
+        string? phone,
         CancellationToken cancellationToken)
     {
         var role = await db.Roles.FirstAsync(item => item.Name == roleName, cancellationToken);
@@ -389,6 +398,7 @@ public static class DatabaseBootstrapper
             _ => "interno"
         };
         user.ProfileType = roleName == "externo" ? "organizacion" : user.ProfileType;
+        user.Telefono = phone;
         user.IsActive = true;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -423,12 +433,12 @@ public static class DatabaseBootstrapper
         await EnsureContentStatusAsync(db, "rechazado", "Rechazado", "Registro no aprobado.", cancellationToken);
         await EnsureContentStatusAsync(db, "archivado", "Archivado", "Registro retirado del flujo activo.", cancellationToken);
 
-        await EnsureBootstrapUserAsync(db, "Webmaster PNMC", "admin@pnmc.local", "webmaster", "admin", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Gestor Interno PNMC", "gestor@pnmc.local", "gestor_interno", "admin", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Administrador", "aliado-admin@pnmc.local", "aliado_admin", "admin", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Editor", "aliado-editor@pnmc.local", "aliado_editor", "admin", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Lector", "aliado-lector@pnmc.local", "aliado_lector", "admin", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Colaborador Externo", "externo@pnmc.local", "externo", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Webmaster PNMC", "admin@pnmc.local", "webmaster", "admin", "3151234567", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Gestor Interno PNMC", "gestor@pnmc.local", "gestor_interno", "admin", "3207654321", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Administrador", "aliado-admin@pnmc.local", "aliado_admin", "admin", "3004445566", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Editor", "aliado-editor@pnmc.local", "aliado_editor", "admin", "3119998877", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Lector", "aliado-lector@pnmc.local", "aliado_lector", "admin", "3146665544", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Colaborador Externo", "externo@pnmc.local", "externo", "admin", "3103332211", cancellationToken);
 
         await EnsureDivipolaLocationAsync(db, "05", "Antioquia", "05001", "Medellin", cancellationToken);
         await EnsureDivipolaLocationAsync(db, "11", "Bogota, D.C.", "11001", "Bogota, D.C.", cancellationToken);

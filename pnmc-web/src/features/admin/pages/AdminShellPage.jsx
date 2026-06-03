@@ -79,6 +79,7 @@ import {
   upsertAdminRecord,
   analyzeTextWithAI,
   importBulkRecords,
+  updateProfile,
 } from '../services/adminApi.js';
 
 import { getWebText, saveWebText, getWebTextDetails, getWebTextsKeysList } from '../../../lib/webTexts.js';
@@ -4834,7 +4835,7 @@ const ExternalPortalLogin = ({ onLogin, localUsers = [], onRegisterUser }) => {
    Custom workflow for guest users to characterize and register processes
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onLocalReviewItem, onNotificationRead, onPasswordChange }) => {
+const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onLocalReviewItem, onNotificationRead, onPasswordChange, onProfileUpdate }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [characterizationStatus, setCharacterizationStatus] = useState('pendiente');
   const [wizardStep, setWizardStep] = useState(1);
@@ -4846,6 +4847,66 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
   const [isScanning, setIsScanning] = useState(false);
   const [potentialMatches, setPotentialMatches] = useState([]);
   const [previewMatch, setPreviewMatch] = useState(null);
+
+  const [profileForm, setProfileForm] = useState({
+    fullName: session.fullName || '',
+    email: session.email || '',
+    telefono: session.telefono || '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+
+  useEffect(() => {
+    setProfileForm({
+      fullName: session.fullName || '',
+      email: session.email || '',
+      telefono: session.telefono || '',
+      password: '',
+      confirmPassword: '',
+    });
+  }, [session]);
+
+  const handleSubmitProfile = async (e) => {
+    e.preventDefault();
+    if (!profileForm.fullName.trim() || !profileForm.email.trim()) {
+      setProfileError('Nombre y correo electrónico son obligatorios.');
+      return;
+    }
+    if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
+      setProfileError('Las contraseñas no coinciden.');
+      return;
+    }
+    if (profileForm.password && profileForm.password.length < 10) {
+      setProfileError('La nueva contraseña debe tener mínimo 10 caracteres.');
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileSuccess(false);
+
+    try {
+      await onProfileUpdate({
+        fullName: profileForm.fullName,
+        email: profileForm.email,
+        telefono: profileForm.telefono,
+        password: profileForm.password || null,
+      });
+      setProfileSuccess(true);
+      setProfileForm((prev) => ({
+        ...prev,
+        password: '',
+        confirmPassword: '',
+      }));
+    } catch (err) {
+      setProfileError(err.message || 'Error al actualizar el perfil.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const [charForm, setCharForm] = useState({
     legalName: '',
@@ -5146,6 +5207,13 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
             className={`py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${activeTab === 'characterization' ? 'border-[#291242] text-[#291242]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
           >
             Caracterización Organizacional
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab('profile'); setShowProcessForm(false); }}
+            className={`py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${activeTab === 'profile' ? 'border-[#291242] text-[#291242]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+          >
+            Editar Perfil
           </button>
         </div>
 
@@ -5615,6 +5683,112 @@ const ExternalUserDashboard = ({ session, divipola, notifications, onLogout, onL
                   {editingProcessId ? 'Reenviar a evaluación' : 'Enviar a evaluación'}
                 </button>
               </div>
+            </div>
+          </form>
+        )}
+
+        {activeTab === 'profile' && (
+          <form onSubmit={handleSubmitProfile} className="rounded-xl border border-slate-200 bg-white overflow-hidden animate-fade-in max-w-2xl mx-auto w-full">
+            <div className="border-b border-slate-100 bg-[#291242] text-white px-5 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-alternate text-sm uppercase tracking-wider font-bold">Editar Perfil</h3>
+                <p className="text-xs text-white/60 mt-0.5">Actualice sus datos personales y credenciales de acceso</p>
+              </div>
+              <User size={20} className="text-[#00DA5E]" />
+            </div>
+
+            <div className="p-6 space-y-5">
+              {profileSuccess && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+                  <span>¡Perfil actualizado con éxito!</span>
+                </div>
+              )}
+
+              {profileError && (
+                <div className="rounded-xl border border-red-200 bg-red-50/70 p-4 text-red-800 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={16} className="text-red-600 shrink-0" />
+                  <span>{profileError}</span>
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <FormField label="Nombre Completo" htmlFor="profile-fullname" required>
+                    <TextInput
+                      id="profile-fullname"
+                      required
+                      value={profileForm.fullName}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, fullName: e.target.value }))}
+                      placeholder="Ej. Juan Pérez"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Correo Electrónico" htmlFor="profile-email" required>
+                  <TextInput
+                    id="profile-email"
+                    type="email"
+                    required
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="ejemplo@pnmc.local"
+                  />
+                </FormField>
+
+                <FormField label="Teléfono de Contacto" htmlFor="profile-telefono">
+                  <TextInput
+                    id="profile-telefono"
+                    value={profileForm.telefono}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="Ej. 312 345 6789"
+                  />
+                </FormField>
+
+                <div className="md:col-span-2 border-t border-slate-100 my-2 pt-4">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-[#291242] mb-1">Cambiar Contraseña (Opcional)</h4>
+                </div>
+
+                <FormField label="Nueva Contraseña" htmlFor="profile-password">
+                  <TextInput
+                    id="profile-password"
+                    type="password"
+                    value={profileForm.password}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Mínimo 10 caracteres"
+                  />
+                </FormField>
+
+                <FormField label="Confirmar Nueva Contraseña" htmlFor="profile-confirmpassword">
+                  <TextInput
+                    id="profile-confirmpassword"
+                    type="password"
+                    value={profileForm.confirmPassword}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Repita la nueva contraseña"
+                  />
+                </FormField>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 px-5 py-4 border-t border-slate-100 flex justify-end">
+              <button
+                type="submit"
+                disabled={profileSaving}
+                className="rounded-lg bg-[#291242] hover:bg-[#1f0d32] text-white px-5 py-2 text-xs font-bold transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {profileSaving ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin text-[#00DA5E]" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} className="text-[#00DA5E]" />
+                    Guardar Cambios
+                  </>
+                )}
+              </button>
             </div>
           </form>
         )}
@@ -7520,6 +7694,14 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
       setSession((prev) => ({ ...prev, password: newPassword }));
     }
   };
+  const handleProfileUpdate = async (payload) => {
+    const response = await updateProfile(payload);
+    if (response && response.user) {
+      setSession(response.user);
+      return response.user;
+    }
+    throw new Error('Respuesta inválida del servidor');
+  };
   const handleNotificationRead = (recordId) => {
     setNotifications((prev) => prev.map((item) => item.recordId === recordId ? { ...item, read: true } : item));
   };
@@ -7679,6 +7861,7 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
           onLocalReviewItem={handleReviewRecord}
           onNotificationRead={handleNotificationRead}
           onPasswordChange={handlePasswordChange}
+          onProfileUpdate={handleProfileUpdate}
         />
     );
   }
