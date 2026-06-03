@@ -4410,7 +4410,7 @@ const LiderDashboard = ({ monitor, apiStatus, onRefresh, divipola }) => {
    Highly visual screen with background photo, captcha and signup toggles
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const ExternalPortalLogin = ({ onLogin, localUsers = [], onRegisterUser }) => {
+const ExternalPortalLogin = ({ onLogin, onToggleInternal, localUsers = [], onRegisterUser }) => {
   const [activeTab, setActiveTab] = useState('login');
   const [email, setEmail] = useState('colaborador@external.local');
   const [password, setPassword] = useState('password');
@@ -4823,6 +4823,17 @@ const ExternalPortalLogin = ({ onLogin, localUsers = [], onRegisterUser }) => {
               </form>
             )}
 
+            {onToggleInternal && (
+              <div className="pt-4 mt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={onToggleInternal}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-wider text-[#00DA5E] hover:text-[#00f56a] transition-all duration-300 cursor-pointer group active:scale-[0.98]"
+                >
+                  <span>Volver al Ingreso Administrativo</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
