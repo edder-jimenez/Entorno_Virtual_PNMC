@@ -254,7 +254,7 @@ public static class DatabaseBootstrapper
                 "Webmaster PNMC",
                 "admin@pnmc.local",
                 "webmaster",
-                "pnmc-master",
+                "admin",
                 cancellationToken);
 
             await EnsureBootstrapUserAsync(
@@ -262,7 +262,7 @@ public static class DatabaseBootstrapper
                 "Gestor Interno PNMC",
                 "gestor@pnmc.local",
                 "gestor_interno",
-                "pnmc-gestor",
+                "admin",
                 cancellationToken);
         }
     }
@@ -423,12 +423,12 @@ public static class DatabaseBootstrapper
         await EnsureContentStatusAsync(db, "rechazado", "Rechazado", "Registro no aprobado.", cancellationToken);
         await EnsureContentStatusAsync(db, "archivado", "Archivado", "Registro retirado del flujo activo.", cancellationToken);
 
-        await EnsureBootstrapUserAsync(db, "Webmaster PNMC", "admin@pnmc.local", "webmaster", "pnmc-master", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Gestor Interno PNMC", "gestor@pnmc.local", "gestor_interno", "pnmc-gestor", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Administrador", "aliado-admin@pnmc.local", "aliado_admin", "pnmc-aliado", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Editor", "aliado-editor@pnmc.local", "aliado_editor", "pnmc-aliado", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Aliado Lector", "aliado-lector@pnmc.local", "aliado_lector", "pnmc-aliado", cancellationToken);
-        await EnsureBootstrapUserAsync(db, "Colaborador Externo", "externo@pnmc.local", "externo", "pnmc-externo", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Webmaster PNMC", "admin@pnmc.local", "webmaster", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Gestor Interno PNMC", "gestor@pnmc.local", "gestor_interno", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Administrador", "aliado-admin@pnmc.local", "aliado_admin", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Editor", "aliado-editor@pnmc.local", "aliado_editor", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Aliado Lector", "aliado-lector@pnmc.local", "aliado_lector", "admin", cancellationToken);
+        await EnsureBootstrapUserAsync(db, "Colaborador Externo", "externo@pnmc.local", "externo", "admin", cancellationToken);
 
         await EnsureDivipolaLocationAsync(db, "05", "Antioquia", "05001", "Medellin", cancellationToken);
         await EnsureDivipolaLocationAsync(db, "11", "Bogota, D.C.", "11001", "Bogota, D.C.", cancellationToken);

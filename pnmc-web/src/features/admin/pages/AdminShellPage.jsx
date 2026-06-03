@@ -45,7 +45,12 @@ import {
   UserCheck,
   CheckCircle,
   ChevronRight,
+  EyeOff,
 } from 'lucide-react';
+import pnmcBlancoLogo from '../../../assets/branding/pnmc-blanco.png';
+import govLogo from '../../../assets/branding/logo-gov-co.png';
+import colombiaFooterLogo from '../../../assets/branding/gov-co-footer.png';
+import culturasBlancoLogo from '../../../assets/branding/Culturas-Blanco.png';
 import { Badge } from '../../../components/ui/Badge.jsx';
 import { FormField, SelectInput, TextAreaInput, TextInput } from '../../../components/ui/FormControls.jsx';
 import {
@@ -223,6 +228,11 @@ const normalizeImportHeader = (value = '') => String(value || '')
   .trim();
 
 const getImportableFields = (module) => (module?.fields || []).filter((field) => !field.system && !['id', 'status'].includes(field.name));
+
+const hasImportableRowData = (record, fields = []) => fields.some((field) => {
+  const value = record[field.name];
+  return value !== undefined && value !== null && String(value).trim() !== '';
+});
 
 const detectTemplateModule = (headers, currentModule) => {
   const normalizedHeaders = new Set(headers.map(normalizeImportHeader).filter(Boolean));
@@ -778,10 +788,39 @@ const TerritoryFields = ({
    ADMIN LOGIN — Redesigned
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const AdminLogin = ({ onLogin }) => {
+const AdminLogin = ({ onLogin, onToggleExternal }) => {
+  const [selectedRole, setSelectedRole] = useState('webmaster');
   const [email, setEmail] = useState('admin@pnmc.local');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('admin');
   const [loginState, setLoginState] = useState({ status: 'idle', message: '' });
+  const [formMode, setFormMode] = useState('login'); // 'login' | 'recover'
+  const [recoverEmail, setRecoverEmail] = useState('');
+  const [recoverSuccess, setRecoverSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [inputsGlowing, setInputsGlowing] = useState(false);
+  const [showDevPanel, setShowDevPanel] = useState(false);
+
+  const ROLE_CREDENTIALS = {
+    webmaster: { email: 'admin@pnmc.local', password: 'admin' },
+    gestor_interno: { email: 'gestor@pnmc.local', password: 'admin' },
+    aliado_admin: { email: 'aliado-admin@pnmc.local', password: 'admin' },
+    aliado_editor: { email: 'aliado-editor@pnmc.local', password: 'admin' },
+    aliado_lector: { email: 'aliado-lector@pnmc.local', password: 'admin' },
+    externo: { email: 'externo@pnmc.local', password: 'admin' },
+  };
+
+  const selectRole = (roleId) => {
+    if (formMode !== 'login') {
+      setFormMode('login');
+    }
+    setSelectedRole(roleId);
+    setEmail(ROLE_CREDENTIALS[roleId].email);
+    setPassword(ROLE_CREDENTIALS[roleId].password);
+    
+    // Quick, premium visual highlight confirmation on inputs
+    setInputsGlowing(true);
+    setTimeout(() => setInputsGlowing(false), 800);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -795,102 +834,396 @@ const AdminLogin = ({ onLogin }) => {
     }
   };
 
+  const handleRecoverSubmit = (event) => {
+    event.preventDefault();
+    if (!recoverEmail) return;
+    setLoginState({ status: 'saving', message: 'Enviando solicitud...' });
+    
+    // Simulate reset link dispatch
+    setTimeout(() => {
+      setRecoverSuccess(true);
+      setLoginState({ status: 'idle', message: '' });
+    }, 1000);
+  };
+
+  const customStyles = `
+    @keyframes led-blink {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; filter: brightness(1.2); }
+    }
+    .led-glow {
+      animation: led-blink 2s ease-in-out infinite;
+    }
+    @keyframes card-glow {
+      0%, 100% { box-shadow: 0 0 25px rgba(0, 218, 94, 0.03), inset 0 1px 0 rgba(255,255,255,0.06); }
+      50% { box-shadow: 0 0 45px rgba(0, 218, 94, 0.08), inset 0 1px 0 rgba(255,255,255,0.09); }
+    }
+    .terminal-card-glow {
+      animation: card-glow 6s ease-in-out infinite;
+    }
+    @keyframes button-shine {
+      0% { left: -120%; }
+      35%, 100% { left: 120%; }
+    }
+    .btn-shine-effect {
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-shine-effect::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -120%;
+      width: 45%;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: skewX(-25deg);
+      animation: button-shine 6s ease-in-out infinite;
+    }
+    /* Webkit Input Autofill robust override */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #090610 inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      caret-color: #ffffff !important;
+      transition: background-color 5000s ease-in-out 0s !important;
+    }
+  `;
+
   return (
-    <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-10 items-center">
+    <main className="relative h-screen w-screen bg-[#0d0915] flex flex-col items-center justify-center px-4 overflow-hidden select-none">
+      <style>{customStyles}</style>
 
-        {/* Left — Brand */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-[#00DA5E] flex items-center justify-center">
-                <ShieldCheck size={22} className="text-slate-950" />
+      {/* Ambient Glowing Spheres */}
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-[#00DA5E]/8 blur-[130px] pointer-events-none z-0"></div>
+      <div className="absolute -bottom-60 -left-60 w-[600px] h-[600px] rounded-full bg-[#6100D7]/12 blur-[150px] pointer-events-none z-0"></div>
+      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none z-0"></div>
+
+      <div className="w-full max-w-md flex flex-col items-center relative z-10 text-center py-2">
+        
+        {/* Prominent Hero Website Logo (Refined scale for majestic presence) */}
+        <img 
+          src={pnmcBlancoLogo} 
+          className="h-24 sm:h-28 md:h-32 w-auto object-contain mb-5 filter drop-shadow-[0_4px_32px_rgba(0,218,94,0.25)] transition-all duration-300 hover:scale-[1.03]" 
+          alt="PNMC Logo" 
+        />
+
+        {/* Centered Glassmorphic Login Card */}
+        <div className="w-full rounded-[2rem] bg-slate-900/40 border border-white/10 backdrop-blur-xl p-6 sm:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6)] relative terminal-card-glow text-left">
+          {/* Subtle top ambient indicator bar */}
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#00DA5E]/30 to-transparent rounded-t-[2rem]"></div>
+          
+          {formMode === 'login' ? (
+            <>
+              <div className="mb-6">
+                {/* Predominant Overflowing Title that straddles the card border */}
+                <div className="-mt-11 sm:-mt-13 mb-3 relative z-20">
+                  <h2 className="text-2xl sm:text-3xl md:text-[2.25rem] font-black uppercase tracking-tight font-display leading-none text-white select-none pointer-events-none drop-shadow-[0_8px_30px_rgba(0,0,0,0.9)]">
+                    Centro de <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00DA5E] via-[#00f56a] to-[#00b04c] drop-shadow-[0_2px_15px_rgba(0,218,94,0.35)]">Administración</span>
+                  </h2>
+                </div>
+                <p className="text-[0.68rem] text-slate-400 mt-2 leading-relaxed font-medium">
+                  Portal de acceso exclusivo para el equipo del <strong className="text-slate-200">Grupo de Música</strong> y aliados del <strong className="text-slate-200">Plan Nacional de Música para la Convivencia</strong>.
+                </p>
               </div>
-              <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#00DA5E]">PNMC Admin</span>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5 group">
+                  <label htmlFor="admin-email" className="block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400 pl-1 group-focus-within:text-[#00DA5E] transition-colors duration-300">Correo electrónico</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 pointer-events-none group-focus-within:text-[#00DA5E] transition-colors duration-300">
+                      <Mail size={15} />
+                    </span>
+                    <input
+                      id="admin-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="username"
+                      required
+                      className={`w-full rounded-xl bg-slate-950/50 border pl-11 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 ${
+                        inputsGlowing 
+                          ? 'border-[#00DA5E] ring-2 ring-[#00DA5E]/30 shadow-[0_0_15px_rgba(0,218,94,0.15)] bg-slate-950/70' 
+                          : 'border-white/10 hover:border-white/20 focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 focus:bg-slate-950/70 focus:shadow-[0_0_20px_rgba(0,218,94,0.1)]'
+                      }`}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-1.5 group">
+                  <div className="flex items-center justify-between pl-1">
+                    <label htmlFor="admin-password" className="block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400 group-focus-within:text-[#00DA5E] transition-colors duration-300">Contraseña</label>
+                    <button 
+                      type="button" 
+                      onClick={() => { setFormMode('recover'); setRecoverSuccess(false); setRecoverEmail(''); }} 
+                      className="text-[0.62rem] font-bold text-[#00DA5E] hover:underline cursor-pointer uppercase tracking-wider transition"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 pointer-events-none group-focus-within:text-[#00DA5E] transition-colors duration-300">
+                      <Lock size={15} />
+                    </span>
+                    <input
+                      id="admin-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                      className={`w-full rounded-xl bg-slate-950/50 border pl-11 pr-12 py-2.5 text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 ${
+                        inputsGlowing 
+                          ? 'border-[#00DA5E] ring-2 ring-[#00DA5E]/30 shadow-[0_0_15px_rgba(0,218,94,0.15)] bg-slate-950/70' 
+                          : 'border-white/10 hover:border-white/20 focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 focus:bg-slate-950/70 focus:shadow-[0_0_20px_rgba(0,218,94,0.1)]'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-[#00DA5E] transition-colors"
+                    >
+                      {showPassword ? <Eye size={15} /> : <EyeOff size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                {loginState.message && loginState.status !== 'idle' && (
+                  <div className={`flex items-center gap-3 rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-wider ${
+                    loginState.status === 'error' 
+                      ? 'bg-rose-950/40 border border-rose-800/50 text-rose-300' 
+                      : 'bg-slate-900/60 border border-[#00DA5E]/20 text-[#00DA5E]'
+                  }`}>
+                    {loginState.status === 'error' ? (
+                      <AlertCircle size={14} className="shrink-0 text-rose-400" />
+                    ) : (
+                      <RefreshCw size={14} className="animate-spin shrink-0 text-[#00DA5E]" />
+                    )}
+                    <span className="leading-snug text-[10px] sm:text-xs">{loginState.message}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loginState.status === 'saving'}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#00DA5E] via-[#00f56a] to-[#00b04c] disabled:opacity-50 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-950 transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,218,94,0.4)] cursor-pointer select-none active:scale-[0.97] btn-shine-effect"
+                >
+                  <ShieldCheck size={15} />
+                  Entrar al panel
+                </button>
+                
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="mb-5">
+                <div className="flex items-center gap-3 mb-3.5">
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <div className="absolute inset-0 rounded-lg bg-[#00DA5E]/20 animate-ping opacity-60"></div>
+                    <div className="relative h-8 w-8 rounded-lg bg-slate-950/80 border border-[#00DA5E]/40 flex items-center justify-center shadow-[0_0_10px_rgba(0,218,94,0.15)]">
+                      <RefreshCw size={14} className="text-[#00DA5E] animate-spin" style={{ animationDuration: '3s' }} />
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#00DA5E]/10 text-[#00DA5E] border border-[#00DA5E]/20 shadow-[0_0_10px_rgba(0,218,94,0.05)]">
+                    Recuperación
+                  </span>
+                </div>
+                
+                <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight font-display leading-tight">
+                  Recuperar <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00DA5E] to-[#00f56a] drop-shadow-[0_2px_10px_rgba(0,218,94,0.2)]">Contraseña</span>
+                </h2>
+                <p className="text-[0.68rem] text-slate-400 mt-2 leading-relaxed font-medium">Ingresa tu correo electrónico registrado y te enviaremos las instrucciones de restablecimiento.</p>
+              </div>
+
+              {!recoverSuccess ? (
+                <form onSubmit={handleRecoverSubmit} className="space-y-4">
+                  <div className="space-y-1.5 group">
+                    <label htmlFor="recover-email" className="block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400 pl-1 group-focus-within:text-[#00DA5E] transition-colors duration-300">Correo electrónico</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 pointer-events-none group-focus-within:text-[#00DA5E] transition-colors duration-300">
+                        <Mail size={15} />
+                      </span>
+                      <input
+                        id="recover-email"
+                        type="email"
+                        value={recoverEmail}
+                        onChange={(e) => setRecoverEmail(e.target.value)}
+                        required
+                        className="w-full rounded-xl bg-slate-950/50 border border-white/10 pl-11 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none hover:border-white/20 focus:border-[#00DA5E] focus:ring-2 focus:ring-[#00DA5E]/20 focus:bg-slate-950/70 focus:shadow-[0_0_20px_rgba(0,218,94,0.1)] transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+
+                  {loginState.message && loginState.status === 'saving' && (
+                    <div className="flex items-center gap-3 rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-wider bg-slate-900/60 border border-[#00DA5E]/20 text-[#00DA5E]">
+                      <RefreshCw size={14} className="animate-spin shrink-0 text-[#00DA5E]" />
+                      <span className="leading-snug text-[10px] sm:text-xs">{loginState.message}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loginState.status === 'saving'}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#00DA5E] via-[#00f56a] to-[#00b04c] disabled:opacity-50 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-950 transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,218,94,0.4)] cursor-pointer select-none active:scale-[0.97] btn-shine-effect"
+                  >
+                    Enviar Enlace
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormMode('login')}
+                    className="w-full text-center text-[10px] sm:text-xs font-bold text-slate-400 hover:text-[#00DA5E] uppercase tracking-wider mt-3 hover:underline cursor-pointer transition-colors"
+                  >
+                    Volver al Inicio de Sesión
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <div className="h-12 w-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">¡Solicitud Procesada!</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed">
+                      Hemos enviado un correo a <strong className="text-white">{recoverEmail}</strong> con las instrucciones y el enlace para restablecer tu contraseña.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setFormMode('login'); setRecoverSuccess(false); }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 px-5 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
+                  >
+                    Volver a Iniciar Sesión
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {onToggleExternal && formMode === 'login' && (
+            <div className="pt-4 mt-4 border-t border-white/5">
+              <button
+                type="button"
+                onClick={onToggleExternal}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-wider text-[#00DA5E] hover:text-[#00f56a] transition-all duration-300 cursor-pointer group active:scale-[0.98]"
+              >
+                <span>Ingresar al Portal de Colaboradores Externos</span>
+                <ChevronRight size={12} className="transform group-hover:translate-x-1 transition-transform duration-300 text-[#00DA5E] group-hover:text-[#00f56a]" />
+              </button>
             </div>
-            <h1 className="text-4xl font-black text-white leading-tight tracking-tight">
-              Centro de<br />administración
-            </h1>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              Acceso privado para gestionar entidades, usuarios, datos territoriales, revisión y monitoreo del sistema.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {Object.values(ADMIN_ROLES).map((role) => (
-              <div key={role.id} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 p-4">
-                <div className="mt-0.5 h-6 w-6 rounded-md bg-white/10 flex items-center justify-center shrink-0">
-                  {role.id === 'webmaster' && <ShieldCheck size={13} className="text-[#00DA5E]" />}
-                  {role.id === 'editor' && <Edit3 size={13} className="text-blue-400" />}
-                  {role.id === 'gestor' && <User size={13} className="text-slate-400" />}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{role.shortLabel}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{role.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
 
-        {/* Right — Form */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur p-8">
-          <div className="mb-7">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#291242] mb-4">
-              <KeyRound size={20} className="text-white" />
+        {/* Institutional Endorsement (Ministry Logos) at the very bottom - perfectly aligned in a single row */}
+        <div className="mt-5 flex flex-col items-center gap-2 shrink-0 select-none">
+          <div className="flex items-center justify-center gap-4 sm:gap-5 flex-wrap">
+            <div className="w-[5.5rem] sm:w-[6.5rem] shrink-0">
+              <img src={govLogo} className="w-full h-auto object-contain" alt="GOV.CO" />
             </div>
-            <h2 className="text-xl font-black text-white">Ingreso administrativo</h2>
-            <p className="text-sm text-slate-400 mt-1">Autenticación real contra usuarios y roles.</p>
+            <div className="h-4 w-[1px] bg-white/20"></div>
+            <div className="w-[2.2rem] sm:w-[2.6rem] shrink-0">
+              <img src={colombiaFooterLogo} className="w-full h-auto object-contain" alt="Colombia" />
+            </div>
+            <div className="h-4 w-[1px] bg-white/20"></div>
+            <div className="w-[2.9rem] sm:w-[3.5rem] shrink-0">
+              <img src={culturasBlancoLogo} className="w-full h-auto object-contain" alt="Ministerio de las Culturas" />
+            </div>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-              <label htmlFor="admin-email" className="block text-xs font-bold uppercase tracking-wider text-slate-400">Correo electrónico</label>
-              <input
-                id="admin-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-                required
-                className="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-[#00DA5E] focus:ring-1 focus:ring-[#00DA5E]/30 transition"
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="admin-password" className="block text-xs font-bold uppercase tracking-wider text-slate-400">Contraseña</label>
-              <input
-                id="admin-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                className="w-full rounded-xl bg-white/8 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-[#00DA5E] focus:ring-1 focus:ring-[#00DA5E]/30 transition"
-              />
-            </div>
-
-            {loginState.message && (
-              <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${loginState.status === 'error' ? 'bg-red-950/50 border border-red-800 text-red-300' : 'bg-slate-800 text-slate-300'}`}>
-                {loginState.status === 'error' ? <AlertCircle size={15} /> : <RefreshCw size={15} className="animate-spin" />}
-                {loginState.message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loginState.status === 'saving'}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#00DA5E] hover:bg-[#00c454] disabled:opacity-50 px-5 py-3 text-sm font-black text-slate-950 transition"
-            >
-              <ShieldCheck size={16} />
-              Entrar al panel
-            </button>
-            
-          </form>
         </div>
+      </div>
+
+      {/* 
+        ═══════════════════════════════════════════════════════════════════════════
+        DEVELOPER / TESTING ACCOUNTS FLOATING TOOL (Bottom-Left Corner)
+        TODO: REMOVE THIS COMPONENT BEFORE PRODUCTION DEPLOYMENT
+        ═══════════════════════════════════════════════════════════════════════════
+      */}
+      <div className="fixed bottom-6 left-6 z-[4000] text-left">
+        {/* Toggle Button */}
+        <button
+          type="button"
+          onClick={() => setShowDevPanel(!showDevPanel)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-full border shadow-2xl backdrop-blur-md text-xs font-bold transition-all duration-300 hover:scale-[1.03] select-none cursor-pointer ${
+            showDevPanel
+              ? 'bg-[#00DA5E] border-[#00DA5E] text-slate-950 shadow-[0_0_15px_rgba(0,218,94,0.3)]'
+              : 'bg-slate-900/90 border-white/10 text-[#00DA5E] hover:border-[#00DA5E]/30 hover:bg-slate-900'
+          }`}
+        >
+          <UserCheck size={14} className={showDevPanel ? 'animate-pulse' : ''} />
+          <span>{showDevPanel ? 'Cerrar Cuentas' : 'Cuentas de Prueba'}</span>
+        </button>
+
+        {/* Floating Dev Panel List */}
+        {showDevPanel && (
+          <div className="absolute bottom-14 left-0 w-72 rounded-3xl bg-slate-950/95 border border-white/10 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.7)] backdrop-blur-xl space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-[#00DA5E]">Herramienta de Pruebas</p>
+              <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">
+                Haz clic en una cuenta para autocompletar el login e ingresar rápidamente a evaluar cada módulo.
+              </p>
+            </div>
+
+            <div className="h-60 overflow-y-auto pr-1 space-y-2 thin-horizontal-scrollbar no-scrollbar">
+              {Object.values(ADMIN_ROLES).map((role) => {
+                const isActive = selectedRole === role.id && formMode === 'login';
+                
+                // Color mapping for testing indicator
+                let indicatorColor = 'bg-[#00DA5E]';
+                if (role.id === 'gestor_interno') indicatorColor = 'bg-blue-500';
+                if (role.id === 'aliado_admin') indicatorColor = 'bg-purple-500';
+                if (role.id === 'aliado_editor') indicatorColor = 'bg-orange-500';
+                if (role.id === 'aliado_lector') indicatorColor = 'bg-slate-400';
+                if (role.id === 'externo') indicatorColor = 'bg-rose-500';
+
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => {
+                      selectRole(role.id);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 text-left rounded-xl p-2.5 border transition-all ${
+                      isActive
+                        ? 'bg-white/10 border-[#00DA5E]/40 text-white'
+                        : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10 text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${indicatorColor}`}></span>
+                        {role.shortLabel}
+                      </p>
+                      <p className="text-[9px] text-slate-400 truncate mt-0.5">{ROLE_CREDENTIALS[role.id].email}</p>
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-wider text-[#00DA5E]/80 bg-[#00DA5E]/10 rounded px-1 py-0.5 shrink-0">
+                      {isActive ? 'Activo' : 'Cargar'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Critical Production Warning */}
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-[8.5px] text-amber-300 leading-normal flex gap-2">
+              <span className="shrink-0 text-xs">⚠️</span>
+              <p>
+                <strong>Atención:</strong> Este panel es exclusivo de desarrollo y testing. Recuerde removerlo antes del despliegue en producción.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
 };
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ADMIN MONITOR — Dashboard with charts & health panel
@@ -1328,10 +1661,64 @@ const mergeAssistantResults = (localResult, remoteResult) => ({
   ...Object.fromEntries(Object.entries(remoteResult || {}).filter(([, value]) => value !== '' && value !== null && value !== undefined)),
 });
 
+const AI_ASSISTANT_FILE_ACCEPT = '.txt,.md,.pdf,.png,.jpg,.jpeg,.webp,.gif';
+const AI_ASSISTANT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const AI_ASSISTANT_TEXT_TYPES = new Set(['text/plain', 'text/markdown']);
+const AI_ASSISTANT_BINARY_TYPES = new Set([
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
+
+const formatFileSize = (bytes = 0) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const isAssistantTextFile = (file) => (
+  AI_ASSISTANT_TEXT_TYPES.has(file.type)
+  || file.name.toLowerCase().endsWith('.txt')
+  || file.name.toLowerCase().endsWith('.md')
+);
+
+const isAssistantBinaryFile = (file) => (
+  AI_ASSISTANT_BINARY_TYPES.has(file.type)
+  || file.name.toLowerCase().endsWith('.pdf')
+);
+
+const readAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (event) => resolve(event.target?.result || '');
+  reader.onerror = () => reject(new Error('No fue posible leer el archivo seleccionado.'));
+  reader.readAsDataURL(file);
+});
+
+const readAsText = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (event) => resolve(event.target?.result || '');
+  reader.onerror = () => reject(new Error('No fue posible leer el archivo seleccionado.'));
+  reader.readAsText(file, 'UTF-8');
+});
+
+const buildAssistantAttachment = async (file) => {
+  const dataUrl = await readAsDataUrl(file);
+  const [, payload = ''] = String(dataUrl).split(',');
+  return {
+    fileName: file.name,
+    mimeType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
+    base64Data: payload,
+  };
+};
+
 /* ── AI Assistant Modal ────────────────────────────────────────── */
 
 const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
   const [text, setText] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -1340,7 +1727,9 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
   useEscapeToClose(onClose, !loading);
 
   const handleAnalyze = async () => {
-    if (!text.trim()) {
+    const hasText = text.trim().length > 0;
+    const attachments = attachment ? [attachment] : [];
+    if (!hasText && attachments.length === 0) {
       setError('Por favor, ingresa algún texto o carga un archivo.');
       return;
     }
@@ -1348,20 +1737,27 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
     setError('');
     setNotice('');
     setResult(null);
-    const localResult = extractLocalAssistantData({ text, module, divipola });
+    const localResult = hasText ? extractLocalAssistantData({ text, module, divipola }) : {};
     try {
-      const response = await analyzeTextWithAI({ text, moduleId: module.id });
+      const response = await analyzeTextWithAI({
+        text: hasText ? text : `Extrae la información del archivo adjunto para el módulo ${module.label}.`,
+        moduleId: module.id,
+        attachments,
+      });
       if (response?.success && response?.result) {
         const parsed = parseAiPayload(response.result);
         setResult(mergeAssistantResults(localResult, parsed));
-        setNotice('Resultado enriquecido con IA y validaciones locales.');
+        setNotice(attachments.length ? 'Resultado enriquecido con IA a partir del archivo adjunto y validaciones locales.' : 'Resultado enriquecido con IA y validaciones locales.');
       } else {
         setResult(localResult);
-        setNotice(response?.message || 'Resultado generado con análisis local básico.');
+        setNotice(response?.message || (attachments.length ? 'El archivo quedó cargado, pero la extracción de PDF o imágenes requiere IA central configurada.' : 'Resultado generado con análisis local básico.'));
+        if (attachments.length && Object.keys(localResult).length === 0) {
+          setError('El archivo fue recibido, pero no hay IA central disponible para leer PDF o imágenes. Pega texto extraído del documento o configura la IA central.');
+        }
       }
     } catch (err) {
       setResult(localResult);
-      setNotice('No hay IA externa disponible ahora. Se generó una extracción local básica.');
+      setNotice(attachments.length ? 'No hay IA externa disponible ahora para interpretar el archivo adjunto.' : 'No hay IA externa disponible ahora. Se generó una extracción local básica.');
       if (Object.keys(localResult).length === 0) {
         setError(err.message || 'No fue posible extraer campos del texto.');
       }
@@ -1374,14 +1770,45 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     readFile(file);
+    e.target.value = '';
   };
 
-  const readFile = (file) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setText(event.target.result || '');
-    };
-    reader.readAsText(file);
+  const readFile = async (file) => {
+    setError('');
+    setNotice('');
+    setSelectedFile(null);
+    setAttachment(null);
+
+    if (file.size > AI_ASSISTANT_MAX_FILE_SIZE_BYTES) {
+      setError('El archivo supera el límite de 10 MB para el asistente.');
+      return;
+    }
+
+    try {
+      if (isAssistantTextFile(file)) {
+        const content = await readAsText(file);
+        setText(content);
+        setSelectedFile({ name: file.name, type: 'Texto', size: file.size });
+        setNotice('Archivo de texto cargado. Puedes editar el contenido antes de extraer los datos.');
+        return;
+      }
+
+      if (isAssistantBinaryFile(file)) {
+        const preparedAttachment = await buildAssistantAttachment(file);
+        setAttachment(preparedAttachment);
+        setSelectedFile({
+          name: file.name,
+          type: file.type?.startsWith('image/') ? 'Imagen' : 'PDF',
+          size: file.size,
+        });
+        setNotice('Archivo cargado para análisis con IA. Puedes agregar contexto en el cuadro de texto si quieres orientar la extracción.');
+        return;
+      }
+
+      setError('Formato no permitido. Usa TXT, MD, PDF o una imagen PNG, JPG, WEBP o GIF.');
+    } catch (err) {
+      setError(err.message || 'No fue posible leer el archivo seleccionado.');
+    }
   };
 
   const handleDragOver = (e) => {
@@ -1430,7 +1857,7 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
           {!result ? (
             <>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Pega el texto de una noticia, la descripción de un festival o la información técnica de una escuela. El sistema extrae campos básicos localmente y, si hay IA central configurada, mejora el resultado.
+                Pega el texto de una noticia, la descripción de un festival o la información técnica de una escuela. También puedes cargar PDF o imágenes para que la IA central extraiga los campos cuando esté configurada.
               </p>
 
               <div
@@ -1445,12 +1872,43 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
                 ].join(' ')}
               >
                 <label className="cursor-pointer block">
-                  <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" />
+                  <input type="file" accept={AI_ASSISTANT_FILE_ACCEPT} onChange={handleFileUpload} className="hidden" />
                   <Upload size={24} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-xs font-bold text-slate-700">Arrastra un archivo .txt o .md aquí</p>
+                  <p className="text-xs font-bold text-slate-700">Arrastra TXT, MD, PDF o imagen aquí</p>
                   <p className="text-[0.62rem] text-slate-400 mt-1">O haz clic para seleccionar desde tu computadora</p>
                 </label>
               </div>
+
+              {selectedFile && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText size={15} className="text-[#291242] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-slate-700">{selectedFile.name}</p>
+                      <p className="text-[0.62rem] text-slate-400">{selectedFile.type} · {formatFileSize(selectedFile.size)}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setAttachment(null);
+                      setNotice('');
+                    }}
+                    className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:text-red-500 hover:border-red-200 transition"
+                    title="Quitar archivo"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
+              {notice && (
+                <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+                  <Sparkles size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                  <p className="text-xs font-medium text-blue-800">{notice}</p>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label htmlFor="ai-paste-text" className="block text-[0.62rem] font-black uppercase tracking-widest text-slate-400">O pega el texto libre aquí</label>
@@ -1518,7 +1976,7 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
             <button
               type="button"
               onClick={handleAnalyze}
-              disabled={loading || !text.trim()}
+              disabled={loading || (!text.trim() && !attachment)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[#291242] hover:bg-[#3d1a63] disabled:opacity-50 px-5 py-2.5 text-xs font-black text-white transition shadow-sm animate-pulse"
             >
               {loading ? (
@@ -1633,6 +2091,7 @@ const BulkImportModal = ({ module, divipola, existingRecords = [], onClose, onIm
           deptMunis[normalizeImportHeader(dept)] = new Set((munis || []).map(normalizeImportHeader));
         });
 
+        const importableFields = getImportableFields(module);
         const validated = [];
         for (let i = 1; i < rawLines.length; i++) {
           const row = rawLines[i];
@@ -1647,6 +2106,8 @@ const BulkImportModal = ({ module, divipola, existingRecords = [], onClose, onIm
               }
             }
           });
+
+          if (!hasImportableRowData(record, importableFields)) continue;
 
           // Silently ignore pre-populated example rows
           const isExampleRow = Object.values(record).some(val =>

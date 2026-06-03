@@ -1216,9 +1216,14 @@ public static class AdminDataEndpoints
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(request.Text))
+            var attachments = (request.Attachments ?? [])
+                .Where(item => !string.IsNullOrWhiteSpace(item.Base64Data) && IsSupportedAiAttachment(item.MimeType))
+                .Take(3)
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(request.Text) && attachments.Count == 0)
             {
-                return Results.BadRequest(new { message = "El texto a analizar no puede estar vacío." });
+                return Results.BadRequest(new { message = "Debes enviar texto o al menos un archivo PDF/imagen para analizar." });
             }
 
             var prompt = "Analiza el siguiente texto libre y extrae toda la información relevante para el módulo de base de datos '" + request.ModuleId + "'.\n" +
@@ -1366,11 +1371,15 @@ public static class AdminDataEndpoints
                     break;
             }
 
-            prompt += "\n\nTexto a analizar:\n" + request.Text;
+            prompt += "\n\nTexto o contexto a analizar:\n" + (request.Text ?? string.Empty);
+            if (attachments.Count > 0)
+            {
+                prompt += "\n\nArchivos adjuntos: analiza los PDF o imágenes enviados, incluyendo texto visible, tablas, encabezados, datos de contacto, ubicación, fechas y enlaces. Si un dato no aparece, omítelo del JSON.";
+            }
 
             try
             {
-                var resultJson = await CallGeminiApiAsync(prompt, apiKey, cancellationToken);
+                var resultJson = await CallGeminiApiAsync(prompt, attachments, apiKey, cancellationToken);
                 return Results.Ok(new { success = true, result = resultJson });
             }
             catch (Exception ex)
@@ -2659,12 +2668,39 @@ public static class AdminDataEndpoints
             .ToUpperInvariant();
     }
 
-    private sealed record AIAnalysisRequest(string Text, string ModuleId);
+    private sealed record AIAnalysisRequest(string? Text, string ModuleId, IReadOnlyList<AIAnalysisAttachment>? Attachments);
 
-    private static async Task<string> CallGeminiApiAsync(string prompt, string apiKey, CancellationToken cancellationToken)
+    private sealed record AIAnalysisAttachment(string FileName, string MimeType, string Base64Data);
+
+    private static bool IsSupportedAiAttachment(string mimeType)
+    {
+        return mimeType is "application/pdf"
+            or "image/png"
+            or "image/jpeg"
+            or "image/webp"
+            or "image/gif";
+    }
+
+    private static async Task<string> CallGeminiApiAsync(
+        string prompt,
+        IReadOnlyList<AIAnalysisAttachment> attachments,
+        string apiKey,
+        CancellationToken cancellationToken)
     {
         using var client = new HttpClient();
         var requestUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+        var parts = new List<object> { new { text = prompt } };
+        foreach (var attachment in attachments)
+        {
+            parts.Add(new
+            {
+                inline_data = new
+                {
+                    mime_type = attachment.MimeType,
+                    data = attachment.Base64Data
+                }
+            });
+        }
         
         var requestBody = new
         {
@@ -2672,10 +2708,7 @@ public static class AdminDataEndpoints
             {
                 new
                 {
-                    parts = new[]
-                    {
-                        new { text = prompt }
-                    }
+                    parts
                 }
             },
             generationConfig = new

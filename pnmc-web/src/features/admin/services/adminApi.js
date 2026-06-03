@@ -339,12 +339,12 @@ export const upsertAdminRecord = ({ endpoint, payload }) => fetchApiJson({
   errorFallback: 'No fue posible guardar el registro administrativo',
 });
 
-export const analyzeTextWithAI = ({ text, moduleId }) => fetchApiJson({
+export const analyzeTextWithAI = ({ text, moduleId, attachments = [] }) => fetchApiJson({
   path: '/api/v1/admin/data/ai/analyze',
   init: buildAdminInit({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, moduleId }),
+    body: JSON.stringify({ text, moduleId, attachments }),
   }),
   errorFallback: 'No fue posible analizar el texto con el asistente de IA',
 });
