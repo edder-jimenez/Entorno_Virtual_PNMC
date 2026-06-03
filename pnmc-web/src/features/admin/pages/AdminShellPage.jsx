@@ -83,6 +83,7 @@ import {
 } from '../services/adminApi.js';
 
 import { getWebText, saveWebText, getWebTextDetails, getWebTextsKeysList } from '../../../lib/webTexts.js';
+import { AdminAIAssistantPanel } from '../components/AdminAIAssistantPanel.jsx';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UTILITY FUNCTIONS (preserved + new helpers)
@@ -7510,6 +7511,7 @@ const NAV_SECTIONS = [
       { id: 'review', label: 'Revisión', icon: ClipboardList },
       { id: 'governance', label: 'Gestión de solicitudes y vinculaciones', icon: Cpu, allowedRoles: ['webmaster', 'gestor_interno'] },
       { id: 'web_texts', label: 'Administración de textos', icon: FileText, allowedRoles: ['webmaster', 'gestor_interno'] },
+      { id: 'ai_assistant', label: 'Asistente de Importación IA', icon: Sparkles },
     ],
   },
   {
@@ -8058,6 +8060,9 @@ export const AdminShellPage = ({ initialPortal = 'internal' }) => {
           )}
           {activeSection === 'web_texts' && (
             <AdminWebTextsPanel enabled={roleId === 'webmaster' || roleId === 'gestor_interno'} session={session} />
+          )}
+          {activeSection === 'ai_assistant' && (
+            <AdminAIAssistantPanel divipola={divipola} />
           )}
         </div>
       </main>
