@@ -98,21 +98,12 @@ const cleanText = (str = '') => {
     .trim();
 };
 
-// Title Case helper
-const titleCase = (str = '') => {
-  if (!str) return '';
-  return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.substring(1)).join(' ');
-};
-
 export const AdminAIAssistantPanel = ({ divipola = {} }) => {
-  // Wizard steps: 1 = Files Upload, 2 = Columns Mapping, 3 = Cleansing & Preview
+  // Wizard steps: 1 = File Upload, 2 = Columns Mapping, 3 = Cleansing & Preview
   const [step, setStep] = useState(1);
   const [selectedModuleId, setSelectedModuleId] = useState('');
   
   // Files states
-  const [templateFile, setTemplateFile] = useState(null);
-  const [templateHeaders, setTemplateHeaders] = useState([]);
-  
   const [sourceFile, setSourceFile] = useState(null);
   const [sourceHeaders, setSourceHeaders] = useState([]);
   const [sourceRows, setSourceRows] = useState([]);
@@ -131,14 +122,13 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
   const [chatMessages, setChatMessages] = useState([
     {
       sender: 'ai',
-      text: '¡Hola! Soy tu Asistente de Importación IA. Estoy listo para ayudarte a formatear y depurar tus bases de datos externas para que encajen perfectamente en la plataforma PNMC. \n\nSube la plantilla de Excel del sistema y tu base de datos externa para comenzar.'
+      text: '¡Hola! Soy tu asistente de consulta de datos local. Sube tu archivo Excel o CSV de base de datos externa y selecciona a qué módulo quieres adaptar la información.\n\nUna vez procesada, podré responder preguntas rápidas sobre tus registros (ej. "cuántos registros se procesaron", "cuántas advertencias hay" o buscar algún nombre o lugar específico).'
     }
   ]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
 
-  // File Inputs references
-  const templateInputRef = useRef(null);
+  // File Input reference
   const sourceInputRef = useRef(null);
 
   // Active module definition
@@ -151,110 +141,161 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Auto-trigger chatbot responses during step transitions
   const addAiMessage = (text) => {
     setChatMessages(prev => [...prev, { sender: 'ai', text }]);
   };
 
-  // Chat message submission
-  const handleSendMessage = (textToSend = '') => {
-    const msg = textToSend || chatInput;
-    if (!msg.trim()) return;
+  // Chat message submission with local data analysis query engine
+  const handleSendMessage = () => {
+    const msg = chatInput.trim();
+    if (!msg) return;
 
     const userMsg = { sender: 'user', text: msg };
     setChatMessages(prev => [...prev, userMsg]);
-    if (!textToSend) setChatInput('');
+    setChatInput('');
 
-    // Generate smart local bot response based on context
+    // Generate response using local context
     setTimeout(() => {
       let response = '';
       const normMsg = cleanText(msg);
 
-      if (normMsg.includes('map') || normMsg.includes('columna') || normMsg.includes('no coinciden')) {
-        response = 'Intento emparejar tus columnas por similitud de nombres. Si una columna no se asignó correctamente en el Paso 2, puedes cambiarla usando el selector correspondiente. ¡Asegúrate de mapear los campos obligatorios marcados en rojo!';
-      } else if (normMsg.includes('divipola') || normMsg.includes('municipio') || normMsg.includes('departamento')) {
-        response = 'Valido los departamentos y municipios contra el catálogo oficial DIVIPOLA de Colombia. Si el bot encuentra diferencias ortográficas (como "Bogota" o "Narino"), las corregirá automáticamente. Si el municipio no corresponde al departamento, te mostrará una advertencia.';
-      } else if (normMsg.includes('correo') || normMsg.includes('email') || normMsg.includes('telefono') || normMsg.includes('celular')) {
-        response = 'Sí, limpio los correos eliminando espacios invisibles y pasándolos a minúsculas. Para los teléfonos, remuevo guiones, puntos o espacios para que queden listos para la importación. Si detecto un correo sin "@", te daré una observación de advertencia.';
-      } else if (normMsg.includes('descargar') || normMsg.includes('excel') || normMsg.includes('plantilla')) {
-        response = 'Al finalizar en el Paso 3, generaré un archivo Excel con la estructura de cabeceras oficial y el estilo visual de la plataforma. Este archivo descargado lo podrás subir directamente al importador bulk de la sección correspondiente en la administración.';
-      } else if (normMsg.includes('hola') || normMsg.includes('buenos') || normMsg.includes('tardes')) {
-        response = '¡Hola! ¿En qué puedo ayudarte hoy en tu proceso de conversión de archivos? Puedes subir una plantilla oficial y tu base de datos externa para guiarte.';
+      if (sourceRows.length === 0) {
+        response = 'Aún no has cargado ninguna base de datos externa. Por favor, sube tu archivo en el Paso 1 y selecciona el módulo de destino para que pueda analizar tus registros.';
       } else {
-        response = 'Entiendo. Recuerda que este asistente lee tus Excels de manera 100% local en tu navegador para proteger la privacidad de los datos. Si tienes dudas sobre los campos de ' + (activeModule?.label || 'los módulos') + ', házmelo saber y te daré detalles de su formato.';
+        // Query options
+        if (normMsg.includes('registros') || normMsg.includes('filas') || normMsg.includes('cantidad') || normMsg.includes('cuantos') || normMsg.includes('cuantas')) {
+          if (step < 3) {
+            response = `Actualmente tienes cargados **${sourceRows.length} registros** en espera de ser mapeados y procesados. Avanza al Paso 3 para ver la limpieza de datos detallada.`;
+          } else {
+            response = `He procesado **${stats.total} registros** con éxito para el módulo **${activeModule?.label}**.\n- Mapeados: ${stats.clean}\n- Correcciones automáticas aplicadas: ${stats.corrections}\n- Advertencias/Avisos: ${stats.warnings}`;
+          }
+        } 
+        else if (normMsg.includes('error') || normMsg.includes('advertencia') || normMsg.includes('alerta') || normMsg.includes('fallo') || normMsg.includes('problema')) {
+          if (step < 3) {
+            response = 'El análisis de advertencias y errores se ejecuta en el Paso 3, una vez finalizado el mapeo de columnas. ¡Continúa con el flujo para verlo!';
+          } else if (stats.warnings === 0) {
+            response = '¡Excelente noticia! No he encontrado ninguna advertencia en el archivo procesado. Todos los campos obligatorios están diligenciados y el mapeo está completo.';
+          } else {
+            const warningSamples = observations.filter(o => o.type === 'warning').slice(0, 3);
+            response = `Encontré un total de **${stats.warnings} advertencias**. Aquí tienes algunas muestras:\n\n` + 
+              warningSamples.map(o => `• ${o.message}`).join('\n') + 
+              (stats.warnings > 3 ? `\n\n...y otras ${stats.warnings - 3} advertencias adicionales que puedes consultar en la sección inferior de observaciones.` : '');
+          }
+        }
+        else if (normMsg.includes('correccion') || normMsg.includes('limpi') || normMsg.includes('cambio') || normMsg.includes('normaliz')) {
+          if (step < 3) {
+            response = 'Las correcciones de formato de correos, teléfonos y normalización DIVIPOLA se aplicarán en el Paso 3 tras definir el mapeo.';
+          } else if (stats.corrections === 0) {
+            response = 'No se requirió realizar ninguna corrección automática. Los datos de teléfonos, correos y departamentos venían con el formato correcto.';
+          } else {
+            const correctionSamples = observations.filter(o => o.type === 'correction').slice(0, 3);
+            response = `He aplicado **${stats.corrections} correcciones automáticas** para limpiar los datos. Algunos ejemplos:\n\n` +
+              correctionSamples.map(o => `• ${o.message}`).join('\n') +
+              (stats.corrections > 3 ? `\n\n...y otras ${stats.corrections - 3} modificaciones automáticas registradas.` : '');
+          }
+        }
+        else if (normMsg.length >= 3) {
+          // General search inside processed or raw rows
+          const searchWord = normMsg;
+          const matches = [];
+
+          if (step === 3 && processedRows.length > 0) {
+            processedRows.forEach((row, idx) => {
+              const matchedFields = [];
+              Object.entries(row).forEach(([key, val]) => {
+                if (cleanText(String(val)).includes(searchWord)) {
+                  const fieldLabel = activeModule.fields.find(f => f.name === key)?.label || key;
+                  matchedFields.push(`**${fieldLabel}**: "${val}"`);
+                }
+              });
+
+              if (matchedFields.length > 0) {
+                const nameVal = row.name || row.title || `Fila ${idx + 2}`;
+                matches.push({
+                  rowNum: idx + 2,
+                  name: nameVal,
+                  details: matchedFields.join(', ')
+                });
+              }
+            });
+          } else {
+            // Search in raw data
+            sourceRows.forEach((row, idx) => {
+              const matchedVals = [];
+              row.forEach((val, colIdx) => {
+                if (cleanText(String(val)).includes(searchWord)) {
+                  matchedVals.push(`**Columna ${sourceHeaders[colIdx]}**: "${val}"`);
+                }
+              });
+              if (matchedVals.length > 0) {
+                matches.push({
+                  rowNum: idx + 2,
+                  name: `Fila ${idx + 2}`,
+                  details: matchedVals.join(', ')
+                });
+              }
+            });
+          }
+
+          if (matches.length === 0) {
+            response = `No encontré ninguna fila que contenga el término "${msg}" en los datos cargados.`;
+          } else {
+            const count = matches.length;
+            const samples = matches.slice(0, 4);
+            response = `Encontré **${count} coincidencias** para "${msg}":\n\n` +
+              samples.map(m => `• [Fila ${m.rowNum}] **${m.name}** (${m.details})`).join('\n') +
+              (count > 4 ? `\n\n...y otras ${count - 4} filas coincidentes.` : '');
+          }
+        }
+        else {
+          response = 'Entiendo. Recuerda que puedes preguntarme sobre las estadísticas (ej. "cuántos registros", "qué errores hay") o buscar términos específicos dentro de tu Excel escribiendo su nombre.';
+        }
       }
 
       addAiMessage(response);
-    }, 800);
+    }, 700);
   };
 
-  // FAQ Quick Clicks
-  const handleFaqClick = (question, answer) => {
-    setChatMessages(prev => [...prev, { sender: 'user', text: question }]);
-    setTimeout(() => {
-      addAiMessage(answer);
-    }, 500);
-  };
+  // Helper to trigger empty template download from local admin
+  const handleDownloadEmptyTemplate = async () => {
+    if (!activeModule) return;
+    try {
+      // Create empty workbook
+      const fields = activeModule.fields.filter(f => f.name !== 'id' && f.name !== 'status');
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Entorno Virtual PNMC';
+      workbook.created = new Date();
 
-  // Read template Excel file
-  const handleTemplateUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+      const templateSheet = workbook.addWorksheet('Plantilla', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+      });
 
-    setTemplateFile(file);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rawLines = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+      templateSheet.addRow(fields.map(f => f.label));
+      
+      // Styling
+      templateSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      templateSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF291242' } };
+      templateSheet.getRow(1).alignment = { vertical: 'middle', wrapText: true };
+      templateSheet.getRow(1).height = 30;
 
-        if (rawLines.length === 0) {
-          alert('El archivo de plantilla está vacío.');
-          return;
-        }
+      templateSheet.columns = fields.map(f => ({ width: Math.max(18, String(f.label || '').length + 4) }));
 
-        const headers = rawLines[0].map(h => String(h || '').trim());
-        setTemplateHeaders(headers);
-
-        // Detect module based on headers
-        let detected = null;
-        let maxScore = 0;
-        
-        ADMIN_MODULES.forEach(mod => {
-          const modFields = mod.fields.filter(f => !f.system && !['id', 'status'].includes(f.name));
-          let matches = 0;
-          modFields.forEach(field => {
-            const cleanLabel = cleanText(field.label);
-            const cleanFieldName = cleanText(field.name);
-            headers.forEach(h => {
-              const cleanH = cleanText(h);
-              if (cleanH === cleanLabel || cleanH === cleanFieldName) {
-                matches++;
-              }
-            });
-          });
-          
-          if (matches > maxScore) {
-            maxScore = matches;
-            detected = mod.id;
-          }
-        });
-
-        if (detected) {
-          setSelectedModuleId(detected);
-          addAiMessage(`¡Excelente! He analizado la plantilla "${file.name}" y detecté automáticamente que corresponde al módulo de **${ADMIN_MODULES.find(m => m.id === detected).label}**. He cargado ${headers.length} campos destino.`);
-        } else {
-          addAiMessage(`He cargado la plantilla "${file.name}" con ${headers.length} columnas, pero no pude determinar con certeza el módulo. Por favor, selecciona el módulo destino manualmente en la lista desplegable.`);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error al leer la plantilla de Excel: ' + err.message);
-      }
-    };
-    reader.readAsArrayBuffer(file);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `plantilla_${activeModule.id}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Error al descargar la plantilla vacía.');
+    }
   };
 
   // Read Source Database File
@@ -290,7 +331,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
         setSourceHeaders(headers);
         setSourceRows(rows);
 
-        addAiMessage(`Se ha cargado tu base de datos "${file.name}" con éxito. Contiene **${rows.length} registros** y **${headers.length} columnas**. Avancemos al Paso 2 para configurar el mapeo.`);
+        addAiMessage(`Cargada la base de datos "${file.name}" con **${rows.length} registros** y **${headers.length} columnas**.`);
       } catch (err) {
         console.error(err);
         alert('Error al leer el archivo origen: ' + err.message);
@@ -408,8 +449,6 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
 
   const handleReset = () => {
     setStep(1);
-    setTemplateFile(null);
-    setTemplateHeaders([]);
     setSourceFile(null);
     setSourceHeaders([]);
     setSourceRows([]);
@@ -417,7 +456,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
     setSelectedModuleId('');
     setProcessedRows([]);
     setObservations([]);
-    addAiMessage('Se han restablecido los archivos y la configuración. Sube de nuevo tus archivos para iniciar.');
+    addAiMessage('Se han restablecido los datos. Por favor, selecciona el módulo y carga el archivo para comenzar de nuevo.');
   };
 
   // Transition from Step 1 to Step 2
@@ -431,7 +470,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
       return;
     }
     setStep(2);
-    addAiMessage(`Bienvenido al Paso 2: Mapeo de Columnas. He realizado un análisis inicial de similitud y emparejé las columnas de tu Excel con el formato de **${activeModule.label}**. Puedes revisar los campos abajo y ajustar cualquier dropdown si es necesario.`);
+    addAiMessage(`Hemos avanzado al Paso 2: Mapeo de Columnas. He enlazado las columnas sugeridas para el módulo **${activeModule.label}**. Puedes revisar los campos abajo y ajustar lo que requieras.`);
   };
 
   // Perform cleaning and mapping of data rows (Step 3 processing)
@@ -624,7 +663,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
       });
       setProcessing(false);
 
-      addAiMessage(`¡Limpieza y mapeo completados! He procesado **${sourceRows.length} registros**. Encontré **${newObs.filter(o => o.type === 'correction').length} correcciones automáticas** (DIVIPOLA, correos) y **${newObs.filter(o => o.type === 'warning').length} advertencias** sobre campos incompletos o erróneos. Ya puedes descargar el archivo final estructurado.`);
+      addAiMessage(`¡Limpieza y mapeo completados! He procesado **${sourceRows.length} registros**. Encontré **${newObs.filter(o => o.type === 'correction').length} correcciones automáticas** (DIVIPOLA, correos) y **${newObs.filter(o => o.type === 'warning').length} advertencias**. El archivo está listo para su descarga.`);
     }, 1200);
   };
 
@@ -683,7 +722,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
       link.remove();
       URL.revokeObjectURL(url);
 
-      addAiMessage(`¡El archivo "pnmc_importado_${activeModule.id}_ia.xlsx" ha sido generado y descargado! Ahora puedes dirigirte al módulo de **${activeModule.label}** e importarlo usando el botón estándar.`);
+      addAiMessage(`¡El archivo "pnmc_importado_${activeModule.id}_ia.xlsx" ha sido generado y descargado! Puedes subirlo directamente en la sección del módulo de ${activeModule.label}.`);
     } catch (err) {
       console.error(err);
       alert('Error al generar el archivo Excel: ' + err.message);
@@ -706,7 +745,7 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
               <h2 className="text-xl font-black text-[#291242]">Asistente de Importación IA</h2>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Mapea, depura y formatea tus bases de datos de forma local y segura.
+              Adapta bases de datos externas de cualquier estructura al formato del sistema de forma local y segura.
             </p>
           </div>
 
@@ -733,25 +772,25 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
             <span className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs ${step > 1 ? 'bg-[#00DA5E] text-white' : step === 1 ? 'bg-[#291242] text-white' : 'bg-slate-200 text-slate-500'}`}>
               {step > 1 ? <Check size={10} /> : '1'}
             </span>
-            Archivos
+            Archivos y Módulo
           </div>
           <ArrowRight size={14} className="text-slate-300" />
           <div className={`flex items-center gap-2 pb-2 text-sm font-semibold transition ${step === 2 ? 'border-b-2 border-[#00DA5E] text-slate-900' : 'text-slate-400'}`}>
             <span className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs ${step > 2 ? 'bg-[#00DA5E] text-white' : step === 2 ? 'bg-[#291242] text-white' : 'bg-slate-200 text-slate-500'}`}>
               {step > 2 ? <Check size={10} /> : '2'}
             </span>
-            Mapeo
+            Mapeo de Columnas
           </div>
           <ArrowRight size={14} className="text-slate-300" />
           <div className={`flex items-center gap-2 pb-2 text-sm font-semibold transition ${step === 3 ? 'border-b-2 border-[#00DA5E] text-slate-900' : 'text-slate-400'}`}>
             <span className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs ${step === 3 ? 'bg-[#291242] text-white' : 'bg-slate-200 text-slate-500'}`}>
               3
             </span>
-            Resultados
+            Resultados y Descarga
           </div>
         </div>
 
-        {/* STEP 1: UPLOAD FILES */}
+        {/* STEP 1: SELECT MODULE AND UPLOAD FILE */}
         {step === 1 && (
           <div className="flex flex-col gap-6">
             
@@ -760,59 +799,53 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
               <div className="flex items-start gap-2">
                 <Info size={16} className="mt-0.5 flex-shrink-0 text-[#291242]" />
                 <div>
-                  <span className="font-bold">¿Cómo funciona?</span>
+                  <span className="font-bold">Instrucciones de Importación</span>
                   <ul className="mt-1 list-disc pl-4 space-y-1">
-                    <li>Sube la plantilla oficial (.xlsx) descargada del Entorno Virtual (el bot detectará qué módulo corresponde automáticamente).</li>
-                    <li>Sube tu Excel o CSV de base de datos externa (el bot analizará las columnas).</li>
-                    <li>Si no tienes una plantilla descargada, simplemente selecciona el módulo de destino manualmente en el selector inferior.</li>
+                    <li>Selecciona el módulo destino al cual quieres adaptar los registros.</li>
+                    <li>Sube tu archivo de base de datos externa (.xlsx, .xls, .csv).</li>
+                    <li>El bot detectará y emparejará las columnas origen con las del sistema automáticamente en el siguiente paso.</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* Drop Zones */}
-            <div className="grid gap-6 md:grid-cols-2">
+            {/* Inputs Block */}
+            <div className="flex flex-col gap-5">
               
-              {/* Target Template Box */}
-              <div className="flex flex-col">
-                <label className="mb-2 text-xs font-black uppercase tracking-wider text-slate-600">
-                  1. Plantilla Destino (.xlsx)
+              {/* Module Selector */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="moduleSelector" className="text-xs font-black uppercase tracking-wider text-slate-600">
+                  1. Módulo del sistema de destino
                 </label>
-                <div
-                  onClick={() => templateInputRef.current?.click()}
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition ${templateFile ? 'border-[#00DA5E] bg-green-50/20' : 'border-slate-300 hover:border-[#291242] bg-slate-50/50 hover:bg-slate-50'}`}
+                <select
+                  id="moduleSelector"
+                  value={selectedModuleId}
+                  onChange={(e) => {
+                    setSelectedModuleId(e.target.value);
+                    if (e.target.value) {
+                      const matched = ADMIN_MODULES.find(m => m.id === e.target.value);
+                      addAiMessage(`Excelente, adaptaremos tus datos para el módulo **${matched.label}**. Ahora sube tu archivo Excel o CSV de origen.`);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:border-[#291242] focus:ring-1 focus:ring-[#291242] outline-none transition"
                 >
-                  <input
-                    ref={templateInputRef}
-                    type="file"
-                    accept=".xlsx"
-                    onChange={handleTemplateUpload}
-                    className="hidden"
-                  />
-                  {templateFile ? (
-                    <>
-                      <FileSpreadsheet size={28} className="text-[#00DA5E]" />
-                      <span className="mt-2 block text-xs font-black text-slate-900 truncate max-w-[200px]">{templateFile.name}</span>
-                      <span className="mt-1 block text-2xs text-[#00DA5E] font-bold">Plantilla cargada correctamente</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={28} className="text-slate-400" />
-                      <span className="mt-2 block text-xs font-bold text-slate-800">Cargar Plantilla Oficial</span>
-                      <span className="mt-1 block text-2xs text-slate-400">Arrastra o haz clic para subir</span>
-                    </>
-                  )}
-                </div>
+                  <option value="">-- Seleccionar Módulo Destino --</option>
+                  {ADMIN_MODULES.filter(m => ['festivals', 'musicSchools', 'musicMarkets', 'organizations', 'spacesInfrastructure'].includes(m.id)).map((mod) => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Source Database Box */}
               <div className="flex flex-col">
                 <label className="mb-2 text-xs font-black uppercase tracking-wider text-slate-600">
-                  2. Base de Datos Origen (.xlsx, .csv)
+                  2. Cargar tu Base de Datos Externa (.xlsx, .csv)
                 </label>
                 <div
                   onClick={() => sourceInputRef.current?.click()}
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition ${sourceFile ? 'border-[#00DA5E] bg-green-50/20' : 'border-slate-300 hover:border-[#291242] bg-slate-50/50 hover:bg-slate-50'}`}
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition ${sourceFile ? 'border-[#00DA5E] bg-green-50/10' : 'border-slate-300 hover:border-[#291242] bg-slate-50/50 hover:bg-slate-50'}`}
                 >
                   <input
                     ref={sourceInputRef}
@@ -823,48 +856,42 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
                   />
                   {sourceFile ? (
                     <>
-                      <FileSpreadsheet size={28} className="text-[#00DA5E]" />
-                      <span className="mt-2 block text-xs font-black text-slate-900 truncate max-w-[200px]">{sourceFile.name}</span>
+                      <FileSpreadsheet size={36} className="text-[#00DA5E]" />
+                      <span className="mt-2 block text-xs font-black text-slate-900 truncate max-w-[320px]">{sourceFile.name}</span>
                       <span className="mt-1 block text-2xs text-[#00DA5E] font-bold">
                         {sourceRows.length} registros cargados
                       </span>
                     </>
                   ) : (
                     <>
-                      <Upload size={28} className="text-slate-400" />
-                      <span className="mt-2 block text-xs font-bold text-slate-800">Cargar Datos Externos</span>
+                      <Upload size={36} className="text-slate-400" />
+                      <span className="mt-2 block text-xs font-bold text-slate-800">Cargar Archivo de Datos</span>
                       <span className="mt-1 block text-2xs text-slate-400">Arrastra o haz clic para subir</span>
                     </>
                   )}
                 </div>
               </div>
 
-            </div>
+              {/* Template Download Utility */}
+              {activeModule && (
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText size={16} className="text-[#291242]" />
+                    <span className="font-semibold text-slate-700">
+                      ¿Quieres ver el formato oficial de {activeModule.label}?
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadEmptyTemplate}
+                    className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1 text-2xs font-bold text-[#291242] transition hover:bg-slate-50"
+                  >
+                    <Download size={10} />
+                    Ver Plantilla Oficial
+                  </button>
+                </div>
+              )}
 
-            {/* Manual Selector */}
-            <div className="mt-2 flex flex-col gap-2">
-              <label htmlFor="moduleSelector" className="text-xs font-black uppercase tracking-wider text-slate-600">
-                Selección de Módulo Destino Manual (Opcional)
-              </label>
-              <select
-                id="moduleSelector"
-                value={selectedModuleId}
-                onChange={(e) => {
-                  setSelectedModuleId(e.target.value);
-                  if (e.target.value) {
-                    const matched = ADMIN_MODULES.find(m => m.id === e.target.value);
-                    addAiMessage(`Has seleccionado manualmente el módulo **${matched.label}**. Mapearemos los datos a este formato.`);
-                  }
-                }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:border-[#291242] focus:ring-1 focus:ring-[#291242] outline-none"
-              >
-                <option value="">-- Seleccionar Módulo Destino --</option>
-                {ADMIN_MODULES.map((mod) => (
-                  <option key={mod.id} value={mod.id}>
-                    {mod.label} ({mod.description})
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Confirm / Continue Button */}
@@ -1125,12 +1152,12 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
 
       </div>
 
-      {/* Local AI Assistant Chat & FAQ Sidebar (Right) */}
+      {/* Local AI Assistant Chat & Query Sidebar (Right) */}
       <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm lg:w-[320px] flex flex-col gap-4">
         
         {/* Sidebar Bot Title */}
         <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#291242] text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#291242] text-white animate-pulse">
             <Bot size={16} />
           </div>
           <div>
@@ -1143,11 +1170,11 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
         </div>
 
         {/* Chat Messages Box */}
-        <div className="flex-1 min-h-[220px] max-h-[300px] overflow-y-auto bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2.5">
+        <div className="flex-1 min-h-[260px] max-h-[360px] overflow-y-auto bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2.5">
           {chatMessages.map((msg, index) => (
             <div
               key={index}
-              className={`flex gap-2 max-w-[85%] rounded-lg p-2.5 text-2xs leading-relaxed ${msg.sender === 'ai' ? 'bg-slate-100 text-slate-800 self-start' : 'bg-[#291242] text-white self-end'}`}
+              className={`flex gap-2 max-w-[90%] rounded-lg p-2.5 text-2xs leading-relaxed ${msg.sender === 'ai' ? 'bg-slate-100 text-slate-800 self-start' : 'bg-[#291242] text-white self-end'}`}
             >
               {msg.sender === 'ai' && (
                 <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#291242] text-white text-3xs mt-0.5">
@@ -1160,38 +1187,9 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Quick FAQs section */}
-        <div className="flex flex-col gap-1">
-          <span className="text-3xs font-black uppercase text-slate-400 tracking-wider">Preguntas Rápidas</span>
-          <div className="flex flex-wrap gap-1">
-            <button
-              onClick={() => handleFaqClick(
-                '¿Cómo funciona el mapeo?',
-                'Leo las cabeceras de ambos Excels y comparo por palabras clave. Puedes cambiar cualquier campo con los dropdowns del Paso 2.'
-              )}
-              className="rounded-lg bg-white border border-slate-200 px-2 py-1 text-3xs font-bold text-slate-600 hover:border-[#291242] text-left transition"
-            >
-              📊 Mapeo automático
-            </button>
-            <button
-              onClick={() => handleFaqClick(
-                '¿Qué valida DIVIPOLA?',
-                'DIVIPOLA es la base de datos de municipios de Colombia. Normalizo tildes y nombres de municipios y departamentos correspondientes.'
-              )}
-              className="rounded-lg bg-white border border-slate-200 px-2 py-1 text-3xs font-bold text-slate-600 hover:border-[#291242] text-left transition"
-            >
-              🇨🇴 DIVIPOLA Colombia
-            </button>
-            <button
-              onClick={() => handleFaqClick(
-                '¿Qué hace con los correos y teléfonos?',
-                'Limpio espacios en blanco, paso correos a minúsculas y quito caracteres especiales de teléfonos para estandarizar el formato.'
-              )}
-              className="rounded-lg bg-white border border-slate-200 px-2 py-1 text-3xs font-bold text-slate-600 hover:border-[#291242] text-left transition"
-            >
-              ✉️ Correo / Teléfono
-            </button>
-          </div>
+        {/* Info Bubble explaining what the user can ask */}
+        <div className="rounded-lg bg-purple-50/55 border border-purple-100 p-2 text-3xs text-purple-900 leading-normal font-semibold">
+          💡 Puedes consultarme estadísticas escribiendo: <i>"cuántos registros"</i> o <i>"cuántos errores hay"</i>. También puedes buscar algún término (ej. nombre o municipio).
         </div>
 
         {/* Input Chat */}
@@ -1204,10 +1202,10 @@ export const AdminAIAssistantPanel = ({ divipola = {} }) => {
         >
           <input
             type="text"
-            placeholder="Pregúntale al bot..."
+            placeholder="Pregunta sobre tus registros..."
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            className="flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-2xs font-semibold text-slate-800 outline-none focus:border-[#291242]"
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-2xs font-semibold text-slate-800 outline-none focus:border-[#291242] transition"
           />
           <button
             type="submit"
