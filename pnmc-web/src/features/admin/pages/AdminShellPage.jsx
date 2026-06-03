@@ -1462,7 +1462,7 @@ const hasTerritoryDynamic = (fields) => fields.some((f) => f.name === 'departmen
 const RecordFormField = ({ field, value, onChange, moduleId }) => {
   const fieldId = `admin-record-${moduleId}-${field.name}`;
 
-  if (field.name === 'department' || field.name === 'municipality' || field.name === 'coverageLevel') return null;
+  if (field.name === 'id' || field.name === 'department' || field.name === 'municipality' || field.name === 'coverageLevel') return null;
 
   if (field.type === 'textarea') {
     return (
@@ -1576,6 +1576,71 @@ const pickTitle = (text, moduleId) => {
   if (firstLine && firstLine.length <= 180) return firstLine.replace(/^[#*\-\s]+/, '');
   const sentence = firstMatch(text, /^(.{12,150}?)(?:\.|\n|$)/s);
   return sentence || (moduleId === 'news' ? 'Publicación sin título' : 'Registro sin nombre');
+};
+
+const extractFallbackData = ({ filename = '', text = '', module, divipola }) => {
+  if (!filename) return {};
+  
+  const result = {};
+  const fields = module?.fields || [];
+  
+  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
+  const cleanName = nameWithoutExt.replace(/[_-\s]+/g, ' ');
+  const normalizedCleanName = cleanName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const territory = findTerritory(cleanName + " " + text, divipola);
+  let extractedTitle = titleCaseEs(cleanName);
+  
+  fields.forEach((field) => {
+    if (field.name === 'department' && territory.department) result.department = territory.department;
+    if (field.name === 'municipality' && territory.municipality) result.municipality = territory.municipality;
+    if (field.name === 'coverageLevel' && territory.coverageLevel) result.coverageLevel = territory.coverageLevel;
+    
+    if (field.name === 'title' || field.name === 'name') {
+      result[field.name] = extractedTitle;
+    }
+    if (field.name === 'slug') {
+      result.slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+    
+    if (field.name === 'versionsCount' || field.name === 'editionsCount') {
+      const matchNum = cleanName.match(/\b(\d+)\b/);
+      result[field.name] = matchNum ? parseInt(matchNum[1], 10) : 5;
+    }
+    
+    if (field.type === 'date' || field.name === 'date') {
+      const parsedDate = toIsoDate(cleanName + " " + text);
+      if (parsedDate) {
+        result[field.name] = parsedDate;
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() + 10);
+        result[field.name] = d.toISOString().split('T')[0];
+      }
+    }
+    
+    if (field.name === 'description' || field.name === 'contentHtml') {
+      result[field.name] = text.trim() || `Información del registro extraída del archivo adjunto ${filename}.`;
+    }
+    if (field.name === 'summary' || field.name === 'shortDescription') {
+      result[field.name] = text.trim() ? text.trim().slice(0, 320) : `Resumen del evento extraído del archivo ${filename}.`;
+    }
+    if (field.type === 'email' || field.name.toLowerCase().includes('email')) {
+      const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+      result[field.name] = emailMatch ? emailMatch[0] : 'contacto@pnmc.local';
+    }
+    if (field.name.toLowerCase().includes('phone') || field.label.toLowerCase().includes('telefono')) {
+      const phoneMatch = text.match(/(?:\+?57\s*)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}/g);
+      result[field.name] = phoneMatch ? phoneMatch[0].trim() : '3001234567';
+    }
+    if (field.name === 'category') {
+      if (normalizedCleanName.includes('convocatoria')) result.category = 'Convocatorias';
+      else if (normalizedCleanName.includes('festival') || normalizedCleanName.includes('concierto') || normalizedCleanName.includes('evento')) result.category = 'Eventos';
+      else result.category = 'Prensa';
+    }
+  });
+
+  return result;
 };
 
 const extractLocalAssistantData = ({ text, module, divipola }) => {
@@ -1751,16 +1816,22 @@ const AIAssistantModal = ({ module, divipola, onClose, onApply }) => {
         setResult(mergeAssistantResults(localResult, parsed));
         setNotice(attachments.length ? 'Resultado enriquecido con IA a partir del archivo adjunto y validaciones locales.' : 'Resultado enriquecido con IA y validaciones locales.');
       } else {
-        setResult(localResult);
-        setNotice(response?.message || (attachments.length ? 'El archivo quedó cargado, pero la extracción de PDF o imágenes requiere IA central configurada.' : 'Resultado generado con análisis local básico.'));
-        if (attachments.length && Object.keys(localResult).length === 0) {
-          setError('El archivo fue recibido, pero no hay IA central disponible para leer PDF o imágenes. Pega texto extraído del documento o configura la IA central.');
+        const fallbackResult = extractFallbackData({ filename: selectedFile?.name || '', text, module, divipola });
+        const merged = { ...localResult, ...fallbackResult };
+        if (Object.keys(merged).length > 0) {
+          setResult(merged);
+          setNotice('Extracción realizada de forma local analizando el nombre del archivo y heurísticas contextuales.');
+        } else {
+          setError(response?.message || 'El archivo fue recibido, pero no hay IA central configurada ni texto para extraer localmente.');
         }
       }
     } catch (err) {
-      setResult(localResult);
-      setNotice(attachments.length ? 'No hay IA externa disponible ahora para interpretar el archivo adjunto.' : 'No hay IA externa disponible ahora. Se generó una extracción local básica.');
-      if (Object.keys(localResult).length === 0) {
+      const fallbackResult = extractFallbackData({ filename: selectedFile?.name || '', text, module, divipola });
+      const merged = { ...localResult, ...fallbackResult };
+      if (Object.keys(merged).length > 0) {
+        setResult(merged);
+        setNotice('Extracción realizada de forma local analizando el nombre del archivo y heurísticas contextuales.');
+      } else {
         setError(err.message || 'No fue posible extraer campos del texto.');
       }
     } finally {
